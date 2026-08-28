@@ -1,10 +1,11 @@
-export function BrandLogo({ className = 'h-6', href = '/' }) {
+import { cn } from '../lib/cn';
+
+export const LOGO_SRC = '/images/logo.png';
+
+export function BrandLogo({ className = 'h-9', href = '/' }) {
     return (
-        <a href={href} className={`flex items-center gap-2 font-extrabold tracking-tight ${className}`}>
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground">B</span>
-            <span>
-                BOOSTDZ <span className="align-super text-[0.55em] font-semibold">®</span>
-            </span>
+        <a href={href} className="inline-flex shrink-0 items-center">
+            <img src={LOGO_SRC} alt="BOOSTDZ" className={cn('w-auto object-contain', className)} />
         </a>
     );
 }

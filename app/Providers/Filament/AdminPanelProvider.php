@@ -28,8 +28,9 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('BOOSTDZ')
-            ->brandLogo(asset('favicon.svg'))
-            ->brandLogoHeight('2rem')
+            ->brandLogo(asset('images/logo.png'))
+            ->brandLogoHeight('2.5rem')
+            ->favicon(asset('images/logo.png'))
             ->colors([
                 'primary' => Color::hex('#3b5bdb'),
             ])

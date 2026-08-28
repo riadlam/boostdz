@@ -45,7 +45,7 @@ function Header() {
             )}
         >
             <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-                <BrandLogo className="text-base" />
+                <BrandLogo className="h-9" />
                 <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
                     {nav.map((item) => (
                         <a key={item.href} href={item.href} className="hover:text-foreground">

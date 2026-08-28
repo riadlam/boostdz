@@ -53,7 +53,7 @@ export default function SignIn() {
 
             <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-10">
                 <div className="mb-8 flex flex-col items-center text-center">
-                    <BrandLogo className="text-base" href="/" />
+                    <BrandLogo className="h-9" href="/" />
                     <h1 className="mt-8 text-[1.75rem] font-bold tracking-tight text-foreground">Welcome back</h1>
                     <p className="mt-2 text-[0.975rem] font-medium leading-relaxed text-muted-foreground">
                         Sign in to access your BOOSTDZ dashboard.

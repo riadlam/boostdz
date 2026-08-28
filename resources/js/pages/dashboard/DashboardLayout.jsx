@@ -203,7 +203,7 @@ function Sidebar({ mobileOpen, onClose }) {
             >
                 <div className="dash-sidebar-panel flex h-full flex-col rounded-none md:rounded-l-2xl md:p-1">
                     <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2 md:px-3">
-                        <BrandLogo className="text-sm" href="/dashboard" />
+                        <BrandLogo className="h-8" href="/dashboard" />
                         <button type="button" className="p-1 md:hidden" onClick={onClose} aria-label="Close">
                             <X className="size-5" />
                         </button>
