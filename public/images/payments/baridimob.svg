@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="BaridiMob">
+  <defs>
+    <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F4C430"/>
+      <stop offset="100%" stop-color="#E8A317"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bm)"/>
+  <rect x="22" y="28" width="84" height="72" rx="16" fill="#1B5E20"/>
+  <rect x="34" y="42" width="60" height="36" rx="8" fill="#FFF8E1"/>
+  <circle cx="64" cy="60" r="10" fill="#F4C430"/>
+  <path d="M48 88h32" stroke="#FFF8E1" stroke-width="6" stroke-linecap="round"/>
+  <text x="64" y="118" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#1B5E20">BaridiMob</text>
+</svg>

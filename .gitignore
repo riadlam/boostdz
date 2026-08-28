@@ -13,19 +13,15 @@
 /.zed
 /auth.json
 /node_modules
-vendor
+/vendor
 
-# Generated frontend build output
-/public/build
+# Vite dev server only (never commit)
 /public/hot
 
-# Copied static assets (source lives in resources/images)
-/public/images
-
-# Filament published assets (regenerate with: php artisan filament:assets)
-/public/js/filament
-/public/css/filament
-/public/fonts/filament
+# Filament published assets — run locally before push: php artisan filament:assets
+# /public/js/filament
+# /public/css/filament
+# /public/fonts/filament
 
 # Laravel storage symlink target
 /public/storage
