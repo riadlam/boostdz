@@ -1,0 +1,24 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.fi-sidebar {
+    background-color: oklch(94.5% 0.032 255);
+}
+
+.dark .fi-sidebar {
+    background-color: oklch(18.4% 0.034 260);
+}
+
+.fi-main {
+    background-color: oklch(93.8% 0.018 245);
+}
+
+.dark .fi-main {
+    background-color: oklch(16.5% 0.024 260);
+}

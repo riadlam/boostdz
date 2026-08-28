@@ -1,0 +1,1791 @@
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
+import {
+    ArrowRight,
+    Bookmark,
+    Check,
+    ChevronDown,
+    ChevronsUpDown,
+    ClipboardPaste,
+    Eye,
+    Globe2,
+    Heart,
+    Info,
+    Layers,
+    MessageCircle,
+    Package,
+    Repeat2,
+    Search,
+    Settings2,
+    Share2,
+    ShieldCheck,
+    Sparkles,
+    Target,
+    Users,
+    Zap,
+} from 'lucide-react';
+import { CountryFlag, buildCountryOptions, countryLabel } from '../../components/CountryFlag';
+import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
+import { useAuth } from '../../context/AuthContext';
+import { ApiError, catalogApi } from '../../lib/api';
+import { fetchCheckoutSettings, isBelowMinimum } from '../../lib/checkoutPolicy';
+import { cn } from '../../lib/cn';
+import { chargeForService, formatDzd, roundDzd } from '../../lib/formatMoney';
+import {
+    GLOBAL_ORDER_RULES,
+    categoryOrderRules,
+    formatCommentsForApi,
+    isCustomCommentsPackage,
+    isCustomCommentsService,
+    parseCommentLines,
+    saveCheckoutDraft,
+    validateCustomComments,
+} from '../../lib/orderRules';
+import { getCategoryIcon } from '../../lib/categoryIcons';
+import { buildFacebookReactionOptions, facebookReactionLabel } from '../../lib/facebookReactions';
+import { filterCatalogEntries, getPlatformIcon } from '../../lib/platformIcons';
+
+const EMPTY_FILTERS = {
+    quality_tier: '',
+    start_class: '',
+    refill_mode: '',
+    has_refill: '',
+    is_hot: '',
+    is_cheap: '',
+    country_code: '',
+    audience_gender: '',
+    reaction_type: '',
+    refill_days: '',
+};
+
+const EMPTY_REFINE = {
+    quality: 'any',
+    delivery: 'any',
+    protection: 'any',
+    country: 'any',
+    audience: 'any',
+    reaction: 'any',
+    refillDays: [],
+};
+
+function buildDeliveryRefineOptions(services, platformSlug, categorySlug) {
+    const list = Array.isArray(services) ? services : [];
+    const tiers = new Set(list.map((s) => s.quality_tier).filter(Boolean));
+    const starts = new Set(list.map((s) => (s.start_class || 'normal').toLowerCase()));
+    const hasHot = list.some((s) => s.is_hot);
+    const hasCheap = list.some((s) => s.is_cheap);
+    const hasRefill = list.some((s) => s.refill || (s.refill_mode && s.refill_mode !== 'none'));
+    const hasAuto = list.some((s) => s.refill_mode === 'auto');
+    const hasLifetime = list.some((s) => s.refill_mode === 'lifetime');
+    const hasNoRefill = list.some((s) => !s.refill && (!s.refill_mode || s.refill_mode === 'none'));
+    const hasDrip = list.some((s) => s.dripfeed);
+
+    const qualityOptions = [{ value: 'any', label: 'Any' }];
+    if (tiers.has('premium')) qualityOptions.push({ value: 'premium', label: 'Premium' });
+    if (tiers.has('standard')) qualityOptions.push({ value: 'standard', label: 'Standard' });
+    if (tiers.has('economy')) qualityOptions.push({ value: 'economy', label: 'Economy' });
+    if (hasHot) qualityOptions.push({ value: 'top', label: 'Top sellers' });
+    if (hasCheap) qualityOptions.push({ value: 'budget', label: 'Budget / cheap' });
+
+    const deliveryOptions = [{ value: 'any', label: 'Any' }];
+    if (starts.has('instant')) deliveryOptions.push({ value: 'instant', label: 'Instant' });
+    if (starts.has('instant') || starts.has('fast')) {
+        deliveryOptions.push({ value: 'fast', label: 'Fast (incl. instant)' });
+    }
+    if (starts.has('normal')) deliveryOptions.push({ value: 'normal', label: 'Normal' });
+    if (starts.has('slow')) deliveryOptions.push({ value: 'slow', label: 'Slower start' });
+
+    const protectionOptions = [{ value: 'any', label: 'Any' }];
+    if (hasRefill) protectionOptions.push({ value: 'refill', label: 'With refill' });
+    if (hasAuto) protectionOptions.push({ value: 'auto', label: 'Auto-refill' });
+    if (hasLifetime) protectionOptions.push({ value: 'lifetime', label: 'Lifetime refill' });
+    if (hasNoRefill && hasRefill) protectionOptions.push({ value: 'none', label: 'No refill' });
+
+    const refillDayOptions = [...new Set(
+        list
+            .map((s) => Number(s.refill_days))
+            .filter((n) => Number.isFinite(n) && n > 0),
+    )]
+        .sort((a, b) => a - b)
+        .map((days) => ({
+            value: days,
+            label: days === 365 ? '365 days (1 year)' : `${days} days`,
+        }));
+
+    const hasSpeedChoice = ['instant', 'fast', 'slow'].some((k) => starts.has(k));
+    const countryCodes = list.map((s) => s.country_code).filter(Boolean);
+    const countryOptions = buildCountryOptions(countryCodes);
+
+    const hasMale = list.some((s) => s.audience_gender === 'male');
+    const hasFemale = list.some((s) => s.audience_gender === 'female');
+    const audienceOptions = [{ value: 'any', label: 'Any' }];
+    if (hasMale) audienceOptions.push({ value: 'male', label: 'Men' });
+    if (hasFemale) audienceOptions.push({ value: 'female', label: 'Women' });
+
+    const reactionTypes = [...new Set(list.map((s) => s.reaction_type).filter(Boolean))];
+    const reactionOptions = platformSlug === 'facebook' && ['likes', 'stories'].includes(categorySlug)
+        ? buildFacebookReactionOptions(reactionTypes)
+        : [];
+
+    return {
+        qualityOptions,
+        deliveryOptions,
+        protectionOptions,
+        countryOptions,
+        audienceOptions,
+        reactionOptions,
+        refillDayOptions,
+        showQuality: qualityOptions.length > 1,
+        showDelivery: hasSpeedChoice,
+        showProtection: hasRefill,
+        showCountry: countryOptions.length > 1,
+        showAudience: hasMale && hasFemale,
+        showReaction: reactionOptions.length > 1,
+        showRefillDays: refillDayOptions.length > 0,
+        showDrip: hasDrip,
+    };
+}
+
+function pickPreferredService(items, { preferFirst = false, preferCustomComments = false } = {}) {
+    if (!items?.length) return null;
+    if (preferFirst && preferCustomComments) {
+        const custom = items.find((service) => isCustomCommentsService(service));
+        if (custom) return custom;
+    }
+    return items[0] ?? null;
+}
+
+function clampRefineToOptions(refine, caps) {
+    const next = { ...refine };
+    let changed = false;
+    if (!caps.qualityOptions.some((o) => o.value === next.quality)) {
+        next.quality = 'any';
+        changed = true;
+    }
+    if (!caps.showQuality && next.quality !== 'any') {
+        next.quality = 'any';
+        changed = true;
+    }
+    if (!caps.deliveryOptions.some((o) => o.value === next.delivery) || !caps.showDelivery) {
+        if (next.delivery !== 'any') {
+            next.delivery = 'any';
+            changed = true;
+        }
+    }
+    if (!caps.protectionOptions.some((o) => o.value === next.protection) || !caps.showProtection) {
+        if (next.protection !== 'any') {
+            next.protection = 'any';
+            changed = true;
+        }
+    }
+    if (!caps.countryOptions?.some((o) => o.value === next.country) || !caps.showCountry) {
+        if (next.country !== 'any') {
+            next.country = 'any';
+            changed = true;
+        }
+    }
+    if (!caps.audienceOptions?.some((o) => o.value === next.audience) || !caps.showAudience) {
+        if (next.audience !== 'any') {
+            next.audience = 'any';
+            changed = true;
+        }
+    }
+    if (!caps.reactionOptions?.some((o) => o.value === next.reaction) || !caps.showReaction) {
+        if (next.reaction !== 'any') {
+            next.reaction = 'any';
+            changed = true;
+        }
+    }
+    const allowedDays = new Set((caps.refillDayOptions || []).map((o) => o.value));
+    const nextDays = (Array.isArray(next.refillDays) ? next.refillDays : []).filter((d) => allowedDays.has(d));
+    if (nextDays.length !== (next.refillDays || []).length) {
+        next.refillDays = nextDays;
+        changed = true;
+    }
+    if (!caps.showRefillDays && nextDays.length) {
+        next.refillDays = [];
+        changed = true;
+    }
+    return { next, changed };
+}
+
+function refineToFilters(refine) {
+    const next = { ...EMPTY_FILTERS };
+
+    if (refine.quality === 'premium') next.quality_tier = 'premium';
+    if (refine.quality === 'standard') next.quality_tier = 'standard';
+    if (refine.quality === 'economy') next.quality_tier = 'economy';
+    if (refine.quality === 'top') next.is_hot = '1';
+    if (refine.quality === 'budget') next.is_cheap = '1';
+
+    if (refine.delivery === 'instant') next.start_class = 'instant';
+    if (refine.delivery === 'fast') next.start_class = 'instant,fast';
+    if (refine.delivery === 'normal') next.start_class = 'normal';
+    if (refine.delivery === 'slow') next.start_class = 'slow';
+
+    if (refine.protection === 'refill') next.has_refill = '1';
+    if (refine.protection === 'auto') {
+        next.refill_mode = 'auto';
+        next.has_refill = '1';
+    }
+    if (refine.protection === 'lifetime') {
+        next.refill_mode = 'lifetime';
+        next.has_refill = '1';
+    }
+    if (refine.protection === 'none') {
+        next.has_refill = '0';
+        next.refill_mode = 'none';
+    }
+
+    if (refine.country && refine.country !== 'any') {
+        next.country_code = refine.country;
+    }
+
+    if (refine.audience && refine.audience !== 'any') {
+        next.audience_gender = refine.audience;
+    }
+
+    if (refine.reaction && refine.reaction !== 'any') {
+        next.reaction_type = refine.reaction;
+    }
+
+    const days = Array.isArray(refine.refillDays) ? refine.refillDays.filter((d) => d > 0) : [];
+    if (days.length) {
+        next.refill_days = days.join(',');
+        if (!next.has_refill) next.has_refill = '1';
+    }
+
+    return next;
+}
+
+function optionLabel(options, value) {
+    return options.find((opt) => opt.value === value)?.label || 'Any';
+}
+
+function audienceLabel(value) {
+    if (value === 'male') return 'Men';
+    if (value === 'female') return 'Women';
+    return 'Any';
+}
+
+const GLOBAL_RULES = GLOBAL_ORDER_RULES;
+
+function categoryRules(platformSlug, categorySlug) {
+    return categoryOrderRules(platformSlug, categorySlug);
+}
+
+function formatAmount(n) {
+    return Number(n || 0).toLocaleString('fr-DZ', { maximumFractionDigits: 0 });
+}
+
+function chargeFor(service, quantity) {
+    return chargeForService(service, quantity);
+}
+
+function quantityPresets(min, max) {
+    const candidates = [min, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, max];
+    const unique = [...new Set(candidates.filter((n) => n >= min && n <= max))];
+    return unique.sort((a, b) => a - b).slice(0, 10);
+}
+
+function targetHint(service, categorySlug) {
+    const hay = `${service?.name || ''} ${service?.type || ''} ${service?.description || ''} ${categorySlug || ''}`.toLowerCase();
+    if (hay.includes('follower') || hay.includes('subscribe') || hay.includes('member')) {
+        return {
+            label: 'Username / profile',
+            placeholder: 'username',
+            hint: 'Enter the public username only — not a private account.',
+        };
+    }
+    if (hay.includes('comment') || hay.includes('like') || hay.includes('view') || hay.includes('reaction')) {
+        return {
+            label: 'Post / media URL',
+            placeholder: 'https://…',
+            hint: 'Paste the exact post or media link this service expects.',
+        };
+    }
+    return {
+        label: 'Link / target',
+        placeholder: 'https://…',
+        hint: 'Paste the exact link or target required by this service.',
+    };
+}
+
+function serviceBadges(service) {
+    const badges = [];
+    if (service.is_hot) badges.push({ key: 'hot', label: 'Top', tone: 'hot' });
+    if (service.is_cheap) badges.push({ key: 'cheap', label: 'Cheap', tone: 'warn' });
+    if (service.start_class === 'instant') badges.push({ key: 'instant', label: 'Instant', tone: 'ok' });
+    else if (service.start_class === 'fast') badges.push({ key: 'fast', label: 'Fast', tone: 'ok' });
+    if (service.refill_mode === 'auto') {
+        badges.push({ key: 'ar', label: service.refill_days ? `AR${service.refill_days}` : 'Auto refill', tone: 'info' });
+    } else if (service.refill_mode === 'lifetime') {
+        badges.push({ key: 'life', label: 'Lifetime', tone: 'info' });
+    } else if (service.refill_mode === 'manual' || service.refill) {
+        badges.push({ key: 'r', label: service.refill_days ? `R${service.refill_days}` : 'Refill', tone: 'info' });
+    }
+    if (service.country_code) {
+        badges.push({ key: 'country', label: countryLabel(service.country_code), tone: 'muted' });
+    }
+    if (service.dripfeed) badges.push({ key: 'drip', label: 'Drip', tone: 'muted' });
+    if (service.quality_tier) {
+        badges.push({ key: 'tier', label: service.quality_tier, tone: 'muted' });
+    }
+    return badges;
+}
+
+function Badge({ label, tone }) {
+    const tones = {
+        hot: 'bg-amber-500/15 text-amber-800 dark:text-amber-300',
+        warn: 'bg-orange-500/12 text-orange-800 dark:text-orange-300',
+        ok: 'bg-emerald-500/12 text-emerald-800 dark:text-emerald-300',
+        info: 'bg-sky-500/12 text-sky-800 dark:text-sky-300',
+        muted: 'bg-muted text-muted-foreground',
+    };
+    return (
+        <span className={cn('inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide', tones[tone] || tones.muted)}>
+            {label}
+        </span>
+    );
+}
+
+function StatusPill({ on }) {
+    return (
+        <span className="inline-flex rounded-full bg-secondary px-1.5 py-0 text-[10px] font-normal text-muted-foreground">
+            {on ? 'on' : 'off'}
+        </span>
+    );
+}
+
+function SelectButton({ open, onClick, children, invalid, disabled, hasValue }) {
+    return (
+        <button
+            type="button"
+            disabled={disabled}
+            onClick={onClick}
+            data-open={open ? 'true' : undefined}
+            data-invalid={invalid ? 'true' : undefined}
+            data-selected={hasValue ? 'true' : undefined}
+            className="order-combobox disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            data-order-trigger=""
+        >
+            <span className="group relative min-w-0 flex-1 overflow-hidden text-left">
+                <span
+                    className={cn(
+                        'order-combobox-value flex min-w-0 items-center gap-2 text-sm font-semibold',
+                        hasValue ? 'text-foreground' : 'text-muted-foreground',
+                    )}
+                >
+                    {children}
+                </span>
+            </span>
+            <ChevronsUpDown className="z-10 ml-1 size-4 shrink-0 opacity-50" />
+        </button>
+    );
+}
+
+function InlineSelect({ value, options, open, onOpen, onChange, disabled }) {
+    const selected = options.find((opt) => opt.value === value) || options[0];
+    const isSet = value && value !== 'any';
+
+    return (
+        <div className="relative inline-flex align-middle">
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={onOpen}
+                data-order-trigger=""
+                className={cn(
+                    'inline-flex h-5 min-w-0 cursor-pointer items-center gap-0.5 border-0 border-b border-dashed border-muted-foreground/40 bg-transparent px-0.5 text-sm transition-colors hover:border-primary focus:border-primary focus:outline-none disabled:opacity-50',
+                    open && 'border-primary',
+                    isSet ? 'font-semibold text-primary' : 'font-medium text-muted-foreground',
+                )}
+            >
+                {selected?.code ? (
+                    <CountryFlag code={selected.code} labelClassName="text-inherit" />
+                ) : (
+                    <span className="truncate">{selected?.label || 'Select…'}</span>
+                )}
+                <ChevronDown className={cn('size-3.5 shrink-0 transition', isSet ? 'text-primary' : 'text-muted-foreground', open && 'rotate-180')} />
+            </button>
+            <Dropdown open={open} className="left-0 mt-1 min-w-[12rem]">
+                {options.map((opt) => (
+                    <Option key={opt.value} active={opt.value === value} onClick={() => onChange(opt.value)}>
+                        {opt.code ? <CountryFlag code={opt.code} /> : opt.label}
+                    </Option>
+                ))}
+            </Dropdown>
+        </div>
+    );
+}
+
+function SettingsRow({ icon: Icon, title, active, open, onToggle, children }) {
+    return (
+        <div className="rounded-md border border-input bg-transparent shadow-xs">
+            <button
+                type="button"
+                onClick={onToggle}
+                className={cn(
+                    'flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left text-sm font-medium transition-colors',
+                    open && 'border-b border-border/50',
+                )}
+            >
+                <Icon className="size-4 text-muted-foreground" />
+                <span className="font-medium">{title}</span>
+                <StatusPill on={active} />
+                <ChevronDown className={cn('ml-auto size-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+            </button>
+            <div className="order-collapsible" data-open={open ? 'true' : undefined}>
+                <div className="order-collapsible-inner">
+                    <div className="p-3">{children}</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function Dropdown({ open, children, className }) {
+    const markerRef = useRef(null);
+    const [pos, setPos] = useState(null);
+
+    useLayoutEffect(() => {
+        if (!open) {
+            setPos(null);
+            return undefined;
+        }
+
+        function update() {
+            const parent = markerRef.current?.parentElement;
+            if (!parent) return;
+            const rect = parent.getBoundingClientRect();
+            setPos({
+                top: rect.bottom + 6,
+                left: rect.left,
+                minWidth: Math.max(rect.width, 192),
+            });
+        }
+
+        update();
+        window.addEventListener('resize', update);
+        window.addEventListener('scroll', update, true);
+        return () => {
+            window.removeEventListener('resize', update);
+            window.removeEventListener('scroll', update, true);
+        };
+    }, [open]);
+
+    return (
+        <>
+            <span ref={markerRef} className="pointer-events-none absolute" aria-hidden />
+            {open && pos
+                ? createPortal(
+                    <div
+                        className={cn(
+                            'order-dropdown z-[90] max-h-80 overflow-auto rounded-md border border-border bg-card p-1 shadow-md',
+                            className,
+                        )}
+                        style={{
+                            position: 'fixed',
+                            top: pos.top,
+                            left: pos.left,
+                            minWidth: pos.minWidth,
+                        }}
+                    >
+                        {children}
+                    </div>,
+                    document.body,
+                )
+                : null}
+        </>
+    );
+}
+
+function Option({ active, onClick, children, dense }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 text-left font-semibold text-foreground transition-colors duration-150 hover:bg-accent',
+                dense ? 'py-0.5 text-[0.8125rem] leading-tight' : 'px-2.5 py-2 text-sm',
+                active && 'bg-accent',
+            )}
+        >
+            <span className="min-w-0 flex-1">{children}</span>
+            {active ? <Check className={cn('shrink-0 text-primary', dense ? 'size-3' : 'size-3.5')} /> : null}
+        </button>
+    );
+}
+
+function FieldLabel({ children, required }) {
+    return (
+        <label className="inline-flex items-center gap-1 text-sm leading-none font-medium select-none">
+            <span className="contents">{children}</span>
+            {required ? <span className="text-xs text-destructive/40">*</span> : null}
+        </label>
+    );
+}
+
+function filtersToParams(filters) {
+    const params = { per_page: 200 };
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value === '' || value === null || value === undefined) return;
+        params[key] = value;
+    });
+    return params;
+}
+
+export default function CreateOrder() {
+    const { user, refreshUser } = useAuth();
+    const navigate = useNavigate();
+
+    const [platforms, setPlatforms] = useState([]);
+    const [platformSlug, setPlatformSlug] = useState('');
+    const [categories, setCategories] = useState([]);
+    const [categoryId, setCategoryId] = useState(null);
+    const [groups, setGroups] = useState([]);
+    const [categoryServices, setCategoryServices] = useState([]);
+    const [serviceSearch, setServiceSearch] = useState('');
+    const [refine, setRefine] = useState(EMPTY_REFINE);
+    const [serviceId, setServiceId] = useState(null);
+    const [loadingPlatforms, setLoadingPlatforms] = useState(true);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [loadingServices, setLoadingServices] = useState(false);
+    const [quantity, setQuantity] = useState(1000);
+    const [customMode, setCustomMode] = useState(false);
+    const [customQuantity, setCustomQuantity] = useState('1000');
+    const [link, setLink] = useState('');
+    const [customCommentsText, setCustomCommentsText] = useState('');
+    const [useCustomComments, setUseCustomComments] = useState(false);
+    const [isRepeat, setIsRepeat] = useState(false);
+    const [openMenu, setOpenMenu] = useState(null);
+    const [deliverySettingsOpen, setDeliverySettingsOpen] = useState(false);
+    const [settingsRowOpen, setSettingsRowOpen] = useState(null);
+    const [rulesOpen, setRulesOpen] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [formError, setFormError] = useState('');
+    const [minimumModal, setMinimumModal] = useState(null);
+
+    const searchTimer = useRef(null);
+    const requestSeq = useRef(0);
+
+    const selectedPlatform = useMemo(
+        () => platforms.find((p) => p.slug === platformSlug) || null,
+        [platforms, platformSlug],
+    );
+    const selectedCategory = useMemo(
+        () => categories.find((c) => c.id === categoryId) || null,
+        [categories, categoryId],
+    );
+    const flatServices = useMemo(
+        () => groups.flatMap((group) => group.items || []),
+        [groups],
+    );
+    const selectedService = useMemo(
+        () => flatServices.find((s) => s.id === serviceId) || null,
+        [flatServices, serviceId],
+    );
+    const deliveryCaps = useMemo(() => {
+        // Prefer full category catalog; fall back to current list / selected product.
+        const pool = categoryServices.length
+            ? categoryServices
+            : selectedService
+              ? [selectedService, ...flatServices]
+              : flatServices;
+        return buildDeliveryRefineOptions(pool, platformSlug, selectedCategory?.slug);
+    }, [categoryServices, flatServices, selectedService, platformSlug, selectedCategory?.slug]);
+    const qualityOptions = deliveryCaps.qualityOptions;
+    const deliveryOptions = deliveryCaps.deliveryOptions;
+    const protectionOptions = deliveryCaps.protectionOptions;
+    const countryOptions = deliveryCaps.countryOptions;
+    const audienceOptions = deliveryCaps.audienceOptions;
+    const reactionOptions = deliveryCaps.reactionOptions || [];
+    const refillDayOptions = deliveryCaps.refillDayOptions || [];
+    const showQualitySettings = deliveryCaps.showQuality;
+    const showDeliverySettings = deliveryCaps.showDelivery;
+    const showProtectionSettings = deliveryCaps.showProtection;
+    const showCountrySettings = deliveryCaps.showCountry;
+    const showAudienceSettings = deliveryCaps.showAudience;
+    const showReactionSettings = deliveryCaps.showReaction;
+    const showRefillDays = deliveryCaps.showRefillDays;
+    const isCommentsCategory = selectedCategory?.slug === 'comments';
+    const requiresCustomComments = useMemo(
+        () => isCustomCommentsService(selectedService),
+        [selectedService],
+    );
+    const showCustomCommentsSettings = isCommentsCategory;
+    const hasRefineRows = showQualitySettings || showDeliverySettings || showProtectionSettings || showCountrySettings || showAudienceSettings || showReactionSettings || showCustomCommentsSettings;
+    const presets = useMemo(
+        () => (selectedService ? quantityPresets(selectedService.min, selectedService.max) : []),
+        [selectedService],
+    );
+    const target = targetHint(selectedService, selectedCategory?.slug);
+    const charge = useMemo(() => chargeFor(selectedService, quantity), [selectedService, quantity]);
+    const commentLines = useMemo(() => parseCommentLines(customCommentsText), [customCommentsText]);
+    const commentValidation = useMemo(
+        () => validateCustomComments({
+            service: selectedService,
+            quantity,
+            commentsText: useCustomComments ? customCommentsText : '',
+        }),
+        [selectedService, quantity, customCommentsText, useCustomComments],
+    );
+    const commentsQtyMatch = !useCustomComments
+        || !requiresCustomComments
+        || isCustomCommentsPackage(selectedService)
+        || commentLines.length === quantity;
+    const balance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
+    const extraRules = useMemo(
+        () => categoryRules(platformSlug, selectedCategory?.slug),
+        [platformSlug, selectedCategory?.slug],
+    );
+    const hasRefillDayRefine = (refine.refillDays || []).length > 0;
+    const hasActiveRefine =
+        (showQualitySettings && refine.quality !== 'any')
+        || (showDeliverySettings && refine.delivery !== 'any')
+        || (showProtectionSettings && refine.protection !== 'any')
+        || (showCountrySettings && refine.country !== 'any')
+        || (showAudienceSettings && refine.audience !== 'any')
+        || (showReactionSettings && refine.reaction !== 'any')
+        || hasRefillDayRefine;
+    const deliverySettingsActive = hasActiveRefine || isRepeat || (showCustomCommentsSettings && useCustomComments);
+    const protectionRowActive = (showProtectionSettings && refine.protection !== 'any') || hasRefillDayRefine;
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            setLoadingPlatforms(true);
+            try {
+                const data = await catalogApi.platforms();
+                if (cancelled) return;
+                const list = filterCatalogEntries(data.platforms || []).filter(
+                    (p) => (p.services_count ?? 0) > 0 || (p.categories_count ?? 0) > 0,
+                );
+                const usable = list.length ? list : filterCatalogEntries(data.platforms || []);
+                setPlatforms(usable);
+                const preferred = usable.find((p) => p.slug === 'instagram') || usable[0];
+                setPlatformSlug(preferred?.slug || '');
+            } catch (error) {
+                if (!cancelled) {
+                    setFormError(error instanceof ApiError ? error.message : 'Failed to load platforms.');
+                }
+            } finally {
+                if (!cancelled) setLoadingPlatforms(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!platformSlug) return undefined;
+        let cancelled = false;
+
+        (async () => {
+            setLoadingCategories(true);
+            setFormError('');
+            setCategories([]);
+            setCategoryId(null);
+            setGroups([]);
+            setCategoryServices([]);
+            setServiceId(null);
+            setServiceSearch('');
+            setRefine(EMPTY_REFINE);
+            try {
+                const data = await catalogApi.categories(platformSlug);
+                if (cancelled) return;
+                const rows = filterCatalogEntries(data.categories || []).filter((c) => (c.services_count ?? 0) > 0);
+                const list = rows.length ? rows : filterCatalogEntries(data.categories || []);
+                setCategories(list);
+                setCategoryId(list[0]?.id ?? null);
+            } catch (error) {
+                if (!cancelled) {
+                    setCategories([]);
+                    setCategoryId(null);
+                    setFormError(error instanceof ApiError ? error.message : 'Failed to load categories.');
+                }
+            } finally {
+                if (!cancelled) setLoadingCategories(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [platformSlug]);
+
+    async function loadServices({ category, search, nextRefine, preferFirst = false, preferCustomComments = false }) {
+        if (!category) {
+            setGroups([]);
+            setCategoryServices([]);
+            setServiceId(null);
+            return { groups: [], items: [] };
+        }
+
+        const seq = ++requestSeq.current;
+        setLoadingServices(true);
+        setFormError('');
+        try {
+            const data = await catalogApi.services(category, {
+                ...filtersToParams(refineToFilters(nextRefine)),
+                search,
+            });
+            if (seq !== requestSeq.current) return { groups: [], items: [] };
+
+            const nextGroups = data.groups || [];
+            const items = nextGroups.flatMap((g) => g.items || []);
+            setGroups(nextGroups);
+
+            const refineEmpty =
+                !nextRefine
+                || (
+                    nextRefine.quality === 'any'
+                    && nextRefine.delivery === 'any'
+                    && nextRefine.protection === 'any'
+                    && (nextRefine.country || 'any') === 'any'
+                    && (nextRefine.audience || 'any') === 'any'
+                    && (nextRefine.reaction || 'any') === 'any'
+                    && !(nextRefine.refillDays || []).length
+                );
+            if (refineEmpty && !search) {
+                setCategoryServices(items);
+            }
+
+            setServiceId((current) => {
+                if (!preferFirst && current && items.some((row) => row.id === current)) return current;
+                return pickPreferredService(items, { preferFirst, preferCustomComments })?.id ?? null;
+            });
+            const preferred = pickPreferredService(items, { preferFirst, preferCustomComments });
+            if (preferred && preferFirst) {
+                const nextQty = Math.min(Math.max(preferred.min, 1000), preferred.max);
+                setQuantity(nextQty);
+                setCustomQuantity(String(nextQty));
+                setCustomMode(false);
+            }
+            return { groups: nextGroups, items };
+        } catch (error) {
+            if (seq === requestSeq.current) {
+                setGroups([]);
+                setServiceId(null);
+                setFormError(error instanceof ApiError ? error.message : 'Failed to load services.');
+            }
+            return { groups: [], items: [] };
+        } finally {
+            if (seq === requestSeq.current) setLoadingServices(false);
+        }
+    }
+
+    useEffect(() => {
+        if (!categoryId) return undefined;
+        let cancelled = false;
+
+        (async () => {
+            const cat = categories.find((c) => c.id === categoryId);
+            await loadServices({
+                category: categoryId,
+                search: '',
+                nextRefine: EMPTY_REFINE,
+                preferFirst: true,
+                preferCustomComments: cat?.slug === 'comments',
+            });
+            if (cancelled) return;
+            setRefine(EMPTY_REFINE);
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categoryId]);
+
+    useEffect(() => {
+        if (!categoryId) return undefined;
+        window.clearTimeout(searchTimer.current);
+        searchTimer.current = window.setTimeout(() => {
+            loadServices({
+                category: categoryId,
+                search: serviceSearch,
+                nextRefine: refine,
+            });
+        }, 280);
+
+        return () => window.clearTimeout(searchTimer.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [serviceSearch]);
+
+    useEffect(() => {
+        if (!selectedService) return;
+        const next = Math.min(Math.max(quantity, selectedService.min), selectedService.max);
+        if (next !== quantity) {
+            setQuantity(next);
+            setCustomQuantity(String(next));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedService]);
+
+    useEffect(() => {
+        if (!isCommentsCategory) {
+            setUseCustomComments(false);
+            setCustomCommentsText('');
+            return;
+        }
+        setDeliverySettingsOpen(true);
+        setSettingsRowOpen('comments');
+    }, [isCommentsCategory, categoryId]);
+
+    useEffect(() => {
+        if (!isCommentsCategory) return;
+        setUseCustomComments(requiresCustomComments);
+        if (!requiresCustomComments) {
+            setCustomCommentsText('');
+            setErrors((prev) => ({ ...prev, comments: undefined }));
+        }
+    }, [isCommentsCategory, selectedService?.id, requiresCustomComments]);
+
+    function toggleCustomComments(enabled) {
+        setUseCustomComments(enabled);
+        if (!enabled) {
+            setCustomCommentsText('');
+            setErrors((prev) => ({ ...prev, comments: undefined }));
+        }
+    }
+
+    function syncQuantityToComments() {
+        if (!selectedService || commentLines.length === 0) return;
+        const next = Math.min(Math.max(commentLines.length, selectedService.min), selectedService.max);
+        setQuantity(next);
+        setCustomQuantity(String(next));
+        setCustomMode(true);
+        setErrors((e) => ({ ...e, comments: undefined, quantity: undefined }));
+    }
+
+    useEffect(() => {
+        if (!openMenu) return undefined;
+
+        function onPointerDown(event) {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest('.order-dropdown') || target.closest('[data-order-trigger]')) return;
+            setOpenMenu(null);
+        }
+
+        // Full-screen overlay blocks scrolling the dashboard; detect outside clicks on document instead.
+        document.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('touchstart', onPointerDown, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', onPointerDown);
+            document.removeEventListener('touchstart', onPointerDown);
+        };
+    }, [openMenu]);
+
+    useEffect(() => {
+        if (!categoryServices.length) return;
+        const { next, changed } = clampRefineToOptions(refine, deliveryCaps);
+        if (!changed) return;
+        setRefine(next);
+        if (categoryId) {
+            loadServices({
+                category: categoryId,
+                search: serviceSearch,
+                nextRefine: next,
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [deliveryCaps.showQuality, deliveryCaps.showDelivery, deliveryCaps.showProtection, deliveryCaps.showCountry, deliveryCaps.showAudience, deliveryCaps.showReaction, deliveryCaps.showRefillDays, categoryServices.length]);
+
+    useEffect(() => {
+        if (settingsRowOpen === 'quality' && !showQualitySettings) setSettingsRowOpen(null);
+        if (settingsRowOpen === 'delivery' && !showDeliverySettings) setSettingsRowOpen(null);
+        if (settingsRowOpen === 'protection' && !showProtectionSettings) setSettingsRowOpen(null);
+        if (settingsRowOpen === 'country' && !showCountrySettings) setSettingsRowOpen(null);
+        if (settingsRowOpen === 'audience' && !showAudienceSettings) setSettingsRowOpen(null);
+        if (settingsRowOpen === 'reaction' && !showReactionSettings) setSettingsRowOpen(null);
+    }, [settingsRowOpen, showQualitySettings, showDeliverySettings, showProtectionSettings, showCountrySettings, showAudienceSettings, showReactionSettings]);
+
+    function selectPlatform(slug) {
+        setPlatformSlug(slug);
+        setOpenMenu(null);
+    }
+
+    function selectCategory(id) {
+        setCategoryId(id);
+        setServiceSearch('');
+        setOpenMenu(null);
+    }
+
+    function setRefineField(field, value) {
+        let next = { ...refine, [field]: value };
+        if (field === 'protection' && value === 'none') {
+            next = { ...next, refillDays: [] };
+        }
+        setRefine(next);
+        setOpenMenu(null);
+        loadServices({
+            category: categoryId,
+            search: serviceSearch,
+            nextRefine: next,
+            preferFirst: true,
+            preferCustomComments: selectedCategory?.slug === 'comments',
+        });
+    }
+
+    function toggleRefillDay(days) {
+        const current = Array.isArray(refine.refillDays) ? refine.refillDays : [];
+        const nextDays = current.includes(days) ? [] : [days];
+        const next = {
+            ...refine,
+            refillDays: nextDays,
+            protection: nextDays.length && refine.protection === 'none' ? 'any' : refine.protection,
+        };
+        setRefine(next);
+        loadServices({
+            category: categoryId,
+            search: serviceSearch,
+            nextRefine: next,
+            preferFirst: true,
+            preferCustomComments: selectedCategory?.slug === 'comments',
+        });
+    }
+
+    function clearRefine() {
+        setRefine(EMPTY_REFINE);
+        loadServices({
+            category: categoryId,
+            search: serviceSearch,
+            nextRefine: EMPTY_REFINE,
+            preferFirst: true,
+            preferCustomComments: selectedCategory?.slug === 'comments',
+        });
+    }
+
+    function selectService(id) {
+        const next = flatServices.find((s) => s.id === id);
+        setServiceId(id);
+        setOpenMenu(null);
+        if (next) {
+            const nextQty = Math.min(Math.max(next.min, quantity || next.min), next.max);
+            setQuantity(nextQty);
+            setCustomQuantity(String(nextQty));
+        }
+    }
+
+    async function pasteLink() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+                setLink(text.trim());
+                setErrors((e) => ({ ...e, link: undefined }));
+            }
+        } catch {
+            // ignore clipboard errors
+        }
+    }
+
+    function validate() {
+        const next = {};
+        if (!platformSlug) next.platform = 'Select a platform';
+        if (!selectedCategory) next.category = 'Select a category';
+        if (!selectedService) next.service = 'Select a service';
+        if (!link.trim()) next.link = 'Target is required';
+        if (selectedService && (quantity < selectedService.min || quantity > selectedService.max)) {
+            next.quantity = `Quantity must be between ${formatAmount(selectedService.min)} and ${formatAmount(selectedService.max)}`;
+        }
+        if (requiresCustomComments && !useCustomComments) {
+            next.comments = 'Turn on custom comments to enter your comment lines.';
+        } else if (useCustomComments && requiresCustomComments && !commentValidation.ok) {
+            next.comments = commentValidation.message;
+        }
+        setErrors(next);
+        return Object.keys(next).length === 0;
+    }
+
+    async function onCheckout(event) {
+        event.preventDefault();
+        setFormError('');
+        if (!validate()) return;
+
+        const draft = {
+            serviceId: selectedService.id,
+            serviceName: selectedService.name,
+            serviceType: selectedService.type || null,
+            requiresCustomComments,
+            useCustomComments,
+            comments: useCustomComments && commentLines.length ? formatCommentsForApi(commentLines) : null,
+            commentCount: useCustomComments ? commentLines.length : null,
+            platformSlug,
+            platformName: selectedPlatform?.name || platformSlug,
+            categoryId,
+            categorySlug: selectedCategory?.slug || '',
+            categoryName: selectedCategory?.name || '',
+            quantity,
+            link: link.trim(),
+            charge: roundDzd(charge),
+            isRepeat,
+            countryCode: selectedService.country_code || null,
+            refillDays: selectedService.refill_days || null,
+            startClass: selectedService.start_class || null,
+            qualityTier: selectedService.quality_tier || null,
+            refillMode: selectedService.refill_mode || null,
+            hasRefill: Boolean(selectedService.refill || selectedService.refill_mode),
+            isHot: Boolean(selectedService.is_hot),
+            isCheap: Boolean(selectedService.is_cheap),
+            dripfeed: Boolean(selectedService.dripfeed),
+            rate: selectedService.rate || null,
+            min: selectedService.min || null,
+            max: selectedService.max || null,
+        };
+
+        saveCheckoutDraft(draft);
+
+        try {
+            const settings = await fetchCheckoutSettings();
+            if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd)) {
+                setMinimumModal({
+                    charge: roundDzd(draft.charge),
+                    minimum: settings.minimum_amount_dzd,
+                });
+                return;
+            }
+        } catch {
+            // Server enforces the minimum if settings cannot be loaded.
+        }
+
+        navigate('/checkout', { state: { draft } });
+    }
+
+    const PlatformIcon = getPlatformIcon(platformSlug);
+    const CategoryIcon = getCategoryIcon(selectedCategory?.slug);
+
+    return (
+        <div className="mx-auto w-full max-w-3xl space-y-2 py-2">
+            <div className="flex items-end justify-between gap-3 px-0.5 pb-1">
+                <div>
+                    <h1 className="text-lg font-semibold tracking-tight text-foreground">Create Order</h1>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Balance {formatDzd(balance)}</p>
+                </div>
+            </div>
+
+            <form className="w-full space-y-2" onSubmit={onCheckout}>
+                {formError ? (
+                    <div role="alert" className="rounded-md border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-300">
+                        {formError}
+                    </div>
+                ) : null}
+
+                <div className="relative flex flex-col overflow-visible rounded-md border bg-card text-card-foreground shadow-sm">
+                    <div className="p-4">
+                        <fieldset className="grid w-full gap-y-4">
+                        <div className="space-y-1.5">
+                            <FieldLabel required>Category &amp; Product</FieldLabel>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <div className="relative min-w-0">
+                                    <SelectButton
+                                        open={openMenu === 'platform'}
+                                        disabled={loadingPlatforms || platforms.length === 0}
+                                        invalid={Boolean(errors.platform)}
+                                        hasValue={Boolean(selectedPlatform || platformSlug)}
+                                        onClick={() => setOpenMenu(openMenu === 'platform' ? null : 'platform')}
+                                    >
+                                        <PlatformIcon className="size-4 shrink-0" />
+                                        <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
+                                            {selectedPlatform?.name || platformSlug || 'Select platform'}
+                                        </span>
+                                    </SelectButton>
+                                    <Dropdown open={openMenu === 'platform'}>
+                                        {platforms.map((platform) => {
+                                            const Icon = getPlatformIcon(platform.slug);
+                                            return (
+                                                <Option key={platform.slug} active={platform.slug === platformSlug} onClick={() => selectPlatform(platform.slug)}>
+                                                    <span className="flex min-w-0 items-center gap-2">
+                                                        <Icon className="size-4 shrink-0" />
+                                                        <span className="min-w-0 flex-1 truncate">{platform.name}</span>
+                                                    </span>
+                                                </Option>
+                                            );
+                                        })}
+                                    </Dropdown>
+                                </div>
+
+                                <div className="relative min-w-0 sm:col-span-2">
+                                    <SelectButton
+                                        open={openMenu === 'category'}
+                                        disabled={loadingCategories || categories.length === 0}
+                                        invalid={Boolean(errors.category)}
+                                        hasValue={Boolean(selectedCategory)}
+                                        onClick={() => setOpenMenu(openMenu === 'category' ? null : 'category')}
+                                    >
+                                        <CategoryIcon className="size-4 shrink-0 opacity-80" />
+                                        <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
+                                            {selectedCategory?.name || (loadingCategories ? 'Loading…' : 'Select category')}
+                                        </span>
+                                    </SelectButton>
+                                    <Dropdown open={openMenu === 'category'}>
+                                        {categories.map((category) => {
+                                            const Icon = getCategoryIcon(category.slug);
+                                            return (
+                                                <Option key={category.id} active={category.id === categoryId} onClick={() => selectCategory(category.id)}>
+                                                    <span className="flex min-w-0 items-center gap-2">
+                                                        <Icon className="size-4 shrink-0 text-muted-foreground" />
+                                                        <span className="min-w-0 flex-1 truncate">{category.name}</span>
+                                                    </span>
+                                                </Option>
+                                            );
+                                        })}
+                                    </Dropdown>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid min-w-0 gap-2">
+                            <FieldLabel required>Service package</FieldLabel>
+                            <div className="relative min-w-0">
+                                <SelectButton
+                                    open={openMenu === 'service'}
+                                    disabled={loadingServices || flatServices.length === 0}
+                                    invalid={Boolean(errors.service)}
+                                    hasValue={Boolean(selectedService)}
+                                    onClick={() => setOpenMenu(openMenu === 'service' ? null : 'service')}
+                                >
+                                    <Package className="size-4 shrink-0 opacity-80" />
+                                    <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
+                                        {selectedService?.name || (loadingServices ? 'Loading services…' : 'Select service')}
+                                    </span>
+                                </SelectButton>
+                                <Dropdown open={openMenu === 'service'} className="p-0">
+                                    <div className="sticky top-0 z-10 border-b border-border/60 bg-card p-2">
+                                        <div className="relative">
+                                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                                            <input
+                                                value={serviceSearch}
+                                                onChange={(e) => setServiceSearch(e.target.value)}
+                                                placeholder="Search services…"
+                                                className="order-input h-9 pl-8"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="max-h-72 overflow-auto p-1">
+                                        {loadingServices ? (
+                                            <p className="px-3 py-3 text-sm text-muted-foreground">Loading…</p>
+                                        ) : groups.length === 0 ? (
+                                            <p className="px-3 py-3 text-sm text-muted-foreground">
+                                                No services match. Open Delivery Settings and reset preferences.
+                                            </p>
+                                        ) : (
+                                            groups.map((group) => (
+                                                <div key={group.key} className="mb-1">
+                                                    <p className="px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-muted-foreground">
+                                                        {group.label}
+                                                    </p>
+                                                    {(group.items || []).map((service) => (
+                                                        <Option
+                                                            key={service.id}
+                                                            active={service.id === serviceId}
+                                                            onClick={() => selectService(service.id)}
+                                                        >
+                                                            <span className="block">
+                                                                <span className="line-clamp-2 leading-snug">{service.name}</span>
+                                                                <span className="mt-1.5 flex flex-wrap gap-1">
+                                                                    {serviceBadges(service).map((badge) => (
+                                                                        <Badge key={badge.key} label={badge.label} tone={badge.tone} />
+                                                                    ))}
+                                                                </span>
+                                                                <span className="mt-1 block text-xs text-muted-foreground">
+                                                                    {formatDzd(service.sell_rate_dzd)} / 1k · min {formatAmount(service.min)}
+                                                                </span>
+                                                            </span>
+                                                        </Option>
+                                                    ))}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </Dropdown>
+                            </div>
+                            {selectedService ? (
+                                <div className="flex flex-wrap gap-1">
+                                    {serviceBadges(selectedService).map((badge) => (
+                                        <Badge key={badge.key} label={badge.label} tone={badge.tone} />
+                                    ))}
+                                </div>
+                            ) : null}
+                            {errors.service ? (
+                                <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.service}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="grid min-w-0 gap-2">
+                            <FieldLabel required>Amount</FieldLabel>
+                            {customMode || !selectedService ? (
+                                <input
+                                    type="number"
+                                    min={selectedService?.min || 1}
+                                    max={selectedService?.max || undefined}
+                                    value={customQuantity}
+                                    disabled={!selectedService}
+                                    onChange={(e) => {
+                                        setCustomQuantity(e.target.value);
+                                        const n = Number(e.target.value);
+                                        if (!Number.isNaN(n)) setQuantity(n);
+                                    }}
+                                    className="order-input"
+                                />
+                            ) : (
+                                <div className="relative min-w-0">
+                                    <SelectButton
+                                        open={openMenu === 'quantity'}
+                                        invalid={Boolean(errors.quantity)}
+                                        hasValue={Boolean(quantity)}
+                                        onClick={() => setOpenMenu(openMenu === 'quantity' ? null : 'quantity')}
+                                    >
+                                        <span className="flex w-full min-w-0 items-center justify-between overflow-hidden text-left">
+                                            <span className="truncate font-medium tabular-nums">{formatAmount(quantity)}</span>
+                                            <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-bold tabular-nums text-primary">
+                                                {formatDzd(charge)}
+                                            </span>
+                                        </span>
+                                    </SelectButton>
+                                    <Dropdown open={openMenu === 'quantity'} className="!p-0.5">
+                                        {presets.map((amount) => (
+                                            <Option
+                                                key={amount}
+                                                dense
+                                                active={amount === quantity}
+                                                onClick={() => {
+                                                    setQuantity(amount);
+                                                    setCustomQuantity(String(amount));
+                                                    setOpenMenu(null);
+                                                }}
+                                            >
+                                                <span className="flex w-full items-center justify-between gap-2 leading-tight">
+                                                    <span className="font-medium tabular-nums">{formatAmount(amount)}</span>
+                                                    <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-bold tabular-nums text-foreground">
+                                                        {formatDzd(chargeFor(selectedService, amount))}
+                                                    </span>
+                                                </span>
+                                            </Option>
+                                        ))}
+                                    </Dropdown>
+                                </div>
+                            )}
+                            {selectedService ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Limit of {formatAmount(selectedService.min)} to {formatAmount(selectedService.max)} per link. Want to input manually?{' '}
+                                    <button
+                                        type="button"
+                                        className="cursor-pointer font-bold text-primary underline"
+                                        onClick={() => {
+                                            setCustomMode((v) => !v);
+                                            setOpenMenu(null);
+                                        }}
+                                    >
+                                        Click here
+                                    </button>
+                                </p>
+                            ) : null}
+                            {errors.quantity ? <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.quantity}</p> : null}
+                        </div>
+
+                        <div className="grid min-w-0 gap-2">
+                            <FieldLabel required>{target.label}</FieldLabel>
+                            <div className="group relative">
+                                <input
+                                    type="text"
+                                    value={link}
+                                    onChange={(e) => {
+                                        setLink(e.target.value);
+                                        setErrors((er) => ({ ...er, link: undefined }));
+                                    }}
+                                    placeholder={target.placeholder}
+                                    className={cn('order-input pr-9', errors.link && 'border-destructive/80')}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={pasteLink}
+                                    aria-label="Paste Link"
+                                    className="absolute inset-y-0 right-3 flex items-center text-muted-foreground/70 hover:text-foreground"
+                                >
+                                    <ClipboardPaste className="size-4" />
+                                </button>
+                            </div>
+                            {errors.link ? (
+                                <p className="text-xs font-medium text-red-600 dark:text-red-400">
+                                    {Array.isArray(errors.link) ? errors.link[0] : errors.link}
+                                </p>
+                            ) : null}
+                        </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                        <div className="relative flex flex-col overflow-visible rounded-md border bg-card text-card-foreground shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setDeliverySettingsOpen((v) => !v)}
+                                className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm"
+                            >
+                                <Settings2 className="size-4 text-muted-foreground" />
+                                <span className="font-medium text-foreground">Delivery Settings</span>
+                                <StatusPill on={deliverySettingsActive} />
+                                <ChevronDown className={cn('ml-auto size-4 text-muted-foreground transition-transform duration-200', deliverySettingsOpen && 'rotate-180')} />
+                            </button>
+
+                            <div className="order-collapsible" data-open={deliverySettingsOpen ? 'true' : undefined}>
+                                <div className="order-collapsible-inner">
+                                <div className="space-y-2 border-t px-4 py-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                            {hasRefineRows
+                                                ? 'Optional preferences — only options available for this category are shown.'
+                                                : 'Save this order for quicker reordering later.'}
+                                        </p>
+                                        {hasActiveRefine ? (
+                                            <button
+                                                type="button"
+                                                onClick={clearRefine}
+                                                className="shrink-0 text-[0.8125rem] font-semibold text-primary underline underline-offset-2"
+                                            >
+                                                Reset
+                                            </button>
+                                        ) : null}
+                                    </div>
+
+                                    <SettingsRow
+                                        icon={Repeat2}
+                                        title="Repeat order"
+                                        active={isRepeat}
+                                        open={settingsRowOpen === 'repeat'}
+                                        onToggle={() => setSettingsRowOpen(settingsRowOpen === 'repeat' ? null : 'repeat')}
+                                    >
+                                        <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2.5">
+                                            <span className="text-sm text-muted-foreground">
+                                                Save under Repeated Orders for easier reordering
+                                            </span>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={isRepeat}
+                                                onClick={() => setIsRepeat((v) => !v)}
+                                                className={cn('relative h-6 w-11 shrink-0 rounded-full transition', isRepeat ? 'bg-primary' : 'bg-muted')}
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        'absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition',
+                                                        isRepeat && 'translate-x-5',
+                                                    )}
+                                                />
+                                            </button>
+                                        </div>
+                                    </SettingsRow>
+
+                                    {showCustomCommentsSettings ? (
+                                        <SettingsRow
+                                            icon={MessageCircle}
+                                            title="Custom comments"
+                                            active={useCustomComments}
+                                            open={settingsRowOpen === 'comments'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'comments' ? null : 'comments')}
+                                        >
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2.5">
+                                                    <span className="text-sm text-muted-foreground">
+                                                        Use your own comment lines for this order
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-checked={useCustomComments}
+                                                        onClick={() => toggleCustomComments(!useCustomComments)}
+                                                        className={cn('relative h-6 w-11 shrink-0 rounded-full transition', useCustomComments ? 'bg-primary' : 'bg-muted')}
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition',
+                                                                useCustomComments && 'translate-x-5',
+                                                            )}
+                                                        />
+                                                    </button>
+                                                </div>
+
+                                                {useCustomComments ? (
+                                                    <>
+                                                <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                                    {requiresCustomComments ? (
+                                                        <>
+                                                            Enter one comment per line. Each line is posted as a separate comment.
+                                                            {isCustomCommentsPackage(selectedService)
+                                                                ? ' This package uses your full comment list.'
+                                                                : ' Quantity must match the number of comments.'}
+                                                        </>
+                                                    ) : (
+                                                        'Optional for random comment services. Switch off if you do not need custom text.'
+                                                    )}
+                                                </p>
+                                                <textarea
+                                                    value={customCommentsText}
+                                                    onChange={(e) => {
+                                                        setCustomCommentsText(e.target.value);
+                                                        setErrors((prev) => ({ ...prev, comments: undefined }));
+                                                    }}
+                                                    rows={6}
+                                                    placeholder={'Great post!\nLove this content\nThanks for sharing'}
+                                                    className="dash-comments-textarea"
+                                                    aria-invalid={Boolean(errors.comments)}
+                                                />
+                                                <div className="flex flex-wrap items-center justify-between gap-2 text-[0.8125rem]">
+                                                    <span className={cn(
+                                                        'font-medium',
+                                                        !requiresCustomComments
+                                                            ? 'text-muted-foreground'
+                                                            : commentsQtyMatch
+                                                              ? 'text-emerald-600 dark:text-emerald-400'
+                                                              : 'text-amber-600 dark:text-amber-400',
+                                                    )}
+                                                    >
+                                                        {commentLines.length} comment{commentLines.length === 1 ? '' : 's'} entered
+                                                        {requiresCustomComments && !isCustomCommentsPackage(selectedService) ? (
+                                                            <> · quantity {quantity}</>
+                                                        ) : null}
+                                                    </span>
+                                                    {requiresCustomComments && !isCustomCommentsPackage(selectedService) && !commentsQtyMatch && commentLines.length > 0 ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={syncQuantityToComments}
+                                                            className="text-xs font-semibold text-primary underline underline-offset-2"
+                                                        >
+                                                            Sync quantity to {commentLines.length}
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                                {!requiresCustomComments || isCustomCommentsPackage(selectedService) ? null : !commentsQtyMatch && commentLines.length > 0 ? (
+                                                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                                                        Add or remove lines, or change quantity so they match.
+                                                    </p>
+                                                ) : null}
+                                                {errors.comments ? (
+                                                    <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+                                                        {errors.comments}
+                                                    </p>
+                                                ) : null}
+                                                    </>
+                                                ) : (
+                                                    <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                                        Custom comments are off. Turn on to type your own lines.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {showQualitySettings ? (
+                                        <SettingsRow
+                                            icon={Sparkles}
+                                            title="Quality"
+                                            active={refine.quality !== 'any'}
+                                            open={settingsRowOpen === 'quality'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'quality' ? null : 'quality')}
+                                        >
+                                            <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                                                <span>Quality</span>
+                                                <InlineSelect
+                                                    value={refine.quality}
+                                                    options={qualityOptions}
+                                                    open={openMenu === 'quality'}
+                                                    disabled={!categoryId}
+                                                    onOpen={() => setOpenMenu(openMenu === 'quality' ? null : 'quality')}
+                                                    onChange={(value) => setRefineField('quality', value)}
+                                                />
+                                            </div>
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {showDeliverySettings ? (
+                                        <SettingsRow
+                                            icon={Zap}
+                                            title="Start time"
+                                            active={refine.delivery !== 'any'}
+                                            open={settingsRowOpen === 'delivery'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'delivery' ? null : 'delivery')}
+                                        >
+                                            <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                                                <span>Prefer</span>
+                                                <InlineSelect
+                                                    value={refine.delivery}
+                                                    options={deliveryOptions}
+                                                    open={openMenu === 'delivery'}
+                                                    disabled={!categoryId}
+                                                    onOpen={() => setOpenMenu(openMenu === 'delivery' ? null : 'delivery')}
+                                                    onChange={(value) => setRefineField('delivery', value)}
+                                                />
+                                                <span>start</span>
+                                            </div>
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {showProtectionSettings ? (
+                                        <SettingsRow
+                                            icon={ShieldCheck}
+                                            title="Protection"
+                                            active={protectionRowActive}
+                                            open={settingsRowOpen === 'protection'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'protection' ? null : 'protection')}
+                                        >
+                                            <div className="space-y-2">
+                                                <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                                                    <span>Refill</span>
+                                                    <InlineSelect
+                                                        value={refine.protection}
+                                                        options={protectionOptions}
+                                                        open={openMenu === 'protection'}
+                                                        disabled={!categoryId}
+                                                        onOpen={() => setOpenMenu(openMenu === 'protection' ? null : 'protection')}
+                                                        onChange={(value) => setRefineField('protection', value)}
+                                                    />
+                                                </div>
+
+                                                {showRefillDays ? (
+                                                    <div className="rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2">
+                                                        <p className="mb-2 text-[0.8125rem] font-medium text-muted-foreground">
+                                                            Warranty period
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {refillDayOptions.map((opt) => {
+                                                                const checked = (refine.refillDays || [])[0] === opt.value;
+                                                                return (
+                                                                    <label
+                                                                        key={opt.value}
+                                                                        className={cn(
+                                                                            'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold transition',
+                                                                            checked
+                                                                                ? 'border-primary/40 bg-primary/10 text-primary'
+                                                                                : 'border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] text-foreground hover:border-primary/30',
+                                                                        )}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name="refill-days"
+                                                                            className="size-3.5 accent-primary"
+                                                                            checked={checked}
+                                                                            onChange={() => toggleRefillDay(opt.value)}
+                                                                            onClick={() => {
+                                                                                if (checked) toggleRefillDay(opt.value);
+                                                                            }}
+                                                                        />
+                                                                        {opt.label}
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ) : null}
+
+                                                {selectedService?.refill ? (
+                                                    <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                                        Current package supports refill
+                                                        {selectedService.refill_days ? ` (~${selectedService.refill_days} days)` : ''}.
+                                                    </p>
+                                                ) : selectedService ? (
+                                                    <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                                        Current package has no refill — pick a refill option above to switch packages.
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {showCountrySettings ? (
+                                        <SettingsRow
+                                            icon={Globe2}
+                                            title="Country"
+                                            active={refine.country !== 'any'}
+                                            open={settingsRowOpen === 'country'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'country' ? null : 'country')}
+                                        >
+                                            <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                                                <span>Location</span>
+                                                <InlineSelect
+                                                    value={refine.country}
+                                                    options={countryOptions}
+                                                    open={openMenu === 'country'}
+                                                    disabled={!categoryId}
+                                                    onOpen={() => setOpenMenu(openMenu === 'country' ? null : 'country')}
+                                                    onChange={(value) => setRefineField('country', value)}
+                                                />
+                                            </div>
+                                            {selectedService?.country_code ? (
+                                                <p className="mt-2 text-[0.8125rem] font-medium text-muted-foreground">
+                                                    Current package:{' '}
+                                                    <CountryFlag code={selectedService.country_code} className="align-middle" />
+                                                </p>
+                                            ) : null}
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {showAudienceSettings ? (
+                                        <SettingsRow
+                                            icon={Users}
+                                            title="Audience"
+                                            active={refine.audience !== 'any'}
+                                            open={settingsRowOpen === 'audience'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'audience' ? null : 'audience')}
+                                        >
+                                            <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                                                <span>Target</span>
+                                                <InlineSelect
+                                                    value={refine.audience}
+                                                    options={audienceOptions}
+                                                    open={openMenu === 'audience'}
+                                                    disabled={!categoryId}
+                                                    onOpen={() => setOpenMenu(openMenu === 'audience' ? null : 'audience')}
+                                                    onChange={(value) => setRefineField('audience', value)}
+                                                />
+                                            </div>
+                                            {selectedService?.audience_gender ? (
+                                                <p className="mt-2 text-[0.8125rem] font-medium text-muted-foreground">
+                                                    Current package: {audienceLabel(selectedService.audience_gender)}
+                                                </p>
+                                            ) : null}
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {showReactionSettings ? (
+                                        <SettingsRow
+                                            icon={Heart}
+                                            title="Reaction"
+                                            active={refine.reaction !== 'any'}
+                                            open={settingsRowOpen === 'reaction'}
+                                            onToggle={() => setSettingsRowOpen(settingsRowOpen === 'reaction' ? null : 'reaction')}
+                                        >
+                                            <div className="rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2">
+                                                <p className="mb-2 text-[0.8125rem] font-medium text-muted-foreground">
+                                                    Pick one reaction type
+                                                </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {reactionOptions.map((opt) => {
+                                                        const checked = refine.reaction === opt.value;
+                                                        return (
+                                                            <label
+                                                                key={opt.value}
+                                                                className={cn(
+                                                                    'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold transition',
+                                                                    checked
+                                                                        ? 'border-primary/40 bg-primary/10 text-primary'
+                                                                        : 'border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] text-foreground hover:border-primary/30',
+                                                                )}
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name="reaction-type"
+                                                                    className="size-3.5 accent-primary"
+                                                                    checked={checked}
+                                                                    onChange={() => setRefineField('reaction', opt.value)}
+                                                                />
+                                                                {opt.icon ? (
+                                                                    <img src={opt.icon} alt="" className="size-4 object-contain" aria-hidden />
+                                                                ) : null}
+                                                                {opt.label}
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                            {selectedService?.reaction_type ? (
+                                                <p className="mt-2 text-[0.8125rem] font-medium text-muted-foreground">
+                                                    Current package: {facebookReactionLabel(selectedService.reaction_type)}
+                                                </p>
+                                            ) : null}
+                                        </SettingsRow>
+                                    ) : null}
+
+                                    {hasActiveRefine ? (
+                                        <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                            Active:{' '}
+                                            {[
+                                                showQualitySettings && refine.quality !== 'any' ? optionLabel(qualityOptions, refine.quality) : null,
+                                                showDeliverySettings && refine.delivery !== 'any' ? optionLabel(deliveryOptions, refine.delivery) : null,
+                                                showProtectionSettings && refine.protection !== 'any' ? optionLabel(protectionOptions, refine.protection) : null,
+                                                hasRefillDayRefine
+                                                    ? (refine.refillDays || []).map((d) => `${d}d`).join(', ')
+                                                    : null,
+                                                showCountrySettings && refine.country !== 'any' ? countryLabel(refine.country) : null,
+                                                showAudienceSettings && refine.audience !== 'any' ? audienceLabel(refine.audience) : null,
+                                                showReactionSettings && refine.reaction !== 'any' ? facebookReactionLabel(refine.reaction) : null,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </p>
+                                    ) : null}
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="relative flex flex-col overflow-hidden rounded-md border bg-card text-card-foreground shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setRulesOpen((v) => !v)}
+                                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+                            >
+                                <span className="flex items-center gap-2 text-[0.975rem] font-semibold text-foreground">
+                                    <Info className="size-4 text-muted-foreground" />
+                                    Before you order
+                                </span>
+                                <ChevronDown className={cn('size-4 text-muted-foreground transition-transform duration-200', rulesOpen && 'rotate-180')} />
+                            </button>
+                            <div className="order-collapsible" data-open={rulesOpen ? 'true' : undefined}>
+                                <div className="order-collapsible-inner">
+                                <div className="space-y-3 border-t px-4 py-3.5">
+                                    {extraRules.length ? (
+                                        <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2.5">
+                                            <p className="text-[0.8125rem] font-bold tracking-wide text-amber-900 uppercase dark:text-amber-200">
+                                                Important for this service
+                                            </p>
+                                            <ul className="mt-2 list-disc space-y-1.5 pl-4 text-sm font-medium leading-relaxed text-amber-950 dark:text-amber-100">
+                                                {extraRules.map((rule) => (
+                                                    <li key={rule}>{rule}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ) : null}
+                                    <ul className="list-disc space-y-1.5 pl-4 text-sm font-medium leading-relaxed text-muted-foreground">
+                                        {GLOBAL_RULES.map((rule) => (
+                                            <li key={rule}>{rule}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+
+                <button
+                    type="submit"
+                    disabled={!selectedService || loadingServices}
+                    className="group relative inline-flex h-auto w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-base font-medium text-primary-foreground shadow-[0_1px_2px_0_rgba(14,18,27,0.24),0_0_0_1px_var(--color-primary)] transition-all duration-150 hover:bg-primary/90 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
+                >
+                    <span className="flex flex-col items-center gap-0.5">
+                        <span className="flex items-center gap-1.5">
+                            <span className="leading-none font-semibold">Checkout Now {formatDzd(charge)}</span>
+                            <ArrowRight className="-ml-1 size-5 transition-transform duration-200 group-hover:translate-x-1" />
+                        </span>
+                        <span className="-mt-1 text-[10px] leading-none opacity-60">
+                            {selectedService?.start_class === 'instant' ? 'Estimated start instantly' : 'Estimated start in 1-2 hours'}
+                        </span>
+                    </span>
+                </button>
+                <p className="mx-auto max-w-md text-center text-[0.6rem] leading-tight text-muted-foreground/60">
+                    By continuing you confirm the target is correct and you accept the rules above.
+                </p>
+            </form>
+
+            {minimumModal ? (
+                <MinimumCheckoutModal
+                    charge={minimumModal.charge}
+                    minimum={minimumModal.minimum}
+                    message={minimumModal.message}
+                    onClose={() => setMinimumModal(null)}
+                />
+            ) : null}
+        </div>
+    );
+}
