@@ -418,6 +418,7 @@ function Footer() {
     const links = t('footer.links', { returnObjects: true });
     const products = t('footer.products', { returnObjects: true });
     const tools = t('footer.tools', { returnObjects: true });
+    const comparisons = t('footer.comparisons', { returnObjects: true });
 
     return (
         <footer className="border-t border-border px-4 py-12 sm:py-16">
