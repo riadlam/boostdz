@@ -21,6 +21,8 @@ use App\Services\Content\StorefrontPlatformCardsContent;
 use App\Services\Content\StorefrontReviewsContent;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 class FulfillmentStatsOverview extends StatsOverviewWidget
 {
@@ -41,22 +43,8 @@ class FulfillmentStatsOverview extends StatsOverviewWidget
             ->sum('charge_dzd');
         $walletBalance = Wallet::query()->sum('balance');
         $storefrontIssues = app(FeaturedServiceHealth::class)->issueCount();
-        $reviewSettings = StorefrontReviewsSettings::current();
-        $publishedReviews = app(StorefrontReviewsContent::class)->publishedCount();
-        $platformCards = app(StorefrontPlatformCardsContent::class)->payload()['platforms'] ?? [];
-        $lowestPlatformPrice = collect($platformCards)->min('starting_price_dzd');
 
-        return [
-            Stat::make('Platform cards', $lowestPlatformPrice ? number_format((int) $lowestPlatformPrice).' DA+' : 'Not set')
-                ->description(count($platformCards).' live landing cards')
-                ->descriptionIcon('heroicon-m-squares-2x2')
-                ->color($lowestPlatformPrice ? 'primary' : 'warning')
-                ->url(ManageLandingPlatformCards::getUrl()),
-            Stat::make('Published reviews', number_format($publishedReviews))
-                ->description($reviewSettings->section_enabled ? 'Landing section live' : 'Landing section hidden')
-                ->descriptionIcon($reviewSettings->section_enabled ? 'heroicon-m-chat-bubble-left-right' : 'heroicon-m-eye-slash')
-                ->color($publishedReviews > 0 ? 'success' : 'warning')
-                ->url(ManageLandingReviews::getUrl()),
+        $stats = [
             Stat::make('Storefront issues', number_format($storefrontIssues))
                 ->description($storefrontIssues > 0 ? 'Featured defaults need attention' : 'All storefront defaults healthy')
                 ->descriptionIcon($storefrontIssues > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
@@ -82,5 +70,37 @@ class FulfillmentStatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('success'),
         ];
+
+        if (Schema::hasTable('storefront_platform_cards')) {
+            try {
+                $platformCards = app(StorefrontPlatformCardsContent::class)->payload()['platforms'] ?? [];
+                $lowestPlatformPrice = collect($platformCards)->min('starting_price_dzd');
+
+                array_unshift($stats, Stat::make('Platform cards', $lowestPlatformPrice ? number_format((int) $lowestPlatformPrice).' DA+' : 'Not set')
+                    ->description(count($platformCards).' live landing cards')
+                    ->descriptionIcon('heroicon-m-squares-2x2')
+                    ->color($lowestPlatformPrice ? 'primary' : 'warning')
+                    ->url(ManageLandingPlatformCards::getUrl()));
+            } catch (Throwable) {
+                // Ignore optional storefront stats when tables are not ready yet.
+            }
+        }
+
+        if (Schema::hasTable('testimonials') && Schema::hasTable('storefront_reviews_settings')) {
+            try {
+                $reviewSettings = StorefrontReviewsSettings::current();
+                $publishedReviews = app(StorefrontReviewsContent::class)->publishedCount();
+
+                array_unshift($stats, Stat::make('Published reviews', number_format($publishedReviews))
+                    ->description($reviewSettings->section_enabled ? 'Landing section live' : 'Landing section hidden')
+                    ->descriptionIcon($reviewSettings->section_enabled ? 'heroicon-m-chat-bubble-left-right' : 'heroicon-m-eye-slash')
+                    ->color($publishedReviews > 0 ? 'success' : 'warning')
+                    ->url(ManageLandingReviews::getUrl()));
+            } catch (Throwable) {
+                // Ignore optional storefront stats when tables are not ready yet.
+            }
+        }
+
+        return $stats;
     }
 }
