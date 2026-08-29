@@ -161,33 +161,111 @@ class TelegramClient
             ]);
     }
 
-    public function notifyFeaturedServiceIssue(CatalogCategory $category, string $reason): void
+    /**
+     * @param  list<string>  $issueLines
+     */
+    public function notifyFeaturedServiceIssuesBatch(int $totalCount, array $issueLines): void
+    {
+        if ($totalCount <= 0 || $issueLines === [] || ! $this->enabled() || ! config('catalog.notify_sync_events', true)) {
+            return;
+        }
+
+        $adminUrl = rtrim((string) config('app.url'), '/').'/admin/manage-featured-services';
+        $lines = array_map(static fn (string $line): string => '• '.e($line), $issueLines);
+        $overflow = $totalCount - count($issueLines);
+
+        if ($overflow > 0) {
+            $lines[] = '… +'.$overflow.' more';
+        }
+
+        $this->call('sendMessage', [
+            'chat_id' => (string) config('telegram.admin_chat_id'),
+            'text' => implode("\n", array_merge(
+                [
+                    '⚠️ <b>Storefront defaults</b> ('.$totalCount.' need attention)',
+                    '',
+                ],
+                $lines,
+                [
+                    '',
+                    '→ '.$adminUrl,
+                ],
+            )),
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => true,
+        ]);
+    }
+
+    /**
+     * @param  array{
+     *     provider_rows: int,
+     *     updated: int,
+     *     reactivated: int,
+     *     reactivated_names: list<string>,
+     *     deactivated: int,
+     *     deactivated_names: list<string>,
+     *     new_skipped: int,
+     *     name_changes: int,
+     *     mode: string,
+     *     duration_ms: int,
+     * }  $summary
+     */
+    public function notifyCatalogSyncSummary(array $summary): void
     {
         if (! $this->enabled() || ! config('catalog.notify_sync_events', true)) {
             return;
         }
 
-        $category->loadMissing(['platform', 'featuredService']);
-        $platform = $category->platform?->name ?? 'Unknown platform';
-        $service = $category->featuredService;
-        $serviceLine = $service
-            ? 'Service: '.e($service->name).' (#'.$service->id.')'
-            : 'Service: —';
-        $adminUrl = rtrim((string) config('app.url'), '/').'/admin/manage-featured-services';
+        $duration = number_format($summary['duration_ms'] / 1000, 1).'s';
+        $lines = [
+            '🔄 <b>Catalog sync done</b>',
+            '',
+            '📦 Provider rows: '.number_format($summary['provider_rows']),
+            '✅ Updated: '.number_format($summary['updated']),
+            '🟢 Reactivated: '.number_format($summary['reactivated']),
+            '🔴 Deactivated: '.number_format($summary['deactivated']),
+            '⏭ New skipped: '.number_format($summary['new_skipped']),
+            '✏️ Name changes: '.number_format($summary['name_changes']),
+        ];
+
+        if ($summary['deactivated'] > 0) {
+            $lines[] = '';
+            $lines[] = '🔴 <b>Off:</b> '.$this->briefNameList($summary['deactivated_names'], $summary['deactivated']);
+        }
+
+        if ($summary['reactivated'] > 0) {
+            $lines[] = '🟢 <b>Back:</b> '.$this->briefNameList($summary['reactivated_names'], $summary['reactivated']);
+        }
+
+        $lines[] = '';
+        $lines[] = '⏱ '.$duration.' · '.e($summary['mode']);
 
         $this->call('sendMessage', [
             'chat_id' => (string) config('telegram.admin_chat_id'),
-            'text' => implode("\n", [
-                '⚠️ <b>Storefront default issue</b>',
-                'Platform: '.e($platform),
-                'Category: '.e($category->name),
-                $serviceLine,
-                'Reason: '.e($reason),
-                'Fix: '.$adminUrl,
-            ]),
+            'text' => implode("\n", $lines),
             'parse_mode' => 'HTML',
             'disable_web_page_preview' => true,
         ]);
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    protected function briefNameList(array $names, int $total): string
+    {
+        if ($names === []) {
+            return number_format($total).' services';
+        }
+
+        $shown = array_map(static fn (string $name): string => e(mb_strimwidth($name, 0, 40, '…')), array_slice($names, 0, 4));
+        $text = implode(', ', $shown);
+        $remaining = $total - count($shown);
+
+        if ($remaining > 0) {
+            $text .= ' (+'.$remaining.')';
+        }
+
+        return $text;
     }
 
     public function answerCallbackQuery(string $callbackQueryId, string $text, bool $showAlert = false): void

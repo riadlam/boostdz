@@ -40,9 +40,12 @@ class CatalogSyncService
             $stats = [
                 'updated' => 0,
                 'created' => 0,
+                'reactivated' => 0,
+                'reactivated_names' => [],
                 'new_skipped' => 0,
                 'name_changes' => 0,
                 'deactivated' => 0,
+                'deactivated_names' => [],
             ];
 
             /** @var Collection<int, CatalogSyncEvent> $events */
@@ -74,24 +77,44 @@ class CatalogSyncService
                 }
 
                 $this->deactivateStaleProviderServices($provider, $now);
-                $stats['deactivated'] = $this->deactivateStaleServices($provider, $now);
+                $deactivated = $this->deactivateStaleServices($provider, $now);
+                $stats['deactivated'] = $deactivated['count'];
+                $stats['deactivated_names'] = $deactivated['names'];
             });
 
             CatalogClassifier::clearCache();
             $this->applyWebCatalogVisibility($provider);
-            $this->notifySyncEvents($events);
+            $this->markSyncEventsHandled($events);
 
-            if (($stats['deactivated'] ?? 0) > 0) {
-                $this->featuredHealth->clearStorefrontCache();
-                $this->featuredHealth->checkAndNotifyAll();
+            $durationMs = (int) round((microtime(true) - $started) * 1000);
+            $mode = $this->isUpdateOnlyMode() ? 'update-only' : 'full';
+
+            try {
+                $this->telegram->notifyCatalogSyncSummary([
+                    'provider_rows' => $synced,
+                    'updated' => $stats['updated'] + ($stats['created'] ?? 0),
+                    'reactivated' => $stats['reactivated'],
+                    'reactivated_names' => $stats['reactivated_names'],
+                    'deactivated' => $stats['deactivated'],
+                    'deactivated_names' => $stats['deactivated_names'],
+                    'new_skipped' => $stats['new_skipped'],
+                    'name_changes' => $stats['name_changes'],
+                    'mode' => $mode,
+                    'duration_ms' => $durationMs,
+                ]);
+            } catch (\Throwable) {
+                // Sync should succeed even when Telegram is down.
             }
 
-            $mode = $this->isUpdateOnlyMode() ? 'update-only' : 'full';
+            $this->featuredHealth->clearStorefrontCache();
+            $this->featuredHealth->checkAndNotifyAll();
+
             $message = sprintf(
-                'Synced %d provider rows (%s). Updated %d, deactivated %d, skipped new %d, name changes %d.',
+                'Synced %d provider rows (%s). Updated %d, reactivated %d, deactivated %d, skipped new %d, name changes %d.',
                 $synced,
                 $mode,
                 $stats['updated'] + ($stats['created'] ?? 0),
+                $stats['reactivated'],
                 $stats['deactivated'],
                 $stats['new_skipped'],
                 $stats['name_changes'],
@@ -102,7 +125,7 @@ class CatalogSyncService
                 'type' => 'catalog',
                 'status' => 'success',
                 'records_synced' => $synced,
-                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+                'duration_ms' => $durationMs,
                 'message' => $message,
                 'meta' => $stats,
             ]);
@@ -206,9 +229,12 @@ class CatalogSyncService
         $stats = [
             'updated' => 0,
             'created' => 0,
+            'reactivated' => 0,
+            'reactivated_names' => [],
             'new_skipped' => 0,
             'name_changes' => 0,
             'deactivated' => 0,
+            'deactivated_names' => [],
         ];
 
         $existingByExternal = DB::table('services')
@@ -217,6 +243,7 @@ class CatalogSyncService
             ->select([
                 'services.id',
                 'services.name',
+                'services.is_active',
                 'services.description',
                 'services.meta',
                 'provider_services.external_id as external_id',
@@ -279,6 +306,13 @@ class CatalogSyncService
                 'jenis' => $item['jenis'] ?? $item['type'] ?? ($meta['jenis'] ?? null),
                 'provider_name' => $row['name'],
             ]);
+
+            if (! (bool) $existing->is_active) {
+                $stats['reactivated']++;
+                if (count($stats['reactivated_names']) < 6) {
+                    $stats['reactivated_names'][] = (string) $existing->name;
+                }
+            }
 
             Service::query()->whereKey((int) $existing->id)->update([
                 'rate_idr' => $row['rate_idr'],
@@ -378,12 +412,27 @@ class CatalogSyncService
             ->update(['is_active' => false]);
     }
 
-    protected function deactivateStaleServices(Provider $provider, \Illuminate\Support\Carbon $now): int
+    protected function deactivateStaleServices(Provider $provider, \Illuminate\Support\Carbon $now): array
     {
-        return Service::query()
+        $ids = Service::query()
             ->whereHas('providerService', fn ($q) => $q->where('provider_id', $provider->id))
             ->where('updated_at', '<', $now->copy()->subMinute())
+            ->pluck('id');
+
+        $names = Service::query()
+            ->whereIn('id', $ids)
+            ->limit(6)
+            ->pluck('name')
+            ->all();
+
+        $count = Service::query()
+            ->whereIn('id', $ids)
             ->update(['is_active' => false]);
+
+        return [
+            'count' => $count,
+            'names' => $names,
+        ];
     }
 
     protected function recordSyncEvent(
@@ -431,13 +480,15 @@ class CatalogSyncService
     /**
      * @param  Collection<int, CatalogSyncEvent>  $events
      */
-    protected function notifySyncEvents(Collection $events): void
+    protected function markSyncEventsHandled(Collection $events): void
     {
-        if ($events->isEmpty() || ! config('catalog.notify_sync_events', true)) {
+        if ($events->isEmpty()) {
             return;
         }
 
-        $this->telegram->notifyCatalogSyncEvents($events);
+        CatalogSyncEvent::query()
+            ->whereIn('id', $events->pluck('id'))
+            ->update(['status' => CatalogSyncEvent::STATUS_SKIPPED]);
     }
 
     protected function detectPlatform(string $label): string

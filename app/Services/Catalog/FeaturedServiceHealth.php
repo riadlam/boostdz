@@ -24,6 +24,8 @@ class FeaturedServiceHealth
 
     public const ISSUES_COUNT_CACHE_KEY = 'catalog.featured_issues_count';
 
+    public const BATCH_ALERT_CACHE_KEY = 'catalog.featured_issues_batch_alert_at';
+
     public function __construct(private readonly TelegramClient $telegram) {}
 
     public function featuredServiceStatus(CatalogCategory $category): string
@@ -105,66 +107,82 @@ class FeaturedServiceHealth
         Cache::forget(self::ISSUES_COUNT_CACHE_KEY);
     }
 
+    public function briefIssueLine(CatalogCategory $category): string
+    {
+        $category->loadMissing(['platform', 'featuredService']);
+        $platform = $category->platform?->name ?? '?';
+        $reason = match ($this->featuredServiceStatus($category)) {
+            self::STATUS_MISSING => 'missing',
+            self::STATUS_INACTIVE => 'inactive',
+            self::STATUS_WRONG_CATEGORY => 'wrong category',
+            default => 'issue',
+        };
+
+        return $platform.' · '.$category->name.' — '.$reason;
+    }
+
     public function checkAndNotifyCategory(CatalogCategory $category): void
     {
         $category->loadMissing(['platform', 'featuredService']);
 
-        $status = $this->featuredServiceStatus($category);
+        if ($this->featuredServiceStatus($category) === self::STATUS_OK) {
+            $category->forceFill(['featured_alert_sent_at' => null])->save();
+            $this->clearStorefrontCache();
+        }
 
-        if ($status === self::STATUS_OK) {
-            if ($category->featured_alert_sent_at !== null) {
-                $category->forceFill(['featured_alert_sent_at' => null])->save();
-            }
+        $this->checkAndNotifyAll();
+    }
 
+    public function checkAndNotifyAll(): void
+    {
+        $issues = $this->issues();
+
+        if ($issues->isEmpty()) {
+            Cache::forget(self::BATCH_ALERT_CACHE_KEY);
             $this->clearStorefrontCache();
 
             return;
         }
 
-        if (! $this->shouldSendAlert($category)) {
-            return;
-        }
-
-        if (! config('catalog.notify_sync_events', true)) {
+        if (! $this->shouldSendBatchAlert() || ! config('catalog.notify_sync_events', true)) {
             return;
         }
 
         try {
-            $this->telegram->notifyFeaturedServiceIssue($category, $this->describeIssue($category));
+            $lines = $issues->take(12)->map(fn (CatalogCategory $category): string => $this->briefIssueLine($category))->all();
+            $this->telegram->notifyFeaturedServiceIssuesBatch($issues->count(), $lines);
         } catch (\Throwable) {
             // Do not break admin UI or sync jobs when Telegram is misconfigured.
+            return;
         }
 
-        $category->forceFill(['featured_alert_sent_at' => now()])->save();
+        Cache::put(self::BATCH_ALERT_CACHE_KEY, now(), now()->addHour());
+
+        CatalogCategory::query()
+            ->whereIn('id', $issues->pluck('id'))
+            ->update(['featured_alert_sent_at' => now()]);
+
         $this->clearStorefrontCache();
-    }
-
-    public function checkAndNotifyAll(): void
-    {
-        foreach ($this->issuesQuery()->cursor() as $category) {
-            $this->checkAndNotifyCategory($category);
-        }
     }
 
     public function checkAndNotifyForService(Service $service): void
     {
-        $categories = CatalogCategory::query()
-            ->with(['platform', 'featuredService'])
-            ->where('featured_service_id', $service->id)
-            ->get();
-
-        foreach ($categories as $category) {
-            $this->checkAndNotifyCategory($category);
-        }
+        $this->checkAndNotifyAll();
     }
 
-    protected function shouldSendAlert(CatalogCategory $category): bool
+    protected function shouldSendBatchAlert(): bool
     {
-        if ($category->featured_alert_sent_at === null) {
+        $sentAt = Cache::get(self::BATCH_ALERT_CACHE_KEY);
+
+        if ($sentAt === null) {
             return true;
         }
 
-        return $category->featured_alert_sent_at->lt(now()->subHour());
+        if ($sentAt instanceof \DateTimeInterface) {
+            return $sentAt < now()->subHour();
+        }
+
+        return true;
     }
 }
 
