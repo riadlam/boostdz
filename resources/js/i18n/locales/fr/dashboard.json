@@ -1,0 +1,47 @@
+{
+  "greeting": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir"
+  },
+  "nameFallback": "à vous",
+  "subtitle": "Choisissez un preset ou suivez simplement votre croissance.",
+  "topUp": "Recharger",
+  "stats": {
+    "ordersThisWeek": "Commandes cette semaine",
+    "ordersPlaced": "{{count}} commandes passées",
+    "ordersPlaced_one": "1 commande passée",
+    "completed": "Terminées",
+    "deliveredOrders": "Commandes livrées",
+    "inProgress": "En cours",
+    "activeOrders": "{{count}} commandes actives",
+    "activeOrders_one": "1 commande active",
+    "spent": "Dépensé",
+    "thisMonth": "Ce mois-ci"
+  },
+  "presetsEmpty": "Aucun service preset disponible pour le moment. Parcourez le catalogue complet dans",
+  "presets": {
+    "igLikes": "Booster une publication",
+    "ttViews": "Devenir viral",
+    "ytViews": "Grandir sur YouTube"
+  },
+  "recentActivity": "Votre activité récente",
+  "loadingRecentOrders": "Chargement des commandes récentes…",
+  "loadOrdersError": "Impossible de charger les commandes.",
+  "noOrdersYet": "Aucune commande pour le moment.",
+  "placeFirstOrder": "Passez votre première commande",
+  "backToDashboard": "Retour au tableau de bord",
+  "faqs": {
+    "title": "FAQ et aide",
+    "subtitle": "Réponses sur la livraison, le rechargement, la sécurité et les paiements — ou contactez le support à tout moment.",
+    "filterAll": "Tout",
+    "searchPlaceholder": "Rechercher des questions…",
+    "questionCount": "{{count}} questions",
+    "questionCount_one": "{{count}} question",
+    "noResults": "Aucune question ne correspond à votre recherche. Essayez un autre mot-clé ou une autre catégorie.",
+    "stillHaveQuestions": "Encore des questions ?",
+    "supportBlurb": "Notre équipe support est disponible 24h/24. La plupart des réponses arrivent en quelques minutes.",
+    "emailSupport": "Support par e-mail",
+    "liveChat": "Chat en direct"
+  }
+}

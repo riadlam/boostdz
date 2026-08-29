@@ -1,0 +1,288 @@
+{
+  "brand": {
+    "name": "BOOSTDZ"
+  },
+  "header": {
+    "signIn": "Sign in",
+    "startFree": "Start for free",
+    "menu": "Menu"
+  },
+  "hero": {
+    "beta": "BOOSTDZ is now in public beta",
+    "learnMore": "Learn more",
+    "titleLine1": "Grow Your",
+    "titleLine2": "Real Likes, Real Followers.",
+    "subtitle": "Buy real likes, followers, and views for Instagram, TikTok, YouTube, and X — with instant delivery and no password required. Genuine engagement that helps every post travel further.",
+    "getStarted": "Get Started",
+    "learnMoreCta": "Learn More",
+    "asSeenOn": "As seen on",
+    "asSeenNote": "Yes, it's not fake, we really did get featured"
+  },
+  "preview": {
+    "dashboard": "Dashboard",
+    "dashboardDesc": "Overview of your growth",
+    "orders": "Orders",
+    "ordersDesc": "Manage your orders",
+    "automation": "Automation",
+    "automationDesc": "Set rules and let it run"
+  },
+  "why": {
+    "title": "Why Creators Pick BOOSTDZ Over Everyone Else",
+    "subtitle": "Everything you need to grow your social media — instant delivery, real engagement, drip-feed delivery, and automatic refill, across every platform.",
+    "growHighlight": "grow your social media",
+    "items": [
+      {
+        "title": "Instant delivery guaranteed",
+        "body": "Your order begins processing within minutes. Real engagement lands on your content almost instantly — no long waits, no delays, just results.",
+        "highlight": "almost instantly"
+      },
+      {
+        "title": "Real people, real engagement",
+        "body": "Every interaction comes from genuine, active profiles — never bots or ghost accounts. Authentic engagement the algorithm rewards and your audience trusts.",
+        "highlight": "genuine, active profiles"
+      },
+      {
+        "title": "Always-on customer support",
+        "body": "Our team is available around the clock via live chat and email. Questions about packages, order issues, or account advice — we respond in minutes.",
+        "highlight": "around the clock"
+      },
+      {
+        "title": "Secure encrypted payments",
+        "body": "Every transaction is protected with bank-level SSL encryption through trusted providers. Your payment details and personal information stay fully secure.",
+        "highlight": "bank-level SSL encryption"
+      },
+      {
+        "title": "Natural drip-feed growth",
+        "body": "Spread delivery over hours or days so growth looks completely organic. Protect your account while building consistent, steady engagement that lasts.",
+        "highlight": "completely organic"
+      },
+      {
+        "title": "Automatic refill guarantee",
+        "body": "If any engagement drops after delivery, we automatically refill your order at no extra cost. Your numbers stay strong with our retention guarantee.",
+        "highlight": "automatically refill"
+      },
+      {
+        "title": "One dashboard, every platform",
+        "body": "Manage your growth across every major social network from a single place. One login, one order history, all your engagement tracked in one view.",
+        "highlight": "single place"
+      },
+      {
+        "title": "Real-time order tracking",
+        "body": "Follow every order with live delivery progress, completion updates, and detailed engagement analytics. See exactly how your social presence grows.",
+        "highlight": "live delivery progress"
+      },
+      {
+        "title": "Fair, transparent pricing",
+        "body": "High-quality real engagement starting under a dollar. Volume discounts for creators and agencies who need reliable, consistent growth without overspending.",
+        "highlight": "under a dollar"
+      }
+    ]
+  },
+  "platforms": {
+    "title": "Real Hearts, Fans and Plays, Delivered Fast",
+    "subtitle": "Buy real likes, followers, and views for Instagram, TikTok, YouTube, X, and Facebook. Pick your network, choose your service, start growing today.",
+    "platformsHighlight": "Instagram, TikTok, YouTube, X, and Facebook",
+    "reviewsLabel": "reviews",
+    "metaLine": "{{startingAt}} {{price}} · {{reviews}} {{reviewsLabel}}",
+    "cards": [
+      {
+        "id": "instagram",
+        "name": "Instagram",
+        "body": "Boost your posts, reels and stories with real likes, followers, views and comments from genuine accounts.",
+        "highlight": "real likes, followers, views and comments",
+        "cta": "Buy Instagram Services",
+        "meta": "Starting at 199 DA · 230+ reviews",
+        "rating": 4
+      },
+      {
+        "id": "tiktok",
+        "name": "TikTok",
+        "body": "Go viral faster with real likes, followers and views that help your content get recommended.",
+        "highlight": "real likes, followers and views",
+        "cta": "Buy TikTok Services",
+        "meta": "Starting at 199 DA · 235+ reviews",
+        "rating": 4
+      },
+      {
+        "id": "x",
+        "name": "X / Twitter",
+        "body": "Amplify your tweets and build your audience with real likes and followers that boost your reach.",
+        "highlight": "real likes and followers",
+        "cta": "Buy Twitter Services",
+        "meta": "Starting at 199 DA · 235+ reviews",
+        "rating": 4
+      },
+      {
+        "id": "youtube",
+        "name": "YouTube",
+        "body": "Grow your channel with real views, likes and subscribers that boost your videos in search and recommendations.",
+        "highlight": "real views, likes and subscribers",
+        "cta": "Buy YouTube Services",
+        "meta": "Starting at 199 DA · 210+ reviews",
+        "rating": 4
+      },
+      {
+        "id": "facebook",
+        "name": "Facebook",
+        "body": "Grow your page and posts with real likes, followers and views that increase your visibility.",
+        "highlight": "real likes, followers and views",
+        "cta": "Buy Facebook Services",
+        "meta": "Starting at 199 DA · 235+ reviews",
+        "rating": 4
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Hear It From Creators, Brands and Agencies",
+    "subtitle": "See how creators, businesses, and agencies use BOOSTDZ for real social proof and measurable social media growth.",
+    "likesDelivered": "Likes delivered this month",
+    "satisfaction": "Customer satisfaction rate",
+    "leaveReviewTitle": "Love BOOSTDZ? Leave a review",
+    "leaveReviewBody": "Tell other creators what worked for you. Your review helps the community pick the right tools.",
+    "leaveReviewCta": "Leave a Review",
+    "tapToPlay": "Tap to play · swipe for more",
+    "items": [
+      {
+        "quote": "I was skeptical at first, but BOOSTDZ delivered exactly what they promised. My Instagram posts went from 50 likes to over 500 in a week, and the followers are real accounts — I checked. Game changer for my small business.",
+        "name": "John Mitchell",
+        "role": "Founder @ Northbay Goods",
+        "avatar": "/assets/testimonials/1.webp"
+      },
+      {
+        "quote": "Got my first 1k followers in days. Real ones. BOOSTDZ made posting feel good again — engagement that actually sticks.",
+        "name": "Sarah Chen",
+        "role": "Content Creator",
+        "avatar": "/assets/testimonials/2.webp"
+      },
+      {
+        "quote": "We run 12 client accounts. BOOSTDZ is the only panel that delivers consistently without drop-offs. Our agency workflow depends on it.",
+        "name": "Marcus Webb",
+        "role": "Agency Director",
+        "avatar": "/assets/testimonials/3.webp"
+      },
+      {
+        "quote": "TikTok views landed within minutes. My FYP reach doubled in two weeks. Best investment for a new creator.",
+        "name": "Elena Rodriguez",
+        "role": "TikTok Creator",
+        "avatar": "/assets/testimonials/4.webp"
+      },
+      {
+        "quote": "Support answered in under 5 minutes when I had a question. That alone makes BOOSTDZ worth it for our brand team.",
+        "name": "David Park",
+        "role": "Brand Manager",
+        "avatar": "/assets/testimonials/5.webp"
+      }
+    ]
+  },
+  "nav": [
+    {
+      "label": "Products",
+      "href": "#platforms"
+    },
+    {
+      "label": "Why",
+      "href": "#why"
+    }
+  ],
+  "steps": [
+    {
+      "n": "1",
+      "title": "Choose",
+      "body": "Browse our catalog and pick the perfect package for your Instagram, TikTok, or Twitter account."
+    },
+    {
+      "n": "2",
+      "title": "Order",
+      "body": "Paste your profile or post link, select a quantity, and complete your order in seconds."
+    },
+    {
+      "n": "3",
+      "title": "Grow",
+      "body": "Delivery starts within minutes — real likes, followers, and views, drip-fed for natural-looking growth."
+    }
+  ],
+  "footer": {
+    "links": [
+      {
+        "label": "Sign In",
+        "href": "#"
+      },
+      {
+        "label": "Sign Up",
+        "href": "#"
+      },
+      {
+        "label": "Reviews",
+        "href": "#testimonials"
+      },
+      {
+        "label": "Contact",
+        "href": "#"
+      },
+      {
+        "label": "API Docs",
+        "href": "#"
+      },
+      {
+        "label": "Blog & News",
+        "href": "#"
+      },
+      {
+        "label": "Who It's For",
+        "href": "#"
+      },
+      {
+        "label": "Brand Assets",
+        "href": "#"
+      }
+    ],
+    "products": [
+      "Buy TikTok Likes",
+      "Buy Twitter Likes",
+      "Buy YouTube Likes",
+      "Buy YouTube Views",
+      "Buy Instagram Likes",
+      "Buy Instagram Views",
+      "Buy TikTok Followers",
+      "Buy TikTok Views",
+      "Buy Twitter Followers",
+      "Buy Instagram Comments",
+      "Buy Instagram Followers",
+      "Buy YouTube Subscribers"
+    ],
+    "tools": [
+      "Free TikTok Counter",
+      "Free Instagram Likes",
+      "Free AI Hashtag Generator",
+      "Free TikTok Likes Counter",
+      "Free Instagram Story Viewer",
+      "Free TikTok Money Calculator",
+      "Free TikTok Video Downloader",
+      "Free Instagram Followers Counter",
+      "Free TikTok Engagement Rate Calculator",
+      "Free YouTube Views"
+    ],
+    "comparisons": [
+      "Twicsy Alternative",
+      "Buzzoid Alternative",
+      "Famoid Alternative",
+      "Likes.io Alternative",
+      "Media Mister Alternative",
+      "Best Sites: Instagram Followers",
+      "Best Sites: Instagram Likes",
+      "Best Sites: TikTok Followers",
+      "Best Sites: TikTok Views"
+    ],
+    "sections": {
+      "links": "Links",
+      "products": "Featured Products",
+      "tools": "Free Tools",
+      "comparisons": "Comparisons"
+    },
+    "about": "Powering social media growth. BOOSTDZ serves creators, agencies, and brands with engagement services across Instagram, TikTok, YouTube, and X. Based in Algeria.",
+    "rights": "All rights reserved.",
+    "terms": "Terms of Service",
+    "refund": "Refund Policy",
+    "privacy": "Privacy Policy"
+  }
+}

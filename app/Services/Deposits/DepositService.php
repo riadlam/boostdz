@@ -27,13 +27,13 @@ class DepositService
         $amount = number_format((float) ($data['amount_dzd'] ?? 0), 2, '.', '');
 
         if ((float) $amount <= 0) {
-            throw new InvalidArgumentException('Amount must be greater than zero.');
+            throw new InvalidArgumentException(__('api.deposits.amount_gt_zero'));
         }
 
         $this->checkoutPolicy->assertMinimumTopup($amount);
 
         if (! in_array($method, ['ccp', 'algerie_post'], true)) {
-            throw new InvalidArgumentException('Invalid deposit method.');
+            throw new InvalidArgumentException(__('api.deposits.invalid_method'));
         }
 
         $wallet = $this->wallets->forUser($user);
@@ -41,7 +41,7 @@ class DepositService
 
         if ($method === 'ccp') {
             if (! $proof) {
-                throw new InvalidArgumentException('Proof of payment is required for CCP deposits.');
+                throw new InvalidArgumentException(__('api.deposits.ccp_proof_required'));
             }
 
             $proofPath = $proof->store('deposits/'.$user->id, 'public');
@@ -70,7 +70,7 @@ class DepositService
     public function approve(Deposit $deposit, User $admin, ?string $note = null): Deposit
     {
         if ($deposit->status !== DepositStatus::Pending) {
-            throw new InvalidArgumentException('Only pending deposits can be approved.');
+            throw new InvalidArgumentException(__('api.deposits.pending_only_approve'));
         }
 
         $deposit->update([
@@ -90,7 +90,7 @@ class DepositService
     public function reject(Deposit $deposit, User $admin, ?string $note = null): Deposit
     {
         if ($deposit->status !== DepositStatus::Pending) {
-            throw new InvalidArgumentException('Only pending deposits can be rejected.');
+            throw new InvalidArgumentException(__('api.deposits.pending_only_reject'));
         }
 
         if ($deposit->proof_path) {

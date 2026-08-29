@@ -53,10 +53,9 @@ class CheckoutPolicy
         $amount = $this->pricing->roundDzd($amountDzd);
 
         if ($amount < $minimum) {
-            throw new MinimumCheckoutException($minimum, $amount, sprintf(
-                'Minimum top-up amount is %s DA.',
-                number_format($minimum, 0, '.', ' '),
-            ));
+            throw new MinimumCheckoutException($minimum, $amount, __('api.checkout.minimum_topup', [
+                'amount' => number_format($minimum, 0, '.', ' '),
+            ]));
         }
     }
 

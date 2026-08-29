@@ -1,4 +1,5 @@
 import { clearSession, getToken } from './authStorage';
+import i18n, { resolveLocale } from '../i18n';
 
 const API_BASE = '/api/v1';
 
@@ -21,6 +22,7 @@ export async function api(path, { method = 'GET', body, token, headers = {} } = 
         method,
         headers: {
             Accept: 'application/json',
+            'Accept-Language': resolveLocale(i18n.language),
             ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
             ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             ...headers,
@@ -85,8 +87,14 @@ export const servicesApi = {
 
 export const catalogApi = {
     platforms: () => api('/catalog/platforms'),
+    storefront: () => api('/catalog/storefront'),
     categories: (slug) => api(`/catalog/platforms/${encodeURIComponent(slug)}/categories`),
     services: (categoryId, params) => api(`/catalog/categories/${categoryId}/services${toQuery(params)}`),
+};
+
+export const contentApi = {
+    testimonials: () => api('/content/testimonials'),
+    platformCards: () => api('/content/platform-cards'),
 };
 
 export const ordersApi = {
@@ -99,6 +107,11 @@ export const ordersApi = {
 export const checkoutApi = {
     settings: () => api('/checkout/settings'),
     submitCcpReceipt: (formData) => api('/checkout/ccp-receipt', { method: 'POST', body: formData }),
+};
+
+export const depositsApi = {
+    list: (params) => api(`/deposits${toQuery(params)}`),
+    create: (formData) => api('/deposits', { method: 'POST', body: formData }),
 };
 
 export const walletApi = {

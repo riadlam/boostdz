@@ -40,13 +40,13 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [__('api.auth.credentials_incorrect')],
             ]);
         }
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'email' => ['Your account is inactive.'],
+                'email' => [__('api.auth.account_inactive')],
             ]);
         }
 
@@ -72,6 +72,6 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()?->delete();
 
-        return response()->json(['message' => 'Logged out.']);
+        return response()->json(['message' => __('api.auth.logged_out')]);
     }
 }

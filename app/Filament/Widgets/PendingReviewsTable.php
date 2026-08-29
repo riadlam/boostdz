@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PendingReviewsTable extends TableWidget
 {
-    protected static ?string $heading = 'Pending reviews';
+    protected static ?string $heading = 'Pending deposit reviews';
 
     protected int|string|array $columnSpan = 'full';
 

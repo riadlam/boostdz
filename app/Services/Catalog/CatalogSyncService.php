@@ -10,6 +10,7 @@ use App\Models\ProviderSyncLog;
 use App\Models\Service;
 use App\Services\BuzzerPanel\BuzzerPanelClient;
 use App\Services\BuzzerPanel\BuzzerPanelException;
+use App\Services\Catalog\FeaturedServiceHealth;
 use App\Services\Pricing\PricingService;
 use App\Services\Telegram\TelegramClient;
 use Illuminate\Support\Collection;
@@ -22,6 +23,7 @@ class CatalogSyncService
     public function __construct(
         private readonly PricingService $pricing,
         private readonly TelegramClient $telegram,
+        private readonly FeaturedServiceHealth $featuredHealth,
     ) {}
 
     public function sync(Provider $provider): ProviderSyncLog
@@ -78,6 +80,11 @@ class CatalogSyncService
             CatalogClassifier::clearCache();
             $this->applyWebCatalogVisibility($provider);
             $this->notifySyncEvents($events);
+
+            if (($stats['deactivated'] ?? 0) > 0) {
+                $this->featuredHealth->clearStorefrontCache();
+                $this->featuredHealth->checkAndNotifyAll();
+            }
 
             $mode = $this->isUpdateOnlyMode() ? 'update-only' : 'full';
             $message = sprintf(

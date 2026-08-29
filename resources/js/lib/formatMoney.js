@@ -1,3 +1,5 @@
+import i18n, { intlLocale } from '../i18n';
+
 /**
  * Whole DZD amounts — no decimal points in user-facing prices.
  */
@@ -7,11 +9,13 @@ export function roundDzd(n) {
 
 export function formatDzd(n) {
     const value = roundDzd(n);
-    return `${value.toLocaleString('fr-DZ', { maximumFractionDigits: 0 })} DA`;
+    const currency = i18n.t('common:currency');
+
+    return `${value.toLocaleString(intlLocale(i18n.language), { maximumFractionDigits: 0 })} ${currency}`;
 }
 
 export function formatDzdAmount(n) {
-    return roundDzd(n).toLocaleString('fr-DZ', { maximumFractionDigits: 0 });
+    return roundDzd(n).toLocaleString(intlLocale(i18n.language), { maximumFractionDigits: 0 });
 }
 
 export function chargeForService(service, quantity) {

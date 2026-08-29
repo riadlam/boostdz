@@ -30,7 +30,7 @@ class OrderService
     public function place(User $user, Service $service, array $payload): Order
     {
         if (! $service->is_active) {
-            throw new InvalidArgumentException('Service is not available.');
+            throw new InvalidArgumentException(__('api.orders.service_not_available'));
         }
 
         $service->loadMissing('providerService.provider');
@@ -39,11 +39,14 @@ class OrderService
         $link = trim((string) ($payload['link'] ?? ''));
 
         if ($quantity < $service->min || $quantity > $service->max) {
-            throw new InvalidArgumentException("Quantity must be between {$service->min} and {$service->max}.");
+            throw new InvalidArgumentException(__('api.orders.quantity_between', [
+                'min' => $service->min,
+                'max' => $service->max,
+            ]));
         }
 
         if ($link === '') {
-            throw new InvalidArgumentException('Link is required.');
+            throw new InvalidArgumentException(__('api.orders.link_required'));
         }
 
         $idempotencyKey = (string) ($payload['idempotency_key'] ?? Str::uuid());

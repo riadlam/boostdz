@@ -22,7 +22,7 @@ class RefillService
         $order->loadMissing(['service', 'provider', 'refills']);
 
         if (! $order->canRequestRefill()) {
-            throw new InvalidArgumentException($order->refillBlockReason() ?? 'This order is not eligible for refill.');
+            throw new InvalidArgumentException($order->refillBlockReason() ?? __('api.refill.not_eligible'));
         }
 
         $client = BuzzerPanelClient::fromProvider($order->provider);
@@ -52,14 +52,14 @@ class RefillService
     {
         $clean = trim((string) $message);
         if ($clean === '') {
-            return 'Refill request failed. Please try again later.';
+            return __('api.refill.request_failed');
         }
 
         $clean = preg_replace('/\bbuzzer\s*panel\b/iu', '', $clean) ?? $clean;
         $clean = preg_replace('/\s{2,}/', ' ', $clean) ?? $clean;
         $clean = trim($clean, " \t\n\r\0\x0B-–—:|");
 
-        return $clean !== '' ? $clean : 'Refill request failed. Please try again later.';
+        return $clean !== '' ? $clean : __('api.refill.request_failed');
     }
 
     /**

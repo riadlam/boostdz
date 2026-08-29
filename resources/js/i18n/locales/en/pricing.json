@@ -1,0 +1,13 @@
+{
+  "title": "Fair, transparent pricing",
+  "subtitle": "Live rates from your catalog — per 1,000 units, with real minimums and maximums for each category.",
+  "allPlatforms": "All platforms",
+  "searchPlaceholder": "Search categories…",
+  "categoryCount": "{{count}} categories",
+  "categoryCount_one": "{{count}} category",
+  "loading": "Loading pricing…",
+  "loadError": "Could not load pricing.",
+  "order": "Order",
+  "noResults": "No categories match your search. Try another platform or keyword.",
+  "footerNote": "Prices use admin-selected storefront defaults from your catalog. Per 1K rates and order limits update when your catalog syncs. All orders checkout from your BOOSTDZ balance."
+}

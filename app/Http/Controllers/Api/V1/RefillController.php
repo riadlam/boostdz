@@ -56,7 +56,7 @@ class RefillController extends Controller
         }
 
         return response()->json([
-            'message' => 'Refill request submitted. It is now pending.',
+            'message' => __('api.refill.submitted_pending'),
             'refill' => OrderRefillResource::make($refill),
             'order' => OrderResource::make($order->fresh(['service', 'refills'])),
         ], 201);

@@ -1,3 +1,4 @@
+import './i18n';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -45,8 +46,8 @@ createRoot(document.getElementById('root')).render(
                             path="orders/repeated"
                             element={
                                 <DashboardPlaceholder
-                                    title="Repeated Orders"
-                                    description="Manage auto-refill and recurring boosts for posts that need ongoing engagement."
+                                    titleKey="nav:repeatedOrders"
+                                    descriptionKey="nav:repeatedOrdersDescription"
                                 />
                             }
                         />

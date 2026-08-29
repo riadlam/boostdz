@@ -7,6 +7,8 @@ use App\Http\Resources\ServiceResource;
 use App\Models\CatalogCategory;
 use App\Models\CatalogPlatform;
 use App\Models\Service;
+use App\Services\Catalog\FeaturedServiceHealth;
+use App\Services\Pricing\PricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -50,7 +52,7 @@ class CatalogController extends Controller
         ]);
     }
 
-    public function categories(string $slug): JsonResponse
+    public function categories(string $slug, FeaturedServiceHealth $featuredHealth): JsonResponse
     {
         $platform = CatalogPlatform::query()
             ->where('slug', $slug)
@@ -60,19 +62,27 @@ class CatalogController extends Controller
         $categories = CatalogCategory::query()
             ->where('platform_id', $platform->id)
             ->where('is_active', true)
+            ->with('featuredService')
             ->withCount([
                 'services as services_count' => fn ($q) => $q->where('is_active', true),
             ])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->map(fn (CatalogCategory $category) => [
-                'id' => $category->id,
-                'slug' => $category->slug,
-                'name' => $category->name,
-                'sort_order' => $category->sort_order,
-                'services_count' => (int) $category->services_count,
-            ])
+            ->map(function (CatalogCategory $category) use ($featuredHealth) {
+                $status = $featuredHealth->featuredServiceStatus($category);
+
+                return [
+                    'id' => $category->id,
+                    'slug' => $category->slug,
+                    'name' => $category->name,
+                    'sort_order' => $category->sort_order,
+                    'services_count' => (int) $category->services_count,
+                    'default_service_id' => $status === FeaturedServiceHealth::STATUS_OK
+                        ? (int) $category->featured_service_id
+                        : null,
+                ];
+            })
             ->values();
 
         return response()->json([
@@ -83,6 +93,56 @@ class CatalogController extends Controller
                 'icon_key' => $platform->icon_key,
             ],
             'categories' => $categories,
+        ]);
+    }
+
+    public function storefront(PricingService $pricing, FeaturedServiceHealth $featuredHealth): JsonResponse
+    {
+        $items = Cache::remember(FeaturedServiceHealth::CACHE_KEY, 300, function () use ($pricing, $featuredHealth) {
+            return CatalogCategory::query()
+                ->with(['platform', 'featuredService'])
+                ->where('catalog_categories.is_active', true)
+                ->whereNotNull('catalog_categories.featured_service_id')
+                ->join('catalog_platforms', 'catalog_platforms.id', '=', 'catalog_categories.platform_id')
+                ->where('catalog_platforms.is_active', true)
+                ->orderBy('catalog_platforms.sort_order')
+                ->orderBy('catalog_categories.sort_order')
+                ->orderBy('catalog_categories.name')
+                ->select('catalog_categories.*')
+                ->get()
+                ->filter(fn (CatalogCategory $category): bool => $featuredHealth->featuredServiceStatus($category) === FeaturedServiceHealth::STATUS_OK)
+                ->map(function (CatalogCategory $category) use ($pricing) {
+                    $service = $category->featuredService;
+                    $startingAmount = max(1, (int) $service->min);
+                    $pricePer1k = (int) $pricing->quote($service, 1000)->charge_dzd;
+                    $startingPrice = (int) $pricing->quote($service, $startingAmount)->charge_dzd;
+
+                    return [
+                        'platform' => [
+                            'slug' => $category->platform->slug,
+                            'name' => $category->platform->name,
+                        ],
+                        'category' => [
+                            'id' => $category->id,
+                            'slug' => $category->slug,
+                            'name' => $category->name,
+                        ],
+                        'service' => ServiceResource::make($service)->resolve(),
+                        'price_per_1k_dzd' => $pricePer1k,
+                        'starting_price_dzd' => $startingPrice,
+                        'min' => (int) $service->min,
+                        'max' => (int) $service->max,
+                    ];
+                })
+                ->values()
+                ->all();
+        });
+
+        return response()->json([
+            'items' => $items,
+            'meta' => [
+                'total' => count($items),
+            ],
         ]);
     }
 
@@ -230,36 +290,41 @@ class CatalogController extends Controller
 
     protected function groupLabel(Service $service): string
     {
+        $tier = (string) ($service->quality_tier ?: 'standard');
         $parts = [
-            ucfirst((string) ($service->quality_tier ?: 'standard')),
+            __('api.catalog.quality.'.$tier),
         ];
 
         $mode = (string) ($service->refill_mode ?: 'none');
         $days = $service->refill_days;
 
         $parts[] = match ($mode) {
-            'auto' => $days ? "Auto refill {$days}d" : 'Auto refill',
-            'manual' => $days ? "Refill {$days}d" : 'Refill',
-            'lifetime' => 'Lifetime refill',
-            default => 'No refill',
+            'auto' => $days
+                ? __('api.catalog.refill.auto_days', ['days' => $days])
+                : __('api.catalog.refill.auto'),
+            'manual' => $days
+                ? __('api.catalog.refill.manual_days', ['days' => $days])
+                : __('api.catalog.refill.manual'),
+            'lifetime' => __('api.catalog.refill.lifetime'),
+            default => __('api.catalog.refill.none'),
         };
 
         $start = (string) ($service->start_class ?: 'normal');
         $parts[] = match ($start) {
-            'instant' => 'Instant',
-            'fast' => 'Fast',
-            'slow' => 'Slow',
-            default => 'Normal start',
+            'instant' => __('api.catalog.start.instant'),
+            'fast' => __('api.catalog.start.fast'),
+            'slow' => __('api.catalog.start.slow'),
+            default => __('api.catalog.start.normal'),
         };
 
         if ($service->dripfeed) {
-            $parts[] = 'Drip-feed';
+            $parts[] = __('api.catalog.drip_feed');
         }
         if ($service->is_hot) {
-            $parts[] = 'Top';
+            $parts[] = __('api.catalog.top');
         }
         if ($service->is_cheap) {
-            $parts[] = 'Cheap';
+            $parts[] = __('api.catalog.cheap');
         }
 
         return implode(' · ', $parts);

@@ -1,33 +1,30 @@
-export const GLOBAL_ORDER_RULES = [
-    'Enter the correct link or username. Private accounts and wrong targets are not refundable.',
-    'Do not place another order for the same target until the previous one is completed, partial, or canceled.',
-    'Speeds and start times are estimates and can change with server load.',
-    'Complaints are accepted after 24 hours from order placement.',
-    'If the target already has 100,000+ followers/likes/views/subs, refill protection does not apply.',
-    'Partial or canceled orders are refunded automatically to your balance.',
-    'Orders cannot be canceled for user input mistakes.',
-];
+import i18n from '../i18n';
 
-export function categoryOrderRules(platformSlug, categorySlug) {
+/** @param {import('i18next').TFunction} t */
+export function getGlobalOrderRules(t) {
+    const rules = t('globalRules', { ns: 'validation', returnObjects: true });
+    return Array.isArray(rules) ? rules : [];
+}
+
+/** @param {import('i18next').TFunction} t */
+export function getCategoryOrderRules(t, platformSlug, categorySlug) {
     const notes = [];
 
     if (platformSlug === 'instagram' && categorySlug === 'followers') {
-        notes.push(
-            'Disable Instagram “Flag / Report for review” (Settings → Follow and invite friends) so new followers appear automatically. No refill/refund if this stays enabled.',
-            'For followers, enter the username only (not a private account).',
-        );
+        notes.push(t('categoryRules.igFollowersFlag', { ns: 'validation' }));
+        notes.push(t('categoryRules.igFollowersUsername', { ns: 'validation' }));
     }
 
     if (['likes', 'views', 'comments', 'shares', 'page_likes'].includes(categorySlug) || categorySlug?.startsWith('reaction')) {
-        notes.push('For likes, views, reactions, and comments, paste the exact post/media URL from the description.');
+        notes.push(t('categoryRules.postUrl', { ns: 'validation' }));
     }
 
     if (categorySlug === 'comments') {
-        notes.push('For custom comment services, enter one comment per line. Quantity must match the number of comments.');
+        notes.push(t('categoryRules.commentsLines', { ns: 'validation' }));
     }
 
     if (categorySlug === 'followers' || categorySlug === 'members') {
-        notes.push('Make sure the profile is public and the username/link matches the service requirements.');
+        notes.push(t('categoryRules.publicProfile', { ns: 'validation' }));
     }
 
     return notes;
@@ -65,7 +62,15 @@ export function formatCommentsForApi(lines) {
     return (Array.isArray(lines) ? lines : parseCommentLines(lines)).join('\n');
 }
 
-export function validateCustomComments({ service, quantity, commentsText }) {
+export function validateCustomComments({ service, quantity, commentsText, t }) {
+    const translate =
+        t ||
+        ((key, options) =>
+            i18n.t(key, {
+                ns: 'validation',
+                ...options,
+            }));
+
     if (!isCustomCommentsService(service)) {
         return { ok: true, message: null, lines: [] };
     }
@@ -74,7 +79,7 @@ export function validateCustomComments({ service, quantity, commentsText }) {
     const qty = Number(quantity) || 0;
 
     if (lines.length === 0) {
-        return { ok: false, message: 'Enter at least one comment (one per line).', lines };
+        return { ok: false, message: translate('commentsRequired'), lines };
     }
 
     if (isCustomCommentsPackage(service)) {
@@ -84,7 +89,7 @@ export function validateCustomComments({ service, quantity, commentsText }) {
     if (lines.length !== qty) {
         return {
             ok: false,
-            message: `You entered ${lines.length} comment${lines.length === 1 ? '' : 's'} but quantity is ${qty}. They must match.`,
+            message: translate('commentsCountMismatch', { count: lines.length, qty }),
             lines,
         };
     }
@@ -138,5 +143,4 @@ export const checkoutBankDetails = {
     ccpAccount: '0012345678 90',
     rip: '007 99999 001234567890 12',
     baridimobId: '00799999001234567890',
-    note: 'Include your BOOSTDZ username in the payment reference.',
 };

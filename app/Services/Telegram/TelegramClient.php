@@ -3,6 +3,7 @@
 namespace App\Services\Telegram;
 
 use App\Models\CatalogSyncEvent;
+use App\Models\CatalogCategory;
 use App\Models\PaymentSubmission;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -158,6 +159,35 @@ class TelegramClient
                 'status' => CatalogSyncEvent::STATUS_NOTIFIED,
                 'notified_at' => now(),
             ]);
+    }
+
+    public function notifyFeaturedServiceIssue(CatalogCategory $category, string $reason): void
+    {
+        if (! $this->enabled() || ! config('catalog.notify_sync_events', true)) {
+            return;
+        }
+
+        $category->loadMissing(['platform', 'featuredService']);
+        $platform = $category->platform?->name ?? 'Unknown platform';
+        $service = $category->featuredService;
+        $serviceLine = $service
+            ? 'Service: '.e($service->name).' (#'.$service->id.')'
+            : 'Service: —';
+        $adminUrl = rtrim((string) config('app.url'), '/').'/admin/manage-featured-services';
+
+        $this->call('sendMessage', [
+            'chat_id' => (string) config('telegram.admin_chat_id'),
+            'text' => implode("\n", [
+                '⚠️ <b>Storefront default issue</b>',
+                'Platform: '.e($platform),
+                'Category: '.e($category->name),
+                $serviceLine,
+                'Reason: '.e($reason),
+                'Fix: '.$adminUrl,
+            ]),
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => true,
+        ]);
     }
 
     public function answerCallbackQuery(string $callbackQueryId, string $text, bool $showAlert = false): void

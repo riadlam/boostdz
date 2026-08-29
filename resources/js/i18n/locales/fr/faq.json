@@ -1,0 +1,67 @@
+{
+  "groups": [
+    {
+      "group": "Général",
+      "items": [
+        {
+          "q": "Qu'est-ce que BOOSTDZ ?",
+          "a": "BOOSTDZ aide les influenceurs, marques, agences et entrepreneurs à développer leur présence sur les réseaux sociaux. Nous servons créateurs et professionnels avec des likes, abonnés et vues sur Instagram, TikTok, YouTube, X, Threads et Facebook."
+        },
+        {
+          "q": "Dois-je fournir des identifiants pour commencer ?",
+          "a": "Non. Aucun nom d'utilisateur ni mot de passe requis. Envoyez-nous le lien de votre profil ou publication et nous nous occupons du reste. Il existe un cas particulier pour Facebook où vous devrez peut-être approuver un compte publicitaire."
+        },
+        {
+          "q": "Pourquoi sommes-nous différents ?",
+          "a": "BOOSTDZ mise sur une livraison premium, une expérience adaptée aux professionnels et agences, et un support qui répond vraiment. Le prix compte — la qualité de service et la rétention comptent encore plus."
+        }
+      ]
+    },
+    {
+      "group": "Commandes et services",
+      "items": [
+        {
+          "q": "Est-il sûr d'acheter des likes et des abonnés ?",
+          "a": "Nos services sont conçus pour présenter un faible risque pour votre compte. De nombreuses livraisons passent par la publicité et le marketing d'influence, des pratiques courantes dans le secteur."
+        },
+        {
+          "q": "Qu'est-ce que la livraison progressive et pourquoi est-ce important ?",
+          "a": "La livraison progressive répartit votre commande sur plusieurs heures ou jours au lieu de tout livrer d'un coup. Cela garde une croissance naturelle, protège votre compte des pics soudains et aide l'engagement à durer."
+        },
+        {
+          "q": "Comment fonctionne la garantie de rechargement automatique ?",
+          "a": "Si des likes, abonnés ou vues baissent après la livraison, notre système recharge votre commande sans frais supplémentaires pendant la période de rétention du forfait — sans ticket support dans la plupart des cas."
+        },
+        {
+          "q": "Puis-je suivre mes commandes en temps réel ?",
+          "a": "Oui. Chaque commande affiche la progression en direct dans votre tableau de bord avec l'heure de début, le compteur actuel et l'achèvement estimé."
+        },
+        {
+          "q": "Ma commande est bloquée, lente ou non livrée !",
+          "a": "Les commandes peuvent parfois ralentir. Notre système réessaie automatiquement — veuillez patienter un moment. Si le problème persiste, contactez-nous et nous examinerons la situation."
+        },
+        {
+          "q": "Je ne suis pas satisfait de la qualité, que faire ?",
+          "a": "La qualité peut varier selon les prestataires. Si cela arrive, contactez-nous et nous examinerons la situation immédiatement."
+        }
+      ]
+    },
+    {
+      "group": "Paiements",
+      "items": [
+        {
+          "q": "Quels moyens de paiement acceptez-vous ?",
+          "a": "Nous acceptons les principales cartes bancaires, virements, portefeuilles numériques et cryptomonnaies. Les clients professionnels peuvent demander une facturation avec les documents requis."
+        },
+        {
+          "q": "Quelle est votre politique de remboursement ?",
+          "a": "Si votre commande n'est pas livrée, vous avez droit à un remboursement en crédit sur votre compte. Les crédits achetés ne sont généralement pas remboursables — déposez uniquement ce dont vous avez besoin. Consultez notre Politique de remboursement pour les détails."
+        },
+        {
+          "q": "Pouvez-vous m'envoyer une facture ?",
+          "a": "Oui — contactez le support avec le nom de votre entreprise, l'adresse et le numéro de TVA le cas échéant. Les factures sont généralement traitées sous 24 à 48 h."
+        }
+      ]
+    }
+  ]
+}

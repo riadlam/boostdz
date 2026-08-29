@@ -1,0 +1,21 @@
+{
+  "globalRules": [
+    "Enter the correct link or username. Private accounts and wrong targets are not refundable.",
+    "Do not place another order for the same target until the previous one is completed, partial, or canceled.",
+    "Speeds and start times are estimates and can change with server load.",
+    "Complaints are accepted after 24 hours from order placement.",
+    "If the target already has 100,000+ followers/likes/views/subs, refill protection does not apply.",
+    "Partial or canceled orders are refunded automatically to your balance.",
+    "Orders cannot be canceled for user input mistakes."
+  ],
+  "categoryRules": {
+    "igFollowersFlag": "Disable Instagram \"Flag / Report for review\" (Settings → Follow and invite friends) so new followers appear automatically. No refill/refund if this stays enabled.",
+    "igFollowersUsername": "For followers, enter the username only (not a private account).",
+    "postUrl": "For likes, views, reactions, and comments, paste the exact post/media URL from the description.",
+    "commentsLines": "For custom comment services, enter one comment per line. Quantity must match the number of comments.",
+    "publicProfile": "Make sure the profile is public and the username/link matches the service requirements."
+  },
+  "commentsRequired": "Enter at least one comment (one per line).",
+  "commentsCountMismatch": "You entered {{count}} comment(s) but quantity is {{qty}}. They must match.",
+  "bankNote": "Send the exact order amount. Include your order reference in the transfer note if possible."
+}

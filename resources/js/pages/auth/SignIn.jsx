@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { BrandLogo } from '../../components/Brand';
 import { useAuth } from '../../context/AuthContext';
@@ -7,6 +8,7 @@ import { ApiError } from '../../lib/api';
 import { cn } from '../../lib/cn';
 
 export default function SignIn() {
+    const { t } = useTranslation(['auth', 'common']);
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -31,9 +33,9 @@ export default function SignIn() {
         } catch (err) {
             if (err instanceof ApiError) {
                 setFieldErrors(err.errors || {});
-                setError(err.message || 'Unable to sign in.');
+                setError(err.message || t('auth:unableToSignIn'));
             } else {
-                setError('Something went wrong. Please try again.');
+                setError(t('auth:somethingWentWrong'));
             }
         } finally {
             setSubmitting(false);
@@ -53,10 +55,10 @@ export default function SignIn() {
 
             <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-10">
                 <div className="mb-8 flex flex-col items-center text-center">
-                    <BrandLogo className="h-9" href="/" />
-                    <h1 className="mt-8 text-[1.75rem] font-bold tracking-tight text-foreground">Welcome back</h1>
+                    <BrandLogo className="h-10" href="/" nameClassName="text-base" />
+                    <h1 className="mt-8 text-[1.75rem] font-bold tracking-tight text-foreground">{t('auth:welcomeBack')}</h1>
                     <p className="mt-2 text-[0.975rem] font-medium leading-relaxed text-muted-foreground">
-                        Sign in to access your BOOSTDZ dashboard.
+                        {t('auth:signInSubtitle')}
                     </p>
                 </div>
 
@@ -73,7 +75,7 @@ export default function SignIn() {
 
                         <div>
                             <label htmlFor="email" className="dash-field-label">
-                                Email
+                                {t('auth:email')}
                             </label>
                             <input
                                 id="email"
@@ -84,13 +86,13 @@ export default function SignIn() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className={cn('dash-input', fieldErrors.email && 'border-red-500/50')}
-                                placeholder="you@example.com"
+                                placeholder={t('auth:emailPlaceholder')}
                             />
                         </div>
 
                         <div>
                             <label htmlFor="password" className="dash-field-label">
-                                Password
+                                {t('auth:password')}
                             </label>
                             <div className="relative">
                                 <input
@@ -102,13 +104,13 @@ export default function SignIn() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className={cn('dash-input pr-11', fieldErrors.password && 'border-red-500/50')}
-                                    placeholder="••••••••"
+                                    placeholder={t('auth:passwordPlaceholder')}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword((v) => !v)}
                                     className="absolute top-1/2 right-2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    aria-label={showPassword ? t('common:aria.hidePassword') : t('common:aria.showPassword')}
                                 >
                                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                 </button>
@@ -123,10 +125,10 @@ export default function SignIn() {
                             {submitting ? (
                                 <>
                                     <LoaderCircle className="size-4 animate-spin" />
-                                    Signing in…
+                                    {t('auth:signingIn')}
                                 </>
                             ) : (
-                                'Sign in'
+                                t('auth:signIn')
                             )}
                         </button>
                     </form>
@@ -134,7 +136,7 @@ export default function SignIn() {
 
                 <p className="mt-6 text-center text-sm text-muted-foreground">
                     <Link to="/" className="font-medium text-foreground/80 transition hover:text-primary">
-                        ← Back to home
+                        {t('auth:backToHome')}
                     </Link>
                 </p>
             </div>

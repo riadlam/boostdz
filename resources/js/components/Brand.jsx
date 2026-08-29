@@ -1,11 +1,32 @@
 import { cn } from '../lib/cn';
+import logoUrl from '../../images/logo.png';
 
-export const LOGO_SRC = '/images/logo.png';
+export const LOGO_SRC = logoUrl;
 
-export function BrandLogo({ className = 'h-9', href = '/' }) {
+export function BrandLogo({
+    className = 'h-14',
+    href = '/',
+    showName = true,
+    nameClassName = 'text-lg sm:text-xl',
+}) {
     return (
-        <a href={href} className="inline-flex shrink-0 items-center">
-            <img src={LOGO_SRC} alt="BOOSTDZ" className={cn('w-auto object-contain', className)} />
+        <a href={href} className="inline-flex shrink-0 items-center gap-2.5">
+            <img
+                src={LOGO_SRC}
+                alt=""
+                aria-hidden={showName}
+                className={cn('w-auto max-h-14 shrink-0 object-contain', className)}
+            />
+            {showName ? (
+                <span className={cn('flex items-baseline gap-0.5 leading-none', nameClassName)}>
+                    <span className="bg-gradient-to-r from-emerald-500 via-primary to-primary bg-clip-text font-extrabold tracking-tight text-transparent">
+                        BOOSTDZ
+                    </span>
+                    <span className="text-[0.5em] font-semibold text-muted-foreground">®</span>
+                </span>
+            ) : (
+                <span className="sr-only">BOOSTDZ</span>
+            )}
         </a>
     );
 }
@@ -13,9 +34,9 @@ export function BrandLogo({ className = 'h-9', href = '/' }) {
 export function PressLogos() {
     const names = ['The New York Times', "Men's Journal", 'Forbes', 'Wired'];
     return (
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-8 sm:gap-y-3">
             {names.map((n) => (
-                <span key={n} className="text-sm font-semibold tracking-tight opacity-80 md:text-base">
+                <span key={n} className="text-xs font-semibold tracking-tight opacity-80 sm:text-sm md:text-base">
                     {n}
                 </span>
             ))}

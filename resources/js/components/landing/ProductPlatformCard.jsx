@@ -32,7 +32,7 @@ export function ProductPlatformCard({
         <article
             className={cn(
                 'relative isolate flex flex-col overflow-hidden rounded-xl bg-card text-card-foreground shadow-lg ring-1 shadow-black/5 ring-foreground/6.5',
-                compact ? 'min-h-0' : 'min-h-96',
+                compact ? 'min-h-0' : 'min-h-72 sm:min-h-96',
                 className,
             )}
         >
@@ -40,7 +40,7 @@ export function ProductPlatformCard({
             <div
                 className={cn(
                     'relative z-10 flex flex-1 flex-col',
-                    compact ? 'max-w-md p-5 md:p-6' : 'p-6 md:p-8',
+                    compact ? 'max-w-md p-4 sm:p-5 md:p-6' : 'p-5 sm:p-6 md:p-8',
                 )}
             >
                 <div>

@@ -48,11 +48,11 @@ class WalletService
         $amount = (float) $amountDzd;
 
         if ($amount <= 0) {
-            throw new InvalidArgumentException('Debit amount must be positive.');
+            throw new InvalidArgumentException(__('api.wallet.debit_positive'));
         }
 
         if ((float) $wallet->availableBalance() < $amount) {
-            throw new InvalidArgumentException('Insufficient wallet balance.');
+            throw new InvalidArgumentException(__('api.wallet.insufficient_balance'));
         }
 
         return $this->apply($wallet, '-'.$amountDzd, $type, $description, $referenceType, $referenceId, $meta);
@@ -75,7 +75,7 @@ class WalletService
             $after = round($before + (float) $signedAmount, 2);
 
             if ($after < 0) {
-                throw new InvalidArgumentException('Insufficient wallet balance.');
+                throw new InvalidArgumentException(__('api.wallet.insufficient_balance'));
             }
 
             $locked->update(['balance' => number_format($after, 2, '.', '')]);

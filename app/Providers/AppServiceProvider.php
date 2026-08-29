@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Service;
+use App\Observers\ServiceObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Service::observe(ServiceObserver::class);
+
         \Illuminate\Database\Eloquent\Relations\Relation::enforceMorphMap([
             'user' => \App\Models\User::class,
             'deposit' => \App\Models\Deposit::class,

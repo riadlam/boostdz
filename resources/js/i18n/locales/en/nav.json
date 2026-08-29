@@ -1,0 +1,13 @@
+{
+  "dashboard": "Dashboard",
+  "orders": "Orders",
+  "createOrder": "Create Order",
+  "orderHistory": "Order History",
+  "repeatedOrders": "Repeated Orders",
+  "repeatedOrdersDescription": "Manage auto-refill and recurring boosts for posts that need ongoing engagement.",
+  "checkout": "Checkout",
+  "ccpBaridimob": "CCP / BaridiMob",
+  "pricing": "Pricing",
+  "billing": "Billing",
+  "faqsHelp": "FAQs & Help"
+}

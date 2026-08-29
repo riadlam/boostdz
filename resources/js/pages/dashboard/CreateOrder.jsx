@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowRight,
     Bookmark,
@@ -11,7 +12,6 @@ import {
     Eye,
     Globe2,
     Heart,
-    Info,
     Layers,
     MessageCircle,
     Package,
@@ -33,8 +33,6 @@ import { fetchCheckoutSettings, isBelowMinimum } from '../../lib/checkoutPolicy'
 import { cn } from '../../lib/cn';
 import { chargeForService, formatDzd, roundDzd } from '../../lib/formatMoney';
 import {
-    GLOBAL_ORDER_RULES,
-    categoryOrderRules,
     formatCommentsForApi,
     isCustomCommentsPackage,
     isCustomCommentsService,
@@ -69,7 +67,7 @@ const EMPTY_REFINE = {
     refillDays: [],
 };
 
-function buildDeliveryRefineOptions(services, platformSlug, categorySlug) {
+function buildDeliveryRefineOptions(services, platformSlug, categorySlug, t) {
     const list = Array.isArray(services) ? services : [];
     const tiers = new Set(list.map((s) => s.quality_tier).filter(Boolean));
     const starts = new Set(list.map((s) => (s.start_class || 'normal').toLowerCase()));
@@ -81,26 +79,26 @@ function buildDeliveryRefineOptions(services, platformSlug, categorySlug) {
     const hasNoRefill = list.some((s) => !s.refill && (!s.refill_mode || s.refill_mode === 'none'));
     const hasDrip = list.some((s) => s.dripfeed);
 
-    const qualityOptions = [{ value: 'any', label: 'Any' }];
-    if (tiers.has('premium')) qualityOptions.push({ value: 'premium', label: 'Premium' });
-    if (tiers.has('standard')) qualityOptions.push({ value: 'standard', label: 'Standard' });
-    if (tiers.has('economy')) qualityOptions.push({ value: 'economy', label: 'Economy' });
-    if (hasHot) qualityOptions.push({ value: 'top', label: 'Top sellers' });
-    if (hasCheap) qualityOptions.push({ value: 'budget', label: 'Budget / cheap' });
+    const qualityOptions = [{ value: 'any', label: t('filters.any') }];
+    if (tiers.has('premium')) qualityOptions.push({ value: 'premium', label: t('filters.premium') });
+    if (tiers.has('standard')) qualityOptions.push({ value: 'standard', label: t('filters.standard') });
+    if (tiers.has('economy')) qualityOptions.push({ value: 'economy', label: t('filters.economy') });
+    if (hasHot) qualityOptions.push({ value: 'top', label: t('filters.topSellers') });
+    if (hasCheap) qualityOptions.push({ value: 'budget', label: t('filters.budget') });
 
-    const deliveryOptions = [{ value: 'any', label: 'Any' }];
-    if (starts.has('instant')) deliveryOptions.push({ value: 'instant', label: 'Instant' });
+    const deliveryOptions = [{ value: 'any', label: t('filters.any') }];
+    if (starts.has('instant')) deliveryOptions.push({ value: 'instant', label: t('filters.instant') });
     if (starts.has('instant') || starts.has('fast')) {
-        deliveryOptions.push({ value: 'fast', label: 'Fast (incl. instant)' });
+        deliveryOptions.push({ value: 'fast', label: t('filters.fast') });
     }
-    if (starts.has('normal')) deliveryOptions.push({ value: 'normal', label: 'Normal' });
-    if (starts.has('slow')) deliveryOptions.push({ value: 'slow', label: 'Slower start' });
+    if (starts.has('normal')) deliveryOptions.push({ value: 'normal', label: t('filters.normal') });
+    if (starts.has('slow')) deliveryOptions.push({ value: 'slow', label: t('filters.slower') });
 
-    const protectionOptions = [{ value: 'any', label: 'Any' }];
-    if (hasRefill) protectionOptions.push({ value: 'refill', label: 'With refill' });
-    if (hasAuto) protectionOptions.push({ value: 'auto', label: 'Auto-refill' });
-    if (hasLifetime) protectionOptions.push({ value: 'lifetime', label: 'Lifetime refill' });
-    if (hasNoRefill && hasRefill) protectionOptions.push({ value: 'none', label: 'No refill' });
+    const protectionOptions = [{ value: 'any', label: t('filters.any') }];
+    if (hasRefill) protectionOptions.push({ value: 'refill', label: t('filters.withRefill') });
+    if (hasAuto) protectionOptions.push({ value: 'auto', label: t('filters.autoRefill') });
+    if (hasLifetime) protectionOptions.push({ value: 'lifetime', label: t('filters.lifetimeRefill') });
+    if (hasNoRefill && hasRefill) protectionOptions.push({ value: 'none', label: t('filters.noRefill') });
 
     const refillDayOptions = [...new Set(
         list
@@ -110,7 +108,9 @@ function buildDeliveryRefineOptions(services, platformSlug, categorySlug) {
         .sort((a, b) => a - b)
         .map((days) => ({
             value: days,
-            label: days === 365 ? '365 days (1 year)' : `${days} days`,
+            label: days === 365
+                ? t('warrantyDaysOneYear', { defaultValue: '365 days (1 year)' })
+                : t('warranty.days', { days }),
         }));
 
     const hasSpeedChoice = ['instant', 'fast', 'slow'].some((k) => starts.has(k));
@@ -119,9 +119,9 @@ function buildDeliveryRefineOptions(services, platformSlug, categorySlug) {
 
     const hasMale = list.some((s) => s.audience_gender === 'male');
     const hasFemale = list.some((s) => s.audience_gender === 'female');
-    const audienceOptions = [{ value: 'any', label: 'Any' }];
-    if (hasMale) audienceOptions.push({ value: 'male', label: 'Men' });
-    if (hasFemale) audienceOptions.push({ value: 'female', label: 'Women' });
+    const audienceOptions = [{ value: 'any', label: t('filters.any') }];
+    if (hasMale) audienceOptions.push({ value: 'male', label: t('filters.men') });
+    if (hasFemale) audienceOptions.push({ value: 'female', label: t('filters.women') });
 
     const reactionTypes = [...new Set(list.map((s) => s.reaction_type).filter(Boolean))];
     const reactionOptions = platformSlug === 'facebook' && ['likes', 'stories'].includes(categorySlug)
@@ -147,11 +147,34 @@ function buildDeliveryRefineOptions(services, platformSlug, categorySlug) {
     };
 }
 
-function pickPreferredService(items, { preferFirst = false, preferCustomComments = false } = {}) {
+function isRefineEmpty(refine) {
+    if (!refine) return true;
+
+    return (
+        refine.quality === 'any'
+        && refine.delivery === 'any'
+        && refine.protection === 'any'
+        && (refine.country || 'any') === 'any'
+        && (refine.audience || 'any') === 'any'
+        && (refine.reaction || 'any') === 'any'
+        && !(refine.refillDays || []).length
+    );
+}
+
+function pickPreferredService(items, {
+    preferFirst = false,
+    preferCustomComments = false,
+    preferredServiceId = null,
+    useFeaturedDefault = false,
+} = {}) {
     if (!items?.length) return null;
     if (preferFirst && preferCustomComments) {
         const custom = items.find((service) => isCustomCommentsService(service));
         if (custom) return custom;
+    }
+    if (preferFirst && useFeaturedDefault && preferredServiceId) {
+        const featured = items.find((service) => service.id === preferredServiceId);
+        if (featured) return featured;
     }
     return items[0] ?? null;
 }
@@ -259,20 +282,14 @@ function refineToFilters(refine) {
     return next;
 }
 
-function optionLabel(options, value) {
-    return options.find((opt) => opt.value === value)?.label || 'Any';
+function optionLabel(options, value, t) {
+    return options.find((opt) => opt.value === value)?.label || t('filters.any');
 }
 
-function audienceLabel(value) {
-    if (value === 'male') return 'Men';
-    if (value === 'female') return 'Women';
-    return 'Any';
-}
-
-const GLOBAL_RULES = GLOBAL_ORDER_RULES;
-
-function categoryRules(platformSlug, categorySlug) {
-    return categoryOrderRules(platformSlug, categorySlug);
+function audienceLabel(value, t) {
+    if (value === 'male') return t('filters.men');
+    if (value === 'female') return t('filters.women');
+    return t('filters.any');
 }
 
 function formatAmount(n) {
@@ -289,48 +306,64 @@ function quantityPresets(min, max) {
     return unique.sort((a, b) => a - b).slice(0, 10);
 }
 
-function targetHint(service, categorySlug) {
+function targetHint(service, categorySlug, t) {
     const hay = `${service?.name || ''} ${service?.type || ''} ${service?.description || ''} ${categorySlug || ''}`.toLowerCase();
     if (hay.includes('follower') || hay.includes('subscribe') || hay.includes('member')) {
         return {
-            label: 'Username / profile',
-            placeholder: 'username',
-            hint: 'Enter the public username only — not a private account.',
+            label: t('linkTypes.username'),
+            placeholder: t('placeholderUsername', { defaultValue: 'username' }),
+            hint: t('linkTypes.usernameHint'),
         };
     }
     if (hay.includes('comment') || hay.includes('like') || hay.includes('view') || hay.includes('reaction')) {
         return {
-            label: 'Post / media URL',
-            placeholder: 'https://…',
-            hint: 'Paste the exact post or media link this service expects.',
+            label: t('linkTypes.postUrl'),
+            placeholder: t('placeholderUrl', { defaultValue: 'https://…' }),
+            hint: t('linkTypes.postUrlHint'),
         };
     }
     return {
-        label: 'Link / target',
-        placeholder: 'https://…',
-        hint: 'Paste the exact link or target required by this service.',
+        label: t('linkTypes.linkTarget'),
+        placeholder: t('placeholderUrl', { defaultValue: 'https://…' }),
+        hint: t('linkTypes.linkTargetHint'),
     };
 }
 
-function serviceBadges(service) {
+function serviceBadges(service, t) {
     const badges = [];
-    if (service.is_hot) badges.push({ key: 'hot', label: 'Top', tone: 'hot' });
-    if (service.is_cheap) badges.push({ key: 'cheap', label: 'Cheap', tone: 'warn' });
-    if (service.start_class === 'instant') badges.push({ key: 'instant', label: 'Instant', tone: 'ok' });
-    else if (service.start_class === 'fast') badges.push({ key: 'fast', label: 'Fast', tone: 'ok' });
+    if (service.is_hot) badges.push({ key: 'hot', label: t('badges.top', { defaultValue: 'Top' }), tone: 'hot' });
+    if (service.is_cheap) badges.push({ key: 'cheap', label: t('badges.cheap'), tone: 'warn' });
+    if (service.start_class === 'instant') badges.push({ key: 'instant', label: t('badges.instant'), tone: 'ok' });
+    else if (service.start_class === 'fast') badges.push({ key: 'fast', label: t('badges.fast'), tone: 'ok' });
     if (service.refill_mode === 'auto') {
-        badges.push({ key: 'ar', label: service.refill_days ? `AR${service.refill_days}` : 'Auto refill', tone: 'info' });
+        badges.push({
+            key: 'ar',
+            label: service.refill_days
+                ? t('badges.autoRefillDays', { days: service.refill_days, defaultValue: `AR${service.refill_days}` })
+                : t('badges.autoRefill'),
+            tone: 'info',
+        });
     } else if (service.refill_mode === 'lifetime') {
-        badges.push({ key: 'life', label: 'Lifetime', tone: 'info' });
+        badges.push({ key: 'life', label: t('badges.lifetime'), tone: 'info' });
     } else if (service.refill_mode === 'manual' || service.refill) {
-        badges.push({ key: 'r', label: service.refill_days ? `R${service.refill_days}` : 'Refill', tone: 'info' });
+        badges.push({
+            key: 'r',
+            label: service.refill_days
+                ? t('badges.refillDays', { days: service.refill_days, defaultValue: `R${service.refill_days}` })
+                : t('badges.refill'),
+            tone: 'info',
+        });
     }
     if (service.country_code) {
         badges.push({ key: 'country', label: countryLabel(service.country_code), tone: 'muted' });
     }
-    if (service.dripfeed) badges.push({ key: 'drip', label: 'Drip', tone: 'muted' });
+    if (service.dripfeed) badges.push({ key: 'drip', label: t('badges.drip'), tone: 'muted' });
     if (service.quality_tier) {
-        badges.push({ key: 'tier', label: service.quality_tier, tone: 'muted' });
+        const tierKey = String(service.quality_tier).toLowerCase();
+        const tierLabel = ['premium', 'standard', 'economy'].includes(tierKey)
+            ? t(`filters.${tierKey}`)
+            : service.quality_tier;
+        badges.push({ key: 'tier', label: tierLabel, tone: 'muted' });
     }
     return badges;
 }
@@ -350,10 +383,10 @@ function Badge({ label, tone }) {
     );
 }
 
-function StatusPill({ on }) {
+function StatusPill({ on, onLabel, offLabel }) {
     return (
         <span className="inline-flex rounded-full bg-secondary px-1.5 py-0 text-[10px] font-normal text-muted-foreground">
-            {on ? 'on' : 'off'}
+            {on ? onLabel : offLabel}
         </span>
     );
 }
@@ -385,7 +418,7 @@ function SelectButton({ open, onClick, children, invalid, disabled, hasValue }) 
     );
 }
 
-function InlineSelect({ value, options, open, onOpen, onChange, disabled }) {
+function InlineSelect({ value, options, open, onOpen, onChange, disabled, emptyLabel }) {
     const selected = options.find((opt) => opt.value === value) || options[0];
     const isSet = value && value !== 'any';
 
@@ -405,7 +438,7 @@ function InlineSelect({ value, options, open, onOpen, onChange, disabled }) {
                 {selected?.code ? (
                     <CountryFlag code={selected.code} labelClassName="text-inherit" />
                 ) : (
-                    <span className="truncate">{selected?.label || 'Select…'}</span>
+                    <span className="truncate">{selected?.label || emptyLabel}</span>
                 )}
                 <ChevronDown className={cn('size-3.5 shrink-0 transition', isSet ? 'text-primary' : 'text-muted-foreground', open && 'rotate-180')} />
             </button>
@@ -420,7 +453,7 @@ function InlineSelect({ value, options, open, onOpen, onChange, disabled }) {
     );
 }
 
-function SettingsRow({ icon: Icon, title, active, open, onToggle, children }) {
+function SettingsRow({ icon: Icon, title, active, open, onToggle, children, statusOnLabel, statusOffLabel }) {
     return (
         <div className="rounded-md border border-input bg-transparent shadow-xs">
             <button
@@ -433,7 +466,7 @@ function SettingsRow({ icon: Icon, title, active, open, onToggle, children }) {
             >
                 <Icon className="size-4 text-muted-foreground" />
                 <span className="font-medium">{title}</span>
-                <StatusPill on={active} />
+                <StatusPill on={active} onLabel={statusOnLabel} offLabel={statusOffLabel} />
                 <ChevronDown className={cn('ml-auto size-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
             </button>
             <div className="order-collapsible" data-open={open ? 'true' : undefined}>
@@ -459,10 +492,19 @@ function Dropdown({ open, children, className }) {
             const parent = markerRef.current?.parentElement;
             if (!parent) return;
             const rect = parent.getBoundingClientRect();
+            const minWidth = Math.max(rect.width, 192);
+            const margin = 8;
+            const maxWidth = window.innerWidth - margin * 2;
+            const clampedMinWidth = Math.min(minWidth, maxWidth);
+            let left = rect.left;
+            if (left + clampedMinWidth > window.innerWidth - margin) {
+                left = Math.max(margin, window.innerWidth - margin - clampedMinWidth);
+            }
             setPos({
                 top: rect.bottom + 6,
-                left: rect.left,
-                minWidth: Math.max(rect.width, 192),
+                left,
+                minWidth: clampedMinWidth,
+                maxWidth,
             });
         }
 
@@ -490,6 +532,7 @@ function Dropdown({ open, children, className }) {
                             top: pos.top,
                             left: pos.left,
                             minWidth: pos.minWidth,
+                            maxWidth: pos.maxWidth,
                         }}
                     >
                         {children}
@@ -537,8 +580,16 @@ function filtersToParams(filters) {
 }
 
 export default function CreateOrder() {
+    const { t } = useTranslation(['orders', 'common', 'validation']);
     const { user, refreshUser } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const initialUrlRef = useRef({
+        platform: searchParams.get('platform'),
+        category: searchParams.get('category'),
+        service: searchParams.get('service') ? Number(searchParams.get('service')) : null,
+    });
+    const urlAppliedRef = useRef(false);
 
     const [platforms, setPlatforms] = useState([]);
     const [platformSlug, setPlatformSlug] = useState('');
@@ -562,7 +613,6 @@ export default function CreateOrder() {
     const [openMenu, setOpenMenu] = useState(null);
     const [deliverySettingsOpen, setDeliverySettingsOpen] = useState(false);
     const [settingsRowOpen, setSettingsRowOpen] = useState(null);
-    const [rulesOpen, setRulesOpen] = useState(false);
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
     const [minimumModal, setMinimumModal] = useState(null);
@@ -593,8 +643,8 @@ export default function CreateOrder() {
             : selectedService
               ? [selectedService, ...flatServices]
               : flatServices;
-        return buildDeliveryRefineOptions(pool, platformSlug, selectedCategory?.slug);
-    }, [categoryServices, flatServices, selectedService, platformSlug, selectedCategory?.slug]);
+        return buildDeliveryRefineOptions(pool, platformSlug, selectedCategory?.slug, t);
+    }, [categoryServices, flatServices, selectedService, platformSlug, selectedCategory?.slug, t]);
     const qualityOptions = deliveryCaps.qualityOptions;
     const deliveryOptions = deliveryCaps.deliveryOptions;
     const protectionOptions = deliveryCaps.protectionOptions;
@@ -620,7 +670,10 @@ export default function CreateOrder() {
         () => (selectedService ? quantityPresets(selectedService.min, selectedService.max) : []),
         [selectedService],
     );
-    const target = targetHint(selectedService, selectedCategory?.slug);
+    const target = useMemo(
+        () => targetHint(selectedService, selectedCategory?.slug, t),
+        [selectedService, selectedCategory?.slug, t],
+    );
     const charge = useMemo(() => chargeFor(selectedService, quantity), [selectedService, quantity]);
     const commentLines = useMemo(() => parseCommentLines(customCommentsText), [customCommentsText]);
     const commentValidation = useMemo(
@@ -628,18 +681,15 @@ export default function CreateOrder() {
             service: selectedService,
             quantity,
             commentsText: useCustomComments ? customCommentsText : '',
+            t: (key, opts) => t(key, { ns: 'validation', ...opts }),
         }),
-        [selectedService, quantity, customCommentsText, useCustomComments],
+        [selectedService, quantity, customCommentsText, useCustomComments, t],
     );
     const commentsQtyMatch = !useCustomComments
         || !requiresCustomComments
         || isCustomCommentsPackage(selectedService)
         || commentLines.length === quantity;
     const balance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
-    const extraRules = useMemo(
-        () => categoryRules(platformSlug, selectedCategory?.slug),
-        [platformSlug, selectedCategory?.slug],
-    );
     const hasRefillDayRefine = (refine.refillDays || []).length > 0;
     const hasActiveRefine =
         (showQualitySettings && refine.quality !== 'any')
@@ -664,11 +714,13 @@ export default function CreateOrder() {
                 );
                 const usable = list.length ? list : filterCatalogEntries(data.platforms || []);
                 setPlatforms(usable);
-                const preferred = usable.find((p) => p.slug === 'instagram') || usable[0];
+                const urlPlatform = !urlAppliedRef.current ? initialUrlRef.current.platform : null;
+                const fromUrl = urlPlatform ? usable.find((p) => p.slug === urlPlatform) : null;
+                const preferred = fromUrl || usable.find((p) => p.slug === 'instagram') || usable[0];
                 setPlatformSlug(preferred?.slug || '');
             } catch (error) {
                 if (!cancelled) {
-                    setFormError(error instanceof ApiError ? error.message : 'Failed to load platforms.');
+                    setFormError(error instanceof ApiError ? error.message : t('errors.loadPlatforms'));
                 }
             } finally {
                 if (!cancelled) setLoadingPlatforms(false);
@@ -699,12 +751,14 @@ export default function CreateOrder() {
                 const rows = filterCatalogEntries(data.categories || []).filter((c) => (c.services_count ?? 0) > 0);
                 const list = rows.length ? rows : filterCatalogEntries(data.categories || []);
                 setCategories(list);
-                setCategoryId(list[0]?.id ?? null);
+                const urlCategory = !urlAppliedRef.current ? initialUrlRef.current.category : null;
+                const fromUrl = urlCategory ? list.find((c) => c.slug === urlCategory) : null;
+                setCategoryId(fromUrl?.id ?? list[0]?.id ?? null);
             } catch (error) {
                 if (!cancelled) {
                     setCategories([]);
                     setCategoryId(null);
-                    setFormError(error instanceof ApiError ? error.message : 'Failed to load categories.');
+                    setFormError(error instanceof ApiError ? error.message : t('errors.loadCategories'));
                 }
             } finally {
                 if (!cancelled) setLoadingCategories(false);
@@ -716,7 +770,14 @@ export default function CreateOrder() {
         };
     }, [platformSlug]);
 
-    async function loadServices({ category, search, nextRefine, preferFirst = false, preferCustomComments = false }) {
+    async function loadServices({
+        category,
+        search,
+        nextRefine,
+        preferFirst = false,
+        preferCustomComments = false,
+        preferredServiceId = null,
+    }) {
         if (!category) {
             setGroups([]);
             setCategoryServices([]);
@@ -738,26 +799,23 @@ export default function CreateOrder() {
             const items = nextGroups.flatMap((g) => g.items || []);
             setGroups(nextGroups);
 
-            const refineEmpty =
-                !nextRefine
-                || (
-                    nextRefine.quality === 'any'
-                    && nextRefine.delivery === 'any'
-                    && nextRefine.protection === 'any'
-                    && (nextRefine.country || 'any') === 'any'
-                    && (nextRefine.audience || 'any') === 'any'
-                    && (nextRefine.reaction || 'any') === 'any'
-                    && !(nextRefine.refillDays || []).length
-                );
-            if (refineEmpty && !search) {
+            const useFeaturedDefault = isRefineEmpty(nextRefine) && !search;
+            if (useFeaturedDefault) {
                 setCategoryServices(items);
             }
 
+            const pickOptions = {
+                preferFirst,
+                preferCustomComments,
+                preferredServiceId,
+                useFeaturedDefault,
+            };
+
             setServiceId((current) => {
                 if (!preferFirst && current && items.some((row) => row.id === current)) return current;
-                return pickPreferredService(items, { preferFirst, preferCustomComments })?.id ?? null;
+                return pickPreferredService(items, pickOptions)?.id ?? null;
             });
-            const preferred = pickPreferredService(items, { preferFirst, preferCustomComments });
+            const preferred = pickPreferredService(items, pickOptions);
             if (preferred && preferFirst) {
                 const nextQty = Math.min(Math.max(preferred.min, 1000), preferred.max);
                 setQuantity(nextQty);
@@ -769,7 +827,7 @@ export default function CreateOrder() {
             if (seq === requestSeq.current) {
                 setGroups([]);
                 setServiceId(null);
-                setFormError(error instanceof ApiError ? error.message : 'Failed to load services.');
+                setFormError(error instanceof ApiError ? error.message : t('errors.loadServices'));
             }
             return { groups: [], items: [] };
         } finally {
@@ -783,13 +841,27 @@ export default function CreateOrder() {
 
         (async () => {
             const cat = categories.find((c) => c.id === categoryId);
+            let preferredServiceId = cat?.default_service_id ?? null;
+            if (!urlAppliedRef.current && initialUrlRef.current.service) {
+                preferredServiceId = initialUrlRef.current.service;
+            }
+
             await loadServices({
                 category: categoryId,
                 search: '',
                 nextRefine: EMPTY_REFINE,
                 preferFirst: true,
                 preferCustomComments: cat?.slug === 'comments',
+                preferredServiceId,
             });
+
+            if (
+                !urlAppliedRef.current
+                && (initialUrlRef.current.platform || initialUrlRef.current.category || initialUrlRef.current.service)
+            ) {
+                urlAppliedRef.current = true;
+            }
+
             if (cancelled) return;
             setRefine(EMPTY_REFINE);
         })();
@@ -905,11 +977,13 @@ export default function CreateOrder() {
     }, [settingsRowOpen, showQualitySettings, showDeliverySettings, showProtectionSettings, showCountrySettings, showAudienceSettings, showReactionSettings]);
 
     function selectPlatform(slug) {
+        urlAppliedRef.current = true;
         setPlatformSlug(slug);
         setOpenMenu(null);
     }
 
     function selectCategory(id) {
+        urlAppliedRef.current = true;
         setCategoryId(id);
         setServiceSearch('');
         setOpenMenu(null);
@@ -928,6 +1002,7 @@ export default function CreateOrder() {
             nextRefine: next,
             preferFirst: true,
             preferCustomComments: selectedCategory?.slug === 'comments',
+            preferredServiceId: selectedCategory?.default_service_id ?? null,
         });
     }
 
@@ -946,6 +1021,7 @@ export default function CreateOrder() {
             nextRefine: next,
             preferFirst: true,
             preferCustomComments: selectedCategory?.slug === 'comments',
+            preferredServiceId: selectedCategory?.default_service_id ?? null,
         });
     }
 
@@ -957,6 +1033,7 @@ export default function CreateOrder() {
             nextRefine: EMPTY_REFINE,
             preferFirst: true,
             preferCustomComments: selectedCategory?.slug === 'comments',
+            preferredServiceId: selectedCategory?.default_service_id ?? null,
         });
     }
 
@@ -985,15 +1062,19 @@ export default function CreateOrder() {
 
     function validate() {
         const next = {};
-        if (!platformSlug) next.platform = 'Select a platform';
-        if (!selectedCategory) next.category = 'Select a category';
-        if (!selectedService) next.service = 'Select a service';
-        if (!link.trim()) next.link = 'Target is required';
+        if (!platformSlug) next.platform = t('errors.selectPlatform');
+        if (!selectedCategory) next.category = t('errors.selectCategory');
+        if (!selectedService) next.service = t('errors.selectService');
+        if (!link.trim()) next.link = t('errors.targetRequired');
         if (selectedService && (quantity < selectedService.min || quantity > selectedService.max)) {
-            next.quantity = `Quantity must be between ${formatAmount(selectedService.min)} and ${formatAmount(selectedService.max)}`;
+            next.quantity = t('errors.quantityBetween', {
+                min: formatAmount(selectedService.min),
+                max: formatAmount(selectedService.max),
+                defaultValue: `Quantity must be between ${formatAmount(selectedService.min)} and ${formatAmount(selectedService.max)}`,
+            });
         }
         if (requiresCustomComments && !useCustomComments) {
-            next.comments = 'Turn on custom comments to enter your comment lines.';
+            next.comments = t('errors.customCommentsRequired');
         } else if (useCustomComments && requiresCustomComments && !commentValidation.ok) {
             next.comments = commentValidation.message;
         }
@@ -1057,13 +1138,15 @@ export default function CreateOrder() {
 
     const PlatformIcon = getPlatformIcon(platformSlug);
     const CategoryIcon = getCategoryIcon(selectedCategory?.slug);
+    const statusOnLabel = t('deliverySettingsActive');
+    const statusOffLabel = t('deliverySettingsInactive');
 
     return (
         <div className="mx-auto w-full max-w-3xl space-y-2 py-2">
             <div className="flex items-end justify-between gap-3 px-0.5 pb-1">
                 <div>
-                    <h1 className="text-lg font-semibold tracking-tight text-foreground">Create Order</h1>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Balance {formatDzd(balance)}</p>
+                    <h1 className="text-lg font-semibold tracking-tight text-foreground">{t('title')}</h1>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{t('balance', { amount: formatDzd(balance) })}</p>
                 </div>
             </div>
 
@@ -1078,7 +1161,7 @@ export default function CreateOrder() {
                     <div className="p-4">
                         <fieldset className="grid w-full gap-y-4">
                         <div className="space-y-1.5">
-                            <FieldLabel required>Category &amp; Product</FieldLabel>
+                            <FieldLabel required>{t('categoryProduct')}</FieldLabel>
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                                 <div className="relative min-w-0">
                                     <SelectButton
@@ -1090,7 +1173,7 @@ export default function CreateOrder() {
                                     >
                                         <PlatformIcon className="size-4 shrink-0" />
                                         <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
-                                            {selectedPlatform?.name || platformSlug || 'Select platform'}
+                                            {selectedPlatform?.name || platformSlug || t('selectPlatform')}
                                         </span>
                                     </SelectButton>
                                     <Dropdown open={openMenu === 'platform'}>
@@ -1118,7 +1201,7 @@ export default function CreateOrder() {
                                     >
                                         <CategoryIcon className="size-4 shrink-0 opacity-80" />
                                         <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
-                                            {selectedCategory?.name || (loadingCategories ? 'Loading…' : 'Select category')}
+                                            {selectedCategory?.name || (loadingCategories ? t('loading', { ns: 'common' }) : t('selectCategory'))}
                                         </span>
                                     </SelectButton>
                                     <Dropdown open={openMenu === 'category'}>
@@ -1139,7 +1222,7 @@ export default function CreateOrder() {
                         </div>
 
                         <div className="grid min-w-0 gap-2">
-                            <FieldLabel required>Service package</FieldLabel>
+                            <FieldLabel required>{t('servicePackage')}</FieldLabel>
                             <div className="relative min-w-0">
                                 <SelectButton
                                     open={openMenu === 'service'}
@@ -1150,7 +1233,7 @@ export default function CreateOrder() {
                                 >
                                     <Package className="size-4 shrink-0 opacity-80" />
                                     <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
-                                        {selectedService?.name || (loadingServices ? 'Loading services…' : 'Select service')}
+                                        {selectedService?.name || (loadingServices ? t('loadingServices') : t('selectService'))}
                                     </span>
                                 </SelectButton>
                                 <Dropdown open={openMenu === 'service'} className="p-0">
@@ -1160,17 +1243,17 @@ export default function CreateOrder() {
                                             <input
                                                 value={serviceSearch}
                                                 onChange={(e) => setServiceSearch(e.target.value)}
-                                                placeholder="Search services…"
+                                                placeholder={t('searchServices')}
                                                 className="order-input h-9 pl-8"
                                             />
                                         </div>
                                     </div>
                                     <div className="max-h-72 overflow-auto p-1">
                                         {loadingServices ? (
-                                            <p className="px-3 py-3 text-sm text-muted-foreground">Loading…</p>
+                                            <p className="px-3 py-3 text-sm text-muted-foreground">{t('loading', { ns: 'common' })}</p>
                                         ) : groups.length === 0 ? (
                                             <p className="px-3 py-3 text-sm text-muted-foreground">
-                                                No services match. Open Delivery Settings and reset preferences.
+                                                {t('noServicesMatch')}
                                             </p>
                                         ) : (
                                             groups.map((group) => (
@@ -1187,12 +1270,16 @@ export default function CreateOrder() {
                                                             <span className="block">
                                                                 <span className="line-clamp-2 leading-snug">{service.name}</span>
                                                                 <span className="mt-1.5 flex flex-wrap gap-1">
-                                                                    {serviceBadges(service).map((badge) => (
+                                                                    {serviceBadges(service, t).map((badge) => (
                                                                         <Badge key={badge.key} label={badge.label} tone={badge.tone} />
                                                                     ))}
                                                                 </span>
                                                                 <span className="mt-1 block text-xs text-muted-foreground">
-                                                                    {formatDzd(service.sell_rate_dzd)} / 1k · min {formatAmount(service.min)}
+                                                                    {t('ratePerMin', {
+                                                                        price: formatDzd(service.sell_rate_dzd),
+                                                                        min: formatAmount(service.min),
+                                                                        defaultValue: `${formatDzd(service.sell_rate_dzd)} / 1k · min ${formatAmount(service.min)}`,
+                                                                    })}
                                                                 </span>
                                                             </span>
                                                         </Option>
@@ -1205,7 +1292,7 @@ export default function CreateOrder() {
                             </div>
                             {selectedService ? (
                                 <div className="flex flex-wrap gap-1">
-                                    {serviceBadges(selectedService).map((badge) => (
+                                    {serviceBadges(selectedService, t).map((badge) => (
                                         <Badge key={badge.key} label={badge.label} tone={badge.tone} />
                                     ))}
                                 </div>
@@ -1216,7 +1303,7 @@ export default function CreateOrder() {
                         </div>
 
                         <div className="grid min-w-0 gap-2">
-                            <FieldLabel required>Amount</FieldLabel>
+                            <FieldLabel required>{t('amount')}</FieldLabel>
                             {customMode || !selectedService ? (
                                 <input
                                     type="number"
@@ -1271,7 +1358,11 @@ export default function CreateOrder() {
                             )}
                             {selectedService ? (
                                 <p className="text-xs text-muted-foreground">
-                                    Limit of {formatAmount(selectedService.min)} to {formatAmount(selectedService.max)} per link. Want to input manually?{' '}
+                                    {t('quantityLimit', {
+                                        min: formatAmount(selectedService.min),
+                                        max: formatAmount(selectedService.max),
+                                        defaultValue: `Limit of ${formatAmount(selectedService.min)} to ${formatAmount(selectedService.max)} per link. Want to input manually?`,
+                                    })}{' '}
                                     <button
                                         type="button"
                                         className="cursor-pointer font-bold text-primary underline"
@@ -1280,7 +1371,7 @@ export default function CreateOrder() {
                                             setOpenMenu(null);
                                         }}
                                     >
-                                        Click here
+                                        {t('clickHere', { defaultValue: 'Click here' })}
                                     </button>
                                 </p>
                             ) : null}
@@ -1303,7 +1394,7 @@ export default function CreateOrder() {
                                 <button
                                     type="button"
                                     onClick={pasteLink}
-                                    aria-label="Paste Link"
+                                    aria-label={t('pasteLink')}
                                     className="absolute inset-y-0 right-3 flex items-center text-muted-foreground/70 hover:text-foreground"
                                 >
                                     <ClipboardPaste className="size-4" />
@@ -1326,19 +1417,19 @@ export default function CreateOrder() {
                                 className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm"
                             >
                                 <Settings2 className="size-4 text-muted-foreground" />
-                                <span className="font-medium text-foreground">Delivery Settings</span>
-                                <StatusPill on={deliverySettingsActive} />
+                                <span className="font-medium text-foreground">{t('deliverySettings')}</span>
+                                <StatusPill on={deliverySettingsActive} onLabel={statusOnLabel} offLabel={statusOffLabel} />
                                 <ChevronDown className={cn('ml-auto size-4 text-muted-foreground transition-transform duration-200', deliverySettingsOpen && 'rotate-180')} />
                             </button>
 
                             <div className="order-collapsible" data-open={deliverySettingsOpen ? 'true' : undefined}>
                                 <div className="order-collapsible-inner">
                                 <div className="space-y-2 border-t px-4 py-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <p className="text-[0.8125rem] font-medium text-muted-foreground">
+                                    <div className="flex flex-wrap items-start justify-between gap-2">
+                                        <p className="min-w-0 flex-1 text-[0.8125rem] font-medium text-muted-foreground">
                                             {hasRefineRows
-                                                ? 'Optional preferences — only options available for this category are shown.'
-                                                : 'Save this order for quicker reordering later.'}
+                                                ? t('refineHint')
+                                                : t('repeatHint')}
                                         </p>
                                         {hasActiveRefine ? (
                                             <button
@@ -1346,21 +1437,23 @@ export default function CreateOrder() {
                                                 onClick={clearRefine}
                                                 className="shrink-0 text-[0.8125rem] font-semibold text-primary underline underline-offset-2"
                                             >
-                                                Reset
+                                                {t('reset')}
                                             </button>
                                         ) : null}
                                     </div>
 
                                     <SettingsRow
                                         icon={Repeat2}
-                                        title="Repeat order"
+                                        title={t('repeatOrder')}
                                         active={isRepeat}
                                         open={settingsRowOpen === 'repeat'}
                                         onToggle={() => setSettingsRowOpen(settingsRowOpen === 'repeat' ? null : 'repeat')}
+                                        statusOnLabel={statusOnLabel}
+                                        statusOffLabel={statusOffLabel}
                                     >
                                         <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2.5">
                                             <span className="text-sm text-muted-foreground">
-                                                Save under Repeated Orders for easier reordering
+                                                {t('repeatOrderDesc')}
                                             </span>
                                             <button
                                                 type="button"
@@ -1382,15 +1475,17 @@ export default function CreateOrder() {
                                     {showCustomCommentsSettings ? (
                                         <SettingsRow
                                             icon={MessageCircle}
-                                            title="Custom comments"
+                                            title={t('customComments')}
                                             active={useCustomComments}
                                             open={settingsRowOpen === 'comments'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'comments' ? null : 'comments')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2.5">
                                                     <span className="text-sm text-muted-foreground">
-                                                        Use your own comment lines for this order
+                                                        {t('customCommentsDesc')}
                                                     </span>
                                                     <button
                                                         type="button"
@@ -1413,13 +1508,15 @@ export default function CreateOrder() {
                                                 <p className="text-[0.8125rem] font-medium text-muted-foreground">
                                                     {requiresCustomComments ? (
                                                         <>
-                                                            Enter one comment per line. Each line is posted as a separate comment.
+                                                            {t('customCommentsIntro', {
+                                                                defaultValue: 'Enter one comment per line. Each line is posted as a separate comment.',
+                                                            })}
                                                             {isCustomCommentsPackage(selectedService)
-                                                                ? ' This package uses your full comment list.'
-                                                                : ' Quantity must match the number of comments.'}
+                                                                ? ` ${t('customCommentsPackageNote', { defaultValue: 'This package uses your full comment list.' })}`
+                                                                : ` ${t('customCommentsQtyNote', { defaultValue: 'Quantity must match the number of comments.' })}`}
                                                         </>
                                                     ) : (
-                                                        'Optional for random comment services. Switch off if you do not need custom text.'
+                                                        t('customCommentsOptional')
                                                     )}
                                                 </p>
                                                 <textarea
@@ -1429,7 +1526,7 @@ export default function CreateOrder() {
                                                         setErrors((prev) => ({ ...prev, comments: undefined }));
                                                     }}
                                                     rows={6}
-                                                    placeholder={'Great post!\nLove this content\nThanks for sharing'}
+                                                    placeholder={t('customCommentsPlaceholder')}
                                                     className="dash-comments-textarea"
                                                     aria-invalid={Boolean(errors.comments)}
                                                 />
@@ -1443,9 +1540,15 @@ export default function CreateOrder() {
                                                               : 'text-amber-600 dark:text-amber-400',
                                                     )}
                                                     >
-                                                        {commentLines.length} comment{commentLines.length === 1 ? '' : 's'} entered
+                                                        {t('commentsEntered', {
+                                                            count: commentLines.length,
+                                                            defaultValue: `${commentLines.length} comment${commentLines.length === 1 ? '' : 's'} entered`,
+                                                        })}
                                                         {requiresCustomComments && !isCustomCommentsPackage(selectedService) ? (
-                                                            <> · quantity {quantity}</>
+                                                            <> · {t('quantityShort', {
+                                                                quantity,
+                                                                defaultValue: `quantity ${quantity}`,
+                                                            })}</>
                                                         ) : null}
                                                     </span>
                                                     {requiresCustomComments && !isCustomCommentsPackage(selectedService) && !commentsQtyMatch && commentLines.length > 0 ? (
@@ -1454,13 +1557,18 @@ export default function CreateOrder() {
                                                             onClick={syncQuantityToComments}
                                                             className="text-xs font-semibold text-primary underline underline-offset-2"
                                                         >
-                                                            Sync quantity to {commentLines.length}
+                                                            {t('syncQuantityTo', {
+                                                                count: commentLines.length,
+                                                                defaultValue: `Sync quantity to ${commentLines.length}`,
+                                                            })}
                                                         </button>
                                                     ) : null}
                                                 </div>
                                                 {!requiresCustomComments || isCustomCommentsPackage(selectedService) ? null : !commentsQtyMatch && commentLines.length > 0 ? (
                                                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                                                        Add or remove lines, or change quantity so they match.
+                                                        {t('commentsQtyHint', {
+                                                            defaultValue: 'Add or remove lines, or change quantity so they match.',
+                                                        })}
                                                     </p>
                                                 ) : null}
                                                 {errors.comments ? (
@@ -1471,7 +1579,9 @@ export default function CreateOrder() {
                                                     </>
                                                 ) : (
                                                     <p className="text-[0.8125rem] font-medium text-muted-foreground">
-                                                        Custom comments are off. Turn on to type your own lines.
+                                                        {t('customCommentsOff', {
+                                                            defaultValue: 'Custom comments are off. Turn on to type your own lines.',
+                                                        })}
                                                     </p>
                                                 )}
                                             </div>
@@ -1481,13 +1591,15 @@ export default function CreateOrder() {
                                     {showQualitySettings ? (
                                         <SettingsRow
                                             icon={Sparkles}
-                                            title="Quality"
+                                            title={t('quality')}
                                             active={refine.quality !== 'any'}
                                             open={settingsRowOpen === 'quality'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'quality' ? null : 'quality')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                                                <span>Quality</span>
+                                                <span>{t('quality')}</span>
                                                 <InlineSelect
                                                     value={refine.quality}
                                                     options={qualityOptions}
@@ -1495,6 +1607,7 @@ export default function CreateOrder() {
                                                     disabled={!categoryId}
                                                     onOpen={() => setOpenMenu(openMenu === 'quality' ? null : 'quality')}
                                                     onChange={(value) => setRefineField('quality', value)}
+                                                    emptyLabel={t('selectEllipsis')}
                                                 />
                                             </div>
                                         </SettingsRow>
@@ -1503,13 +1616,15 @@ export default function CreateOrder() {
                                     {showDeliverySettings ? (
                                         <SettingsRow
                                             icon={Zap}
-                                            title="Start time"
+                                            title={t('startTime')}
                                             active={refine.delivery !== 'any'}
                                             open={settingsRowOpen === 'delivery'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'delivery' ? null : 'delivery')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                                                <span>Prefer</span>
+                                                <span>{t('prefer', { defaultValue: 'Prefer' })}</span>
                                                 <InlineSelect
                                                     value={refine.delivery}
                                                     options={deliveryOptions}
@@ -1517,8 +1632,9 @@ export default function CreateOrder() {
                                                     disabled={!categoryId}
                                                     onOpen={() => setOpenMenu(openMenu === 'delivery' ? null : 'delivery')}
                                                     onChange={(value) => setRefineField('delivery', value)}
+                                                    emptyLabel={t('selectEllipsis')}
                                                 />
-                                                <span>start</span>
+                                                <span>{t('startWord', { defaultValue: 'start' })}</span>
                                             </div>
                                         </SettingsRow>
                                     ) : null}
@@ -1526,14 +1642,16 @@ export default function CreateOrder() {
                                     {showProtectionSettings ? (
                                         <SettingsRow
                                             icon={ShieldCheck}
-                                            title="Protection"
+                                            title={t('protection')}
                                             active={protectionRowActive}
                                             open={settingsRowOpen === 'protection'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'protection' ? null : 'protection')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="space-y-2">
                                                 <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                                                    <span>Refill</span>
+                                                    <span>{t('refillWord', { defaultValue: 'Refill' })}</span>
                                                     <InlineSelect
                                                         value={refine.protection}
                                                         options={protectionOptions}
@@ -1541,13 +1659,14 @@ export default function CreateOrder() {
                                                         disabled={!categoryId}
                                                         onOpen={() => setOpenMenu(openMenu === 'protection' ? null : 'protection')}
                                                         onChange={(value) => setRefineField('protection', value)}
+                                                        emptyLabel={t('selectEllipsis')}
                                                     />
                                                 </div>
 
                                                 {showRefillDays ? (
                                                     <div className="rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2">
                                                         <p className="mb-2 text-[0.8125rem] font-medium text-muted-foreground">
-                                                            Warranty period
+                                                            {t('warrantyPeriod', { defaultValue: 'Warranty period' })}
                                                         </p>
                                                         <div className="flex flex-wrap gap-2">
                                                             {refillDayOptions.map((opt) => {
@@ -1582,12 +1701,19 @@ export default function CreateOrder() {
 
                                                 {selectedService?.refill ? (
                                                     <p className="text-[0.8125rem] font-medium text-muted-foreground">
-                                                        Current package supports refill
-                                                        {selectedService.refill_days ? ` (~${selectedService.refill_days} days)` : ''}.
+                                                        {t('packageSupportsRefill', { defaultValue: 'Current package supports refill' })}
+                                                        {selectedService.refill_days
+                                                            ? ` ${t('packageRefillDays', {
+                                                                days: selectedService.refill_days,
+                                                                defaultValue: `(~${selectedService.refill_days} days)`,
+                                                            })}`
+                                                            : ''}.
                                                     </p>
                                                 ) : selectedService ? (
                                                     <p className="text-[0.8125rem] font-medium text-muted-foreground">
-                                                        Current package has no refill — pick a refill option above to switch packages.
+                                                        {t('packageNoRefill', {
+                                                            defaultValue: 'Current package has no refill — pick a refill option above to switch packages.',
+                                                        })}
                                                     </p>
                                                 ) : null}
                                             </div>
@@ -1597,13 +1723,15 @@ export default function CreateOrder() {
                                     {showCountrySettings ? (
                                         <SettingsRow
                                             icon={Globe2}
-                                            title="Country"
+                                            title={t('country')}
                                             active={refine.country !== 'any'}
                                             open={settingsRowOpen === 'country'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'country' ? null : 'country')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                                                <span>Location</span>
+                                                <span>{t('location', { defaultValue: 'Location' })}</span>
                                                 <InlineSelect
                                                     value={refine.country}
                                                     options={countryOptions}
@@ -1611,11 +1739,12 @@ export default function CreateOrder() {
                                                     disabled={!categoryId}
                                                     onOpen={() => setOpenMenu(openMenu === 'country' ? null : 'country')}
                                                     onChange={(value) => setRefineField('country', value)}
+                                                    emptyLabel={t('selectEllipsis')}
                                                 />
                                             </div>
                                             {selectedService?.country_code ? (
                                                 <p className="mt-2 text-[0.8125rem] font-medium text-muted-foreground">
-                                                    Current package:{' '}
+                                                    {t('currentPackage', { defaultValue: 'Current package:' })}{' '}
                                                     <CountryFlag code={selectedService.country_code} className="align-middle" />
                                                 </p>
                                             ) : null}
@@ -1625,13 +1754,15 @@ export default function CreateOrder() {
                                     {showAudienceSettings ? (
                                         <SettingsRow
                                             icon={Users}
-                                            title="Audience"
+                                            title={t('audience')}
                                             active={refine.audience !== 'any'}
                                             open={settingsRowOpen === 'audience'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'audience' ? null : 'audience')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="flex flex-wrap items-center gap-1 rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                                                <span>Target</span>
+                                                <span>{t('targetAudience', { defaultValue: 'Target' })}</span>
                                                 <InlineSelect
                                                     value={refine.audience}
                                                     options={audienceOptions}
@@ -1639,11 +1770,12 @@ export default function CreateOrder() {
                                                     disabled={!categoryId}
                                                     onOpen={() => setOpenMenu(openMenu === 'audience' ? null : 'audience')}
                                                     onChange={(value) => setRefineField('audience', value)}
+                                                    emptyLabel={t('selectEllipsis')}
                                                 />
                                             </div>
                                             {selectedService?.audience_gender ? (
                                                 <p className="mt-2 text-[0.8125rem] font-medium text-muted-foreground">
-                                                    Current package: {audienceLabel(selectedService.audience_gender)}
+                                                    {t('currentPackage', { defaultValue: 'Current package:' })} {audienceLabel(selectedService.audience_gender, t)}
                                                 </p>
                                             ) : null}
                                         </SettingsRow>
@@ -1652,14 +1784,16 @@ export default function CreateOrder() {
                                     {showReactionSettings ? (
                                         <SettingsRow
                                             icon={Heart}
-                                            title="Reaction"
+                                            title={t('reaction')}
                                             active={refine.reaction !== 'any'}
                                             open={settingsRowOpen === 'reaction'}
                                             onToggle={() => setSettingsRowOpen(settingsRowOpen === 'reaction' ? null : 'reaction')}
+                                            statusOnLabel={statusOnLabel}
+                                            statusOffLabel={statusOffLabel}
                                         >
                                             <div className="rounded-md border border-[var(--color-dash-border-subtle)] bg-muted/30 px-3 py-2">
                                                 <p className="mb-2 text-[0.8125rem] font-medium text-muted-foreground">
-                                                    Pick one reaction type
+                                                    {t('pickReaction', { defaultValue: 'Pick one reaction type' })}
                                                 </p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {reactionOptions.map((opt) => {
@@ -1692,7 +1826,7 @@ export default function CreateOrder() {
                                             </div>
                                             {selectedService?.reaction_type ? (
                                                 <p className="mt-2 text-[0.8125rem] font-medium text-muted-foreground">
-                                                    Current package: {facebookReactionLabel(selectedService.reaction_type)}
+                                                    {t('currentPackage', { defaultValue: 'Current package:' })} {facebookReactionLabel(selectedService.reaction_type)}
                                                 </p>
                                             ) : null}
                                         </SettingsRow>
@@ -1700,59 +1834,22 @@ export default function CreateOrder() {
 
                                     {hasActiveRefine ? (
                                         <p className="text-[0.8125rem] font-medium text-muted-foreground">
-                                            Active:{' '}
+                                            {t('activeRefine', { defaultValue: 'Active:' })}{' '}
                                             {[
-                                                showQualitySettings && refine.quality !== 'any' ? optionLabel(qualityOptions, refine.quality) : null,
-                                                showDeliverySettings && refine.delivery !== 'any' ? optionLabel(deliveryOptions, refine.delivery) : null,
-                                                showProtectionSettings && refine.protection !== 'any' ? optionLabel(protectionOptions, refine.protection) : null,
+                                                showQualitySettings && refine.quality !== 'any' ? optionLabel(qualityOptions, refine.quality, t) : null,
+                                                showDeliverySettings && refine.delivery !== 'any' ? optionLabel(deliveryOptions, refine.delivery, t) : null,
+                                                showProtectionSettings && refine.protection !== 'any' ? optionLabel(protectionOptions, refine.protection, t) : null,
                                                 hasRefillDayRefine
                                                     ? (refine.refillDays || []).map((d) => `${d}d`).join(', ')
                                                     : null,
                                                 showCountrySettings && refine.country !== 'any' ? countryLabel(refine.country) : null,
-                                                showAudienceSettings && refine.audience !== 'any' ? audienceLabel(refine.audience) : null,
+                                                showAudienceSettings && refine.audience !== 'any' ? audienceLabel(refine.audience, t) : null,
                                                 showReactionSettings && refine.reaction !== 'any' ? facebookReactionLabel(refine.reaction) : null,
                                             ]
                                                 .filter(Boolean)
                                                 .join(' · ')}
                                         </p>
                                     ) : null}
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="relative flex flex-col overflow-hidden rounded-md border bg-card text-card-foreground shadow-sm">
-                            <button
-                                type="button"
-                                onClick={() => setRulesOpen((v) => !v)}
-                                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
-                            >
-                                <span className="flex items-center gap-2 text-[0.975rem] font-semibold text-foreground">
-                                    <Info className="size-4 text-muted-foreground" />
-                                    Before you order
-                                </span>
-                                <ChevronDown className={cn('size-4 text-muted-foreground transition-transform duration-200', rulesOpen && 'rotate-180')} />
-                            </button>
-                            <div className="order-collapsible" data-open={rulesOpen ? 'true' : undefined}>
-                                <div className="order-collapsible-inner">
-                                <div className="space-y-3 border-t px-4 py-3.5">
-                                    {extraRules.length ? (
-                                        <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2.5">
-                                            <p className="text-[0.8125rem] font-bold tracking-wide text-amber-900 uppercase dark:text-amber-200">
-                                                Important for this service
-                                            </p>
-                                            <ul className="mt-2 list-disc space-y-1.5 pl-4 text-sm font-medium leading-relaxed text-amber-950 dark:text-amber-100">
-                                                {extraRules.map((rule) => (
-                                                    <li key={rule}>{rule}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ) : null}
-                                    <ul className="list-disc space-y-1.5 pl-4 text-sm font-medium leading-relaxed text-muted-foreground">
-                                        {GLOBAL_RULES.map((rule) => (
-                                            <li key={rule}>{rule}</li>
-                                        ))}
-                                    </ul>
                                 </div>
                                 </div>
                             </div>
@@ -1765,16 +1862,16 @@ export default function CreateOrder() {
                 >
                     <span className="flex flex-col items-center gap-0.5">
                         <span className="flex items-center gap-1.5">
-                            <span className="leading-none font-semibold">Checkout Now {formatDzd(charge)}</span>
+                            <span className="leading-none font-semibold">{t('checkoutNow', { amount: formatDzd(charge) })}</span>
                             <ArrowRight className="-ml-1 size-5 transition-transform duration-200 group-hover:translate-x-1" />
                         </span>
                         <span className="-mt-1 text-[10px] leading-none opacity-60">
-                            {selectedService?.start_class === 'instant' ? 'Estimated start instantly' : 'Estimated start in 1-2 hours'}
+                            {selectedService?.start_class === 'instant' ? t('estimatedInstant') : t('estimatedHours')}
                         </span>
                     </span>
                 </button>
                 <p className="mx-auto max-w-md text-center text-[0.6rem] leading-tight text-muted-foreground/60">
-                    By continuing you confirm the target is correct and you accept the rules above.
+                    {t('confirmTarget')}
                 </p>
             </form>
 

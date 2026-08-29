@@ -40,8 +40,8 @@ class CheckoutController extends Controller
         return response()->json([
             'submission' => PaymentSubmissionResource::make($submission)->resolve(),
             'message' => $submission->status?->value === 'pending'
-                ? 'Receipt submitted. Waiting for admin approval on Telegram.'
-                : 'Receipt submitted and order processed.',
+                ? __('api.checkout.receipt_pending')
+                : __('api.checkout.receipt_processed'),
         ], 201);
     }
 }

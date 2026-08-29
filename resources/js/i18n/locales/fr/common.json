@@ -1,0 +1,61 @@
+{
+  "balance": "Solde",
+  "close": "Fermer",
+  "closeDialog": "Fermer la fenêtre",
+  "per1k": "par 1K",
+  "units": "{{count}} unités",
+  "seeAll": "Tout voir",
+  "loading": "Chargement…",
+  "userFallback": "Utilisateur",
+  "emDash": "—",
+  "currency": "DA",
+  "requestFailed": "La requête a échoué.",
+  "newOrder": "Nouvelle commande",
+  "cancel": "Annuler",
+  "confirm": "Confirmer",
+  "back": "Retour",
+  "language": {
+    "label": "Langue",
+    "en": "Anglais",
+    "fr": "Français",
+    "ar": "Arabe"
+  },
+  "aria": {
+    "toggleTheme": "Changer le thème",
+    "signOut": "Se déconnecter",
+    "closeMenu": "Fermer le menu",
+    "openMenu": "Ouvrir le menu",
+    "sidebar": "Barre latérale",
+    "hidePassword": "Masquer le mot de passe",
+    "showPassword": "Afficher le mot de passe"
+  },
+  "status": {
+    "completed": "Terminé",
+    "processing": "En traitement",
+    "inProgress": "En cours",
+    "pending": "En attente",
+    "partial": "Partiel",
+    "canceled": "Annulé",
+    "refunded": "Remboursé",
+    "failed": "Échoué",
+    "rejected": "Rejeté",
+    "approved": "Terminé"
+  },
+  "table": {
+    "service": "Service",
+    "order": "Commande",
+    "status": "Statut",
+    "progress": "Progression",
+    "amount": "Montant",
+    "reference": "Référence",
+    "method": "Méthode",
+    "date": "Date",
+    "category": "Catégorie",
+    "min": "Min",
+    "max": "Max",
+    "pricePer1k": "Prix / 1K",
+    "startingAt": "À partir de",
+    "action": "Action",
+    "delivery": "Livraison"
+  }
+}

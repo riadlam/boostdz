@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\OpsController;
 use App\Http\Controllers\Api\V1\Admin\ProviderController as AdminProviderController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\DepositController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -21,6 +22,9 @@ Route::prefix('v1')->group(function (): void {
 
     Route::post('telegram/webhook', TelegramWebhookController::class);
 
+    Route::get('content/testimonials', [ContentController::class, 'testimonials']);
+    Route::get('content/platform-cards', [ContentController::class, 'platformCards']);
+
     Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -31,6 +35,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('services/{service}/quote', [ServiceController::class, 'quote']);
 
         Route::get('catalog/platforms', [CatalogController::class, 'platforms']);
+        Route::get('catalog/storefront', [CatalogController::class, 'storefront']);
         Route::get('catalog/platforms/{slug}/categories', [CatalogController::class, 'categories']);
         Route::get('catalog/categories/{category}/services', [CatalogController::class, 'services']);
 

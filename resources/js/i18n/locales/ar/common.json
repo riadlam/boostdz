@@ -1,0 +1,61 @@
+{
+  "balance": "الرصيد",
+  "close": "إغلاق",
+  "closeDialog": "إغلاق النافذة",
+  "per1k": "لكل 1K",
+  "units": "{{count}} وحدة",
+  "seeAll": "عرض الكل",
+  "loading": "جارٍ التحميل…",
+  "userFallback": "مستخدم",
+  "emDash": "—",
+  "currency": "دج",
+  "requestFailed": "فشل الطلب.",
+  "newOrder": "طلب جديد",
+  "cancel": "إلغاء",
+  "confirm": "تأكيد",
+  "back": "رجوع",
+  "language": {
+    "label": "اللغة",
+    "en": "الإنجليزية",
+    "fr": "الفرنسية",
+    "ar": "العربية"
+  },
+  "aria": {
+    "toggleTheme": "تبديل المظهر",
+    "signOut": "تسجيل الخروج",
+    "closeMenu": "إغلاق القائمة",
+    "openMenu": "فتح القائمة",
+    "sidebar": "الشريط الجانبي",
+    "hidePassword": "إخفاء كلمة المرور",
+    "showPassword": "إظهار كلمة المرور"
+  },
+  "status": {
+    "completed": "مكتمل",
+    "processing": "قيد المعالجة",
+    "inProgress": "قيد التنفيذ",
+    "pending": "قيد الانتظار",
+    "partial": "جزئي",
+    "canceled": "ملغى",
+    "refunded": "مسترد",
+    "failed": "فشل",
+    "rejected": "مرفوض",
+    "approved": "مكتمل"
+  },
+  "table": {
+    "service": "الخدمة",
+    "order": "الطلب",
+    "status": "الحالة",
+    "progress": "التقدم",
+    "amount": "المبلغ",
+    "reference": "المرجع",
+    "method": "الطريقة",
+    "date": "التاريخ",
+    "category": "الفئة",
+    "min": "الحد الأدنى",
+    "max": "الحد الأقصى",
+    "pricePer1k": "السعر / 1K",
+    "startingAt": "يبدأ من",
+    "action": "إجراء",
+    "delivery": "التسليم"
+  }
+}

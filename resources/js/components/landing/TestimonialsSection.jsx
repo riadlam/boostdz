@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
-import { brand, testimonials } from '../../content/landing';
+import { useTranslation } from 'react-i18next';
+import { contentApi } from '../../lib/api';
 import { cn } from '../../lib/cn';
 
-function TestimonialCard({ item, offset, isActive, onClick }) {
+function TestimonialCard({ item, offset, isActive, onClick, tapToPlay }) {
     const absOffset = Math.abs(offset);
     const scale = isActive ? 1 : Math.max(0.92, 1 - absOffset * 0.035);
     const y = isActive ? 0 : absOffset * 12;
@@ -46,7 +47,7 @@ function TestimonialCard({ item, offset, isActive, onClick }) {
                     <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Play className="size-3 fill-current" />
                     </span>
-                    Tap to play · swipe for more
+                    {tapToPlay}
                 </div>
             </div>
         </button>
@@ -66,9 +67,98 @@ function NavArrow({ label, onClick, children }) {
     );
 }
 
+function mapFallbackItems(items) {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+
+    return items.map((item, index) => ({
+        id: index,
+        name: item.name,
+        quote: item.quote,
+        role: item.role,
+        avatar: item.avatar,
+    }));
+}
+
 export function TestimonialsSection() {
+    const { t, i18n } = useTranslation('landing');
+    const fallbackItems = useMemo(
+        () => mapFallbackItems(t('testimonials.items', { returnObjects: true })),
+        [t],
+    );
+
+    const [content, setContent] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            try {
+                const response = await contentApi.testimonials();
+                if (!cancelled) {
+                    setContent(response);
+                }
+            } catch {
+                if (!cancelled) {
+                    setContent(null);
+                }
+            }
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [i18n.language]);
+
+    if (content?.section_enabled === false) {
+        return null;
+    }
+
+    const testimonials =
+        Array.isArray(content?.testimonials) && content.testimonials.length > 0
+            ? content.testimonials
+            : fallbackItems;
+
+    if (testimonials.length === 0) {
+        return null;
+    }
+
+    const stats = content?.stats;
+    const leaveReview = content?.leave_review;
+    const showStats = stats?.show !== false;
+    const likesDelivered = stats?.likes_delivered || '10M+';
+    const satisfactionRate = stats?.satisfaction_rate || '98%';
+    const showLeaveReview = leaveReview?.show !== false;
+    const leaveReviewUrl = leaveReview?.url;
+
+    return <TestimonialsCarousel
+        testimonials={testimonials}
+        showStats={showStats}
+        likesDelivered={likesDelivered}
+        satisfactionRate={satisfactionRate}
+        showLeaveReview={showLeaveReview}
+        leaveReviewUrl={leaveReviewUrl}
+    />;
+}
+
+function TestimonialsCarousel({
+    testimonials,
+    showStats,
+    likesDelivered,
+    satisfactionRate,
+    showLeaveReview,
+    leaveReviewUrl,
+}) {
+    const { t } = useTranslation('landing');
     const [active, setActive] = useState(0);
     const total = testimonials.length;
+
+    useEffect(() => {
+        setActive(0);
+    }, [total]);
 
     const go = useCallback(
         (dir) => {
@@ -86,69 +176,80 @@ export function TestimonialsSection() {
         <div className="bg-background">
             <div className="relative z-10 mx-auto -mt-16 -mb-4 h-20 w-px bg-gradient-to-b from-transparent via-foreground/15 to-transparent md:-mt-20 md:-mb-8 md:h-32" />
 
-            <section id="testimonials" className="relative pt-4 pb-16 md:pb-24">
+            <section id="testimonials" className="relative pt-2 pb-12 sm:pt-4 sm:pb-16 md:pb-24">
                 <div className="mx-auto max-w-6xl px-4 md:px-6">
-                    <div className="mb-10 text-center md:mb-14">
-                        <h2 className="text-3xl font-semibold tracking-tighter text-balance lg:text-5xl dark:text-white">
-                            Hear It From Creators, Brands &amp; Agencies
+                    <div className="mb-8 text-center sm:mb-10 md:mb-14">
+                        <h2 className="text-2xl font-semibold tracking-tighter text-balance sm:text-3xl lg:text-5xl dark:text-white">
+                            {t('testimonials.title')}
                         </h2>
                         <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-sm">
-                            See how creators, businesses, and agencies use {brand.name} for real social proof and measurable
-                            social media growth.
+                            {t('testimonials.subtitle')}
                         </p>
                     </div>
 
-                    {/* One row on lg: reviews + arrows | stats | leave review */}
-                    <div className="flex flex-col items-stretch gap-8 lg:flex-row lg:items-center lg:gap-6 xl:gap-8">
-                        {/* Review carousel with inline arrows */}
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                            <NavArrow label="Previous" onClick={() => go(-1)}>
+                    <div className="flex flex-col items-stretch gap-6 sm:gap-8 lg:flex-row lg:items-center lg:gap-6 xl:gap-8">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                            <NavArrow label="Previous testimonial" onClick={() => go(-1)}>
                                 <ChevronLeft className="size-4" />
                             </NavArrow>
 
-                            <div className="relative h-72 w-full min-w-0 flex-1 sm:h-80" style={{ contain: 'layout' }}>
+                            <div className="relative h-64 w-full min-w-0 flex-1 sm:h-72 md:h-80" style={{ contain: 'layout' }}>
                                 {visible.map(({ offset, index, item }) => (
                                     <TestimonialCard
-                                        key={`${index}-${offset}`}
+                                        key={`${item.id ?? index}-${offset}`}
                                         item={item}
                                         offset={offset}
                                         isActive={offset === 0}
                                         onClick={() => (offset === 0 ? go(1) : setActive(index))}
+                                        tapToPlay={t('testimonials.tapToPlay')}
                                     />
                                 ))}
                             </div>
 
-                            <NavArrow label="Next" onClick={() => go(1)}>
+                            <NavArrow label="Next testimonial" onClick={() => go(1)}>
                                 <ChevronRight className="size-4" />
                             </NavArrow>
                         </div>
 
-                        {/* Stats */}
-                        <div className="flex shrink-0 items-center justify-center gap-8 px-2 lg:flex-col lg:gap-6 lg:px-4">
-                            <div className="text-center">
-                                <p className="text-3xl font-semibold tracking-tight xl:text-4xl">10M+</p>
-                                <p className="mt-1 max-w-[9rem] text-xs text-muted-foreground sm:text-sm">
-                                    Likes delivered this month
-                                </p>
+                        {showStats ? (
+                            <div className="flex shrink-0 flex-col items-center justify-center gap-5 px-2 sm:flex-row sm:gap-8 lg:flex-col lg:gap-6 lg:px-4">
+                                <div className="text-center">
+                                    <p className="text-3xl font-semibold tracking-tight xl:text-4xl">{likesDelivered}</p>
+                                    <p className="mt-1 max-w-[9rem] text-xs text-muted-foreground sm:text-sm">
+                                        {t('testimonials.likesDelivered')}
+                                    </p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-3xl font-semibold tracking-tight xl:text-4xl">{satisfactionRate}</p>
+                                    <p className="mt-1 max-w-[9rem] text-xs text-muted-foreground sm:text-sm">
+                                        {t('testimonials.satisfaction')}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="text-center">
-                                <p className="text-3xl font-semibold tracking-tight xl:text-4xl">98%</p>
-                                <p className="mt-1 max-w-[9rem] text-xs text-muted-foreground sm:text-sm">
-                                    Customer satisfaction rate
-                                </p>
-                            </div>
-                        </div>
+                        ) : null}
 
-                        {/* Leave a review */}
-                        <div className="flex w-full shrink-0 flex-col justify-center rounded-2xl border border-border bg-card p-6 text-center shadow-sm ring-1 ring-foreground/5 lg:w-64 xl:w-72">
-                            <h3 className="text-base font-semibold xl:text-lg">Love {brand.name}? Leave a review</h3>
-                            <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
-                                Tell other creators what worked for you. Your review helps the community pick the right tools.
-                            </p>
-                            <a href="#" className={cn('btn-primary mt-5 inline-flex self-center')}>
-                                Leave a Review
-                            </a>
-                        </div>
+                        {showLeaveReview ? (
+                            <div className="flex w-full shrink-0 flex-col justify-center rounded-2xl border border-border bg-card p-6 text-center shadow-sm ring-1 ring-foreground/5 lg:w-64 xl:w-72">
+                                <h3 className="text-base font-semibold xl:text-lg">{t('testimonials.leaveReviewTitle')}</h3>
+                                <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
+                                    {t('testimonials.leaveReviewBody')}
+                                </p>
+                                {leaveReviewUrl ? (
+                                    <a
+                                        href={leaveReviewUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={cn('btn-primary mt-5 inline-flex self-center')}
+                                    >
+                                        {t('testimonials.leaveReviewCta')}
+                                    </a>
+                                ) : (
+                                    <span className={cn('btn-primary mt-5 inline-flex self-center opacity-60')}>
+                                        {t('testimonials.leaveReviewCta')}
+                                    </span>
+                                )}
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </section>

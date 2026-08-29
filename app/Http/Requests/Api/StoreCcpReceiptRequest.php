@@ -55,7 +55,7 @@ class StoreCcpReceiptRequest extends FormRequest
             }
 
             if ($service->requiresCustomComments() && trim((string) $this->input('comments')) === '') {
-                $validator->errors()->add('comments', 'Comments are required for this service (one per line).');
+                $validator->errors()->add('comments', __('api.comments.required_for_service'));
 
                 return;
             }

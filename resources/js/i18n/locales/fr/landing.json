@@ -1,0 +1,288 @@
+{
+  "brand": {
+    "name": "BOOSTDZ"
+  },
+  "header": {
+    "signIn": "Se connecter",
+    "startFree": "Commencer gratuitement",
+    "menu": "Menu"
+  },
+  "hero": {
+    "beta": "BOOSTDZ est maintenant en bêta publique",
+    "learnMore": "En savoir plus",
+    "titleLine1": "Développez vos",
+    "titleLine2": "Vrais likes, vrais abonnés.",
+    "subtitle": "Achetez de vrais likes, abonnés et vues pour Instagram, TikTok, YouTube et X — livraison instantanée sans mot de passe. Un engagement authentique qui fait voyager chaque publication plus loin.",
+    "getStarted": "Commencer",
+    "learnMoreCta": "En savoir plus",
+    "asSeenOn": "Vu dans",
+    "asSeenNote": "Oui, ce n'est pas faux, nous avons vraiment été mis en avant"
+  },
+  "preview": {
+    "dashboard": "Tableau de bord",
+    "dashboardDesc": "Aperçu de votre croissance",
+    "orders": "Commandes",
+    "ordersDesc": "Gérez vos commandes",
+    "automation": "Automatisation",
+    "automationDesc": "Définissez des règles et laissez tourner"
+  },
+  "why": {
+    "title": "Pourquoi les créateurs choisissent BOOSTDZ plutôt que les autres",
+    "subtitle": "Tout ce qu'il faut pour développer vos réseaux sociaux — livraison instantanée, engagement réel, livraison progressive et rechargement automatique, sur toutes les plateformes.",
+    "growHighlight": "développer vos réseaux sociaux",
+    "items": [
+      {
+        "title": "Livraison instantanée garantie",
+        "body": "Votre commande commence à être traitée en quelques minutes. L'engagement réel arrive sur votre contenu presque instantanément — pas d'attente, pas de délais, juste des résultats.",
+        "highlight": "presque instantanément"
+      },
+      {
+        "title": "De vraies personnes, un vrai engagement",
+        "body": "Chaque interaction provient de profils authentiques et actifs — jamais de bots ni de comptes fantômes. Un engagement authentique que l'algorithme récompense et que votre audience approuve.",
+        "highlight": "profils authentiques et actifs"
+      },
+      {
+        "title": "Support client disponible en permanence",
+        "body": "Notre équipe est disponible 24 h/24 via chat en direct et e-mail. Questions sur les forfaits, problèmes de commande ou conseils de compte — nous répondons en quelques minutes.",
+        "highlight": "24 h/24"
+      },
+      {
+        "title": "Paiements sécurisés et chiffrés",
+        "body": "Chaque transaction est protégée par un chiffrement SSL de niveau bancaire via des prestataires de confiance. Vos données de paiement et vos informations personnelles restent entièrement sécurisées.",
+        "highlight": "chiffrement SSL de niveau bancaire"
+      },
+      {
+        "title": "Croissance progressive et naturelle",
+        "body": "Répartissez la livraison sur plusieurs heures ou jours pour que la croissance paraisse totalement organique. Protégez votre compte tout en construisant un engagement régulier et durable.",
+        "highlight": "totalement organique"
+      },
+      {
+        "title": "Garantie de rechargement automatique",
+        "body": "Si un engagement baisse après la livraison, nous rechargeons automatiquement votre commande sans frais supplémentaires. Vos chiffres restent solides grâce à notre garantie de rétention.",
+        "highlight": "rechargeons automatiquement"
+      },
+      {
+        "title": "Un tableau de bord, toutes les plateformes",
+        "body": "Gérez votre croissance sur tous les grands réseaux sociaux depuis un seul endroit. Une connexion, un historique de commandes, tout votre engagement suivi en un coup d'œil.",
+        "highlight": "un seul endroit"
+      },
+      {
+        "title": "Suivi des commandes en temps réel",
+        "body": "Suivez chaque commande avec la progression de livraison en direct, les mises à jour de complétion et des analyses d'engagement détaillées. Voyez exactement comment votre présence sociale grandit.",
+        "highlight": "progression de livraison en direct"
+      },
+      {
+        "title": "Tarifs justes et transparents",
+        "body": "Un engagement réel de haute qualité à partir de moins d'un dollar. Remises sur volume pour les créateurs et agences qui ont besoin d'une croissance fiable et régulière sans dépenser trop.",
+        "highlight": "moins d'un dollar"
+      }
+    ]
+  },
+  "platforms": {
+    "title": "De vrais cœurs, fans et vues, livrés rapidement",
+    "subtitle": "Achetez de vrais likes, abonnés et vues pour Instagram, TikTok, YouTube, X et Facebook. Choisissez votre réseau, sélectionnez votre service, commencez à grandir dès aujourd'hui.",
+    "platformsHighlight": "Instagram, TikTok, YouTube, X et Facebook",
+    "reviewsLabel": "avis",
+    "metaLine": "{{startingAt}} {{price}} · {{reviews}} {{reviewsLabel}}",
+    "cards": [
+      {
+        "id": "instagram",
+        "name": "Instagram",
+        "body": "Boostez vos publications, reels et stories avec de vrais likes, abonnés, vues et commentaires provenant de comptes authentiques.",
+        "highlight": "vrais likes, abonnés, vues et commentaires",
+        "cta": "Acheter des services Instagram",
+        "meta": "À partir de 199 DA · 230+ avis",
+        "rating": 4
+      },
+      {
+        "id": "tiktok",
+        "name": "TikTok",
+        "body": "Devenez viral plus vite avec de vrais likes, abonnés et vues qui aident votre contenu à être recommandé.",
+        "highlight": "vrais likes, abonnés et vues",
+        "cta": "Acheter des services TikTok",
+        "meta": "À partir de 199 DA · 235+ avis",
+        "rating": 4
+      },
+      {
+        "id": "x",
+        "name": "X / Twitter",
+        "body": "Amplifiez vos tweets et développez votre audience avec de vrais likes et abonnés qui boostent votre portée.",
+        "highlight": "vrais likes et abonnés",
+        "cta": "Acheter des services Twitter",
+        "meta": "À partir de 199 DA · 235+ avis",
+        "rating": 4
+      },
+      {
+        "id": "youtube",
+        "name": "YouTube",
+        "body": "Développez votre chaîne avec de vraies vues, likes et abonnés qui boostent vos vidéos dans la recherche et les recommandations.",
+        "highlight": "vraies vues, likes et abonnés",
+        "cta": "Acheter des services YouTube",
+        "meta": "À partir de 199 DA · 210+ avis",
+        "rating": 4
+      },
+      {
+        "id": "facebook",
+        "name": "Facebook",
+        "body": "Développez votre page et vos publications avec de vrais likes, abonnés et vues qui augmentent votre visibilité.",
+        "highlight": "vrais likes, abonnés et vues",
+        "cta": "Acheter des services Facebook",
+        "meta": "À partir de 199 DA · 235+ avis",
+        "rating": 4
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Ce qu'en disent créateurs, marques et agences",
+    "subtitle": "Découvrez comment créateurs, entreprises et agences utilisent BOOSTDZ pour une preuve sociale réelle et une croissance mesurable sur les réseaux sociaux.",
+    "likesDelivered": "Likes livrés ce mois-ci",
+    "satisfaction": "Taux de satisfaction client",
+    "leaveReviewTitle": "Vous aimez BOOSTDZ ? Laissez un avis",
+    "leaveReviewBody": "Dites aux autres créateurs ce qui a fonctionné pour vous. Votre avis aide la communauté à choisir les bons outils.",
+    "leaveReviewCta": "Laisser un avis",
+    "tapToPlay": "Appuyez pour lire · balayez pour en voir plus",
+    "items": [
+      {
+        "quote": "J'étais sceptique au début, mais BOOSTDZ a livré exactement ce qu'ils promettaient. Mes publications Instagram sont passées de 50 likes à plus de 500 en une semaine, et les abonnés sont de vrais comptes — j'ai vérifié. Un vrai changement pour ma petite entreprise.",
+        "name": "John Mitchell",
+        "role": "Fondateur @ Northbay Goods",
+        "avatar": "/assets/testimonials/1.webp"
+      },
+      {
+        "quote": "J'ai obtenu mes 1 000 premiers abonnés en quelques jours. De vrais. BOOSTDZ m'a redonné envie de publier — un engagement qui dure vraiment.",
+        "name": "Sarah Chen",
+        "role": "Créatrice de contenu",
+        "avatar": "/assets/testimonials/2.webp"
+      },
+      {
+        "quote": "Nous gérons 12 comptes clients. BOOSTDZ est le seul panel qui livre de façon constante sans chutes. Notre flux de travail d'agence en dépend.",
+        "name": "Marcus Webb",
+        "role": "Directeur d'agence",
+        "avatar": "/assets/testimonials/3.webp"
+      },
+      {
+        "quote": "Les vues TikTok sont arrivées en quelques minutes. Ma portée FYP a doublé en deux semaines. Le meilleur investissement pour un nouveau créateur.",
+        "name": "Elena Rodriguez",
+        "role": "Créatrice TikTok",
+        "avatar": "/assets/testimonials/4.webp"
+      },
+      {
+        "quote": "Le support a répondu en moins de 5 minutes quand j'avais une question. Cela à lui seul vaut BOOSTDZ pour notre équipe de marque.",
+        "name": "David Park",
+        "role": "Responsable de marque",
+        "avatar": "/assets/testimonials/5.webp"
+      }
+    ]
+  },
+  "nav": [
+    {
+      "label": "Produits",
+      "href": "#platforms"
+    },
+    {
+      "label": "Pourquoi",
+      "href": "#why"
+    }
+  ],
+  "steps": [
+    {
+      "n": "1",
+      "title": "Choisir",
+      "body": "Parcourez notre catalogue et choisissez le forfait idéal pour votre compte Instagram, TikTok ou Twitter."
+    },
+    {
+      "n": "2",
+      "title": "Commander",
+      "body": "Collez le lien de votre profil ou publication, sélectionnez une quantité et finalisez votre commande en quelques secondes."
+    },
+    {
+      "n": "3",
+      "title": "Grandir",
+      "body": "La livraison démarre en quelques minutes — vrais likes, abonnés et vues, livrés progressivement pour une croissance naturelle."
+    }
+  ],
+  "footer": {
+    "links": [
+      {
+        "label": "Se connecter",
+        "href": "#"
+      },
+      {
+        "label": "S'inscrire",
+        "href": "#"
+      },
+      {
+        "label": "Avis",
+        "href": "#testimonials"
+      },
+      {
+        "label": "Contact",
+        "href": "#"
+      },
+      {
+        "label": "Documentation API",
+        "href": "#"
+      },
+      {
+        "label": "Blog et actualités",
+        "href": "#"
+      },
+      {
+        "label": "Pour qui",
+        "href": "#"
+      },
+      {
+        "label": "Ressources de marque",
+        "href": "#"
+      }
+    ],
+    "products": [
+      "Acheter des likes TikTok",
+      "Acheter des likes Twitter",
+      "Acheter des likes YouTube",
+      "Acheter des vues YouTube",
+      "Acheter des likes Instagram",
+      "Acheter des vues Instagram",
+      "Acheter des abonnés TikTok",
+      "Acheter des vues TikTok",
+      "Acheter des abonnés Twitter",
+      "Acheter des commentaires Instagram",
+      "Acheter des abonnés Instagram",
+      "Acheter des abonnés YouTube"
+    ],
+    "tools": [
+      "Compteur TikTok gratuit",
+      "Likes Instagram gratuits",
+      "Générateur de hashtags IA gratuit",
+      "Compteur de likes TikTok gratuit",
+      "Visionneuse de stories Instagram gratuite",
+      "Calculateur de revenus TikTok gratuit",
+      "Téléchargeur de vidéos TikTok gratuit",
+      "Compteur d'abonnés Instagram gratuit",
+      "Calculateur de taux d'engagement TikTok gratuit",
+      "Vues YouTube gratuites"
+    ],
+    "comparisons": [
+      "Alternative à Twicsy",
+      "Alternative à Buzzoid",
+      "Alternative à Famoid",
+      "Alternative à Likes.io",
+      "Alternative à Media Mister",
+      "Meilleurs sites : abonnés Instagram",
+      "Meilleurs sites : likes Instagram",
+      "Meilleurs sites : abonnés TikTok",
+      "Meilleurs sites : vues TikTok"
+    ],
+    "sections": {
+      "links": "Liens",
+      "products": "Produits phares",
+      "tools": "Outils gratuits",
+      "comparisons": "Comparaisons"
+    },
+    "about": "Propulser la croissance sur les réseaux sociaux. BOOSTDZ accompagne créateurs, agences et marques avec des services d'engagement sur Instagram, TikTok, YouTube et X. Basé en Algérie.",
+    "rights": "Tous droits réservés.",
+    "terms": "Conditions d'utilisation",
+    "refund": "Politique de remboursement",
+    "privacy": "Politique de confidentialité"
+  }
+}

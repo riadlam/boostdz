@@ -42,7 +42,7 @@ export function VerticalTicker({ direction = 'bottom', startIndex = 1, count = 1
 
 export function PlatformCardDecoration({ gradient, children }) {
     return (
-        <div aria-hidden="true" className="pointer-events-none absolute -inset-y-8 -right-32 -z-10 rotate-[4deg] md:-right-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -inset-y-8 -right-16 -z-10 rotate-[4deg] sm:-right-24 md:-right-8">
             <div className="absolute -inset-x-2 inset-y-0 border-y border-dashed border-foreground/10" />
             <div className="absolute inset-x-0 -inset-y-2 border-x border-dashed border-foreground/10" />
             <div

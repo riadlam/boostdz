@@ -11,10 +11,9 @@ class MinimumCheckoutException extends Exception
         public readonly int $chargeDzd,
         ?string $message = null,
     ) {
-        parent::__construct($message ?? sprintf(
-            'Minimum checkout amount is %s DA. Please top up your wallet first.',
-            number_format($minimumDzd, 0, '.', ' '),
-        ));
+        parent::__construct($message ?? __('api.checkout.minimum_checkout', [
+            'amount' => number_format($minimumDzd, 0, '.', ' '),
+        ]));
     }
 
     /**

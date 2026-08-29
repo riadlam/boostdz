@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
     ArrowRight,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { CountryFlag, countryLabel } from '../../components/CountryFlag';
 import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
+import PaymentMethodPicker from '../../components/dashboard/PaymentMethodPicker';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError, ordersApi } from '../../lib/api';
 import {
@@ -29,13 +31,14 @@ import {
 import { cn } from '../../lib/cn';
 import { formatDzd, roundDzd } from '../../lib/formatMoney';
 import {
-    GLOBAL_ORDER_RULES,
-    categoryOrderRules,
+    getCategoryOrderRules,
+    getGlobalOrderRules,
     clearCheckoutDraft,
     loadCheckoutDraft,
     previewComments,
     saveCheckoutDraft,
 } from '../../lib/orderRules';
+import { getPaymentOptions } from '../../lib/paymentMethods';
 import { getCategoryIcon } from '../../lib/categoryIcons';
 import { getPlatformIcon } from '../../lib/platformIcons';
 
@@ -44,25 +47,25 @@ function formatAmount(n) {
 }
 
 
-function draftBadges(draft) {
+function draftBadges(draft, t) {
     const badges = [];
-    if (draft.isHot) badges.push({ key: 'hot', label: 'Top seller', tone: 'hot' });
-    if (draft.isCheap) badges.push({ key: 'cheap', label: 'Best price', tone: 'warn' });
-    if (draft.startClass === 'instant') badges.push({ key: 'instant', label: 'Instant start', tone: 'ok', icon: Zap });
-    else if (draft.startClass === 'fast') badges.push({ key: 'fast', label: 'Fast start', tone: 'ok', icon: Zap });
+    if (draft.isHot) badges.push({ key: 'hot', label: t('badges.topSeller'), tone: 'hot' });
+    if (draft.isCheap) badges.push({ key: 'cheap', label: t('badges.bestPrice'), tone: 'warn' });
+    if (draft.startClass === 'instant') badges.push({ key: 'instant', label: t('badges.instantStart'), tone: 'ok', icon: Zap });
+    else if (draft.startClass === 'fast') badges.push({ key: 'fast', label: t('badges.fastStart'), tone: 'ok', icon: Zap });
     if (draft.refillMode === 'auto') {
         badges.push({
             key: 'ar',
-            label: draft.refillDays ? `Auto refill ${draft.refillDays}d` : 'Auto refill',
+            label: draft.refillDays ? t('badges.autoRefill', { days: draft.refillDays }) : t('badges.autoRefillShort'),
             tone: 'info',
             icon: ShieldCheck,
         });
     } else if (draft.refillMode === 'lifetime') {
-        badges.push({ key: 'life', label: 'Lifetime refill', tone: 'info', icon: ShieldCheck });
+        badges.push({ key: 'life', label: t('badges.lifetimeRefill'), tone: 'info', icon: ShieldCheck });
     } else if (draft.hasRefill || draft.refillDays) {
         badges.push({
             key: 'r',
-            label: draft.refillDays ? `Refill ${draft.refillDays}d` : 'Refill',
+            label: draft.refillDays ? t('badges.refill', { days: draft.refillDays }) : t('badges.refillShort'),
             tone: 'info',
             icon: ShieldCheck,
         });
@@ -74,8 +77,8 @@ function draftBadges(draft) {
             tone: 'muted',
         });
     }
-    if (draft.dripfeed) badges.push({ key: 'drip', label: 'Drip-feed', tone: 'muted' });
-    if (draft.isRepeat) badges.push({ key: 'repeat', label: 'Repeat order', tone: 'muted' });
+    if (draft.dripfeed) badges.push({ key: 'drip', label: t('badges.dripfeed'), tone: 'muted' });
+    if (draft.isRepeat) badges.push({ key: 'repeat', label: t('badges.repeatOrder'), tone: 'muted' });
     if (draft.countryCode) {
         badges.push({ key: 'country', label: countryLabel(draft.countryCode), tone: 'muted', country: draft.countryCode });
     }
@@ -137,25 +140,6 @@ function SummaryRow({ label, value, mono, strong }) {
     );
 }
 
-const PAYMENT_OPTIONS = [
-    {
-        id: 'ccp-baridimob',
-        title: 'CCP / BaridiMob',
-        hint: 'Manual transfer',
-        description: 'Pay via CCP or BaridiMob, then upload your receipt for verification.',
-        icons: ['/images/payments/ccp.svg', '/images/payments/baridimob.png'],
-        action: 'navigate',
-    },
-    {
-        id: 'algerie-post',
-        title: 'Algérie Post',
-        hint: 'Pay & place',
-        description: 'Demo payment for now — clicking Continue places the order via BuzzerPanel.',
-        icons: ['/images/payments/algerie-post.png'],
-        action: 'place_order',
-    },
-];
-
 function newIdempotencyKey() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
         return crypto.randomUUID();
@@ -168,9 +152,11 @@ function newIdempotencyKey() {
 }
 
 export default function Checkout() {
+    const { t } = useTranslation(['checkout', 'common']);
     const navigate = useNavigate();
     const location = useLocation();
     const { refreshUser } = useAuth();
+    const paymentOptions = useMemo(() => getPaymentOptions(t, 'checkout'), [t]);
     const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
     const [method, setMethod] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -211,10 +197,12 @@ export default function Checkout() {
 
     const importantRules = useMemo(() => {
         if (!draft) return [];
-        return categoryOrderRules(draft.platformSlug, draft.categorySlug);
-    }, [draft]);
+        return getCategoryOrderRules(t, draft.platformSlug, draft.categorySlug);
+    }, [draft, t]);
 
-    const badges = useMemo(() => (draft ? draftBadges(draft) : []), [draft]);
+    const globalRules = useMemo(() => getGlobalOrderRules(t), [t]);
+
+    const badges = useMemo(() => (draft ? draftBadges(draft, t) : []), [draft, t]);
     const commentsPreview = useMemo(
         () => (draft?.comments ? previewComments(draft.comments) : null),
         [draft?.comments],
@@ -225,15 +213,14 @@ export default function Checkout() {
     if (!draft?.serviceId) {
         return (
             <div className="mx-auto max-w-2xl space-y-4 py-6">
-                <h1 className="text-xl font-semibold tracking-tight">Checkout</h1>
-                <p className="text-sm text-muted-foreground">No order draft found. Pick a package first.</p>
+                <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+                <p className="text-sm text-muted-foreground">{t('noDraft')}</p>
                 <Link to="/dashboard/orders/create" className="btn-primary inline-flex">
-                    Create order
+                    {t('createOrder')}
                 </Link>
             </div>
         );
     }
-
     async function placeOrderViaApi(paymentMethod) {
         const payload = {
             service_id: draft.serviceId,
@@ -313,7 +300,7 @@ export default function Checkout() {
                 } else if (error instanceof ApiError) {
                     setFormError(error.message);
                 } else {
-                    setFormError(error?.message || 'Could not place order. Please try again.');
+                    setFormError(error?.message || t('uploadError'));
                 }
             } finally {
                 setSubmitting(false);
@@ -328,22 +315,22 @@ export default function Checkout() {
                     type="button"
                     onClick={() => navigate('/dashboard/orders/create')}
                     className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-[var(--color-dash-row-hover)] hover:text-foreground"
-                    aria-label="Back"
+                    aria-label={t('back', { ns: 'common' })}
                 >
                     <ArrowLeft className="size-4" />
                 </button>
                 <div>
-                    <h1 className="text-lg font-semibold tracking-tight">Checkout</h1>
-                    <p className="text-xs text-muted-foreground">Review your bag and choose how to pay.</p>
+                    <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
+                    <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
                 </div>
             </div>
 
             {/* Offer / cart card */}
             <section className="overflow-hidden rounded-2xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] shadow-sm">
                 <div className="flex items-center justify-between gap-3 border-b border-dashed border-[var(--color-dash-border)] bg-[var(--color-dash-canvas)]/70 px-4 py-2.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Order summary</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('orderSummary')}</p>
                     <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
-                        Ready to pay
+                        {t('readyToPay')}
                     </span>
                 </div>
 
@@ -383,31 +370,31 @@ export default function Checkout() {
                     <DottedDivider className="my-3.5" />
 
                     <div className="space-y-0">
-                        <SummaryRow label="Quantity" value={formatAmount(draft.quantity)} strong />
+                        <SummaryRow label={t('quantity')} value={formatAmount(draft.quantity)} strong />
                         <DottedDivider />
-                        <SummaryRow label="Target" value={draft.link} mono />
+                        <SummaryRow label={t('target')} value={draft.link} mono />
                         {commentsPreview ? (
                             <>
                                 <DottedDivider />
                                 <SummaryRow
-                                    label="Comments"
-                                    value={`${commentsPreview.total} custom · ${commentsPreview.label}`}
+                                    label={t('comments')}
+                                    value={t('commentsPreview', { total: commentsPreview.total, label: commentsPreview.label })}
                                 />
                             </>
                         ) : null}
                         {draft.rate ? (
                             <>
                                 <DottedDivider />
-                                <SummaryRow label="Unit rate" value={`${formatDzd(draft.rate)} / 1k`} />
+                                <SummaryRow label={t('unitRate')} value={t('unitRateValue', { rate: formatDzd(draft.rate) })} />
                             </>
                         ) : null}
                         <DottedDivider />
                         <div className="flex items-end justify-between gap-4 pt-3">
                             <div>
-                                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Order total</p>
-                                <p className="mt-0.5 text-xs text-muted-foreground">Incl. service fees · DZD</p>
+                                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{t('orderTotal')}</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">{t('orderTotalHint')}</p>
                             </div>
-                            <p className="text-2xl font-bold tracking-tight tabular-nums text-primary">{formatDzd(draft.charge)}</p>
+                            <p className="text-xl font-bold tracking-tight tabular-nums text-primary sm:text-2xl">{formatDzd(draft.charge)}</p>
                         </div>
                     </div>
                 </div>
@@ -420,80 +407,23 @@ export default function Checkout() {
                     </div>
                 ) : null}
 
-                <section className="rounded-2xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] p-4 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground">Payment method</p>
-                        <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                            Select one
-                        </span>
-                    </div>
-
-                    <div className="grid gap-2.5">
-                        {PAYMENT_OPTIONS.map((option) => {
-                            const selected = method === option.id;
-                            return (
-                                <button
-                                    key={option.id}
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={() => setMethod(option.id)}
-                                    className={cn(
-                                        'flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition',
-                                        selected
-                                            ? 'border-primary/55 bg-primary/8 ring-1 ring-primary/25 shadow-sm'
-                                            : 'border-[var(--color-dash-border)] bg-[var(--color-dash-canvas)]/40 hover:border-primary/35',
-                                    )}
-                                >
-                                    <span
-                                        className={cn(
-                                            'flex size-4 shrink-0 items-center justify-center rounded-full border',
-                                            selected ? 'border-primary bg-primary' : 'border-muted-foreground/40 bg-[var(--color-dash-surface)]',
-                                        )}
-                                    >
-                                        {selected ? <span className="size-1.5 rounded-full bg-white" /> : null}
-                                    </span>
-                                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                        <span className="flex flex-wrap items-center gap-2">
-                                            <span className="font-semibold text-foreground">{option.title}</span>
-                                            <span
-                                                className={cn(
-                                                    'rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                                                    option.id === 'algerie-post'
-                                                        ? 'bg-emerald-500/12 text-emerald-800 dark:text-emerald-200'
-                                                        : 'bg-sky-500/12 text-sky-800 dark:text-sky-200',
-                                                )}
-                                            >
-                                                {option.hint}
-                                            </span>
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">{option.description}</span>
-                                    </span>
-                                    <span className="flex shrink-0 items-center gap-1.5">
-                                        {option.icons.map((src) => (
-                                            <img
-                                                key={src}
-                                                src={src}
-                                                alt=""
-                                                className="size-10 rounded-xl border border-[var(--color-dash-border-subtle)] bg-white object-contain p-1 shadow-sm"
-                                            />
-                                        ))}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </section>
+                <PaymentMethodPicker
+                    value={method}
+                    onChange={setMethod}
+                    disabled={submitting}
+                    options={paymentOptions}
+                />
 
                 <section className="rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/10 px-4 py-3.5">
                     <p className="inline-flex items-center gap-2 text-[0.8125rem] font-bold tracking-wide text-amber-900 uppercase dark:text-amber-200">
                         <Info className="size-4" />
-                        Important for this service
+                        {t('importantTitle')}
                     </p>
                     <ul className="mt-2.5 list-disc space-y-1.5 pl-4 text-sm font-medium leading-relaxed text-amber-950 dark:text-amber-100">
                         {importantRules.map((rule) => (
                             <li key={rule}>{rule}</li>
                         ))}
-                        {GLOBAL_ORDER_RULES.map((rule) => (
+                        {globalRules.map((rule) => (
                             <li key={rule}>{rule}</li>
                         ))}
                     </ul>
@@ -507,16 +437,16 @@ export default function Checkout() {
                     {submitting ? (
                         <>
                             <LoaderCircle className="size-4 animate-spin" />
-                            Placing order…
+                            {t('placingOrder')}
                         </>
                     ) : method === 'algerie-post' ? (
                         <>
-                            Pay &amp; place order
+                            {t('payAndPlace')}
                             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
                         </>
                     ) : (
                         <>
-                            Continue to payment
+                            {t('continueToPayment')}
                             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
                         </>
                     )}
@@ -530,7 +460,7 @@ export default function Checkout() {
                     }}
                     className="w-full text-center text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 >
-                    Cancel and edit order
+                    {t('cancelEditOrder')}
                 </button>
             </form>
 

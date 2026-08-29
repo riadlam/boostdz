@@ -182,15 +182,15 @@ class Order extends Model
         $this->loadMissing(['service', 'refills']);
 
         if (! $this->provider_order_id) {
-            return 'Order was not placed successfully.';
+            return __('api.refill.order_not_placed');
         }
 
         if (! $this->supportsRefill()) {
-            return 'This service does not include refill.';
+            return __('api.refill.service_no_refill');
         }
 
         if (! in_array($this->status, [OrderStatus::Completed, OrderStatus::Partial], true)) {
-            return 'Refill is only available after the order is completed or partial.';
+            return __('api.refill.after_completed_partial');
         }
 
         if (! $this->hasLifetimeRefill()) {
@@ -198,7 +198,7 @@ class Order extends Model
             $days = $this->refillWarrantyDays();
 
             if ($days > 0 && $anchor && $anchor->copy()->addDays($days)->isPast()) {
-                return "Refill warranty expired ({$days} days).";
+                return __('api.refill.warranty_expired', ['days' => $days]);
             }
         }
 
@@ -211,7 +211,7 @@ class Order extends Model
         });
 
         if ($openRefill) {
-            return 'A refill request is already in progress.';
+            return __('api.refill.already_in_progress');
         }
 
         return null;

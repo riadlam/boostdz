@@ -1,0 +1,13 @@
+{
+  "dashboard": "لوحة التحكم",
+  "orders": "الطلبات",
+  "createOrder": "إنشاء طلب",
+  "orderHistory": "سجل الطلبات",
+  "repeatedOrders": "الطلبات المتكررة",
+  "repeatedOrdersDescription": "إدارة إعادة التعبئة التلقائية والتعزيزات المتكررة للمنشورات التي تحتاج تفاعلاً مستمراً.",
+  "checkout": "الدفع",
+  "ccpBaridimob": "CCP / BaridiMob",
+  "pricing": "الأسعار",
+  "billing": "الفوترة",
+  "faqsHelp": "الأسئلة الشائعة والمساعدة"
+}

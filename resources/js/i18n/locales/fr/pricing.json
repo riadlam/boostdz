@@ -1,0 +1,13 @@
+{
+  "title": "Tarifs justes et transparents",
+  "subtitle": "Tarifs en direct depuis votre catalogue — par 1 000 unités, avec des minimums et maximums réels pour chaque catégorie.",
+  "allPlatforms": "Toutes les plateformes",
+  "searchPlaceholder": "Rechercher des catégories…",
+  "categoryCount": "{{count}} catégories",
+  "categoryCount_one": "{{count}} catégorie",
+  "loading": "Chargement des tarifs…",
+  "loadError": "Impossible de charger les tarifs.",
+  "order": "Commander",
+  "noResults": "Aucune catégorie ne correspond à votre recherche. Essayez une autre plateforme ou un autre mot-clé.",
+  "footerNote": "Les prix utilisent les valeurs par défaut de la vitrine sélectionnées par l'admin. Les tarifs par 1K et les limites se mettent à jour lors de la synchronisation du catalogue. Toutes les commandes sont payées depuis votre solde BOOSTDZ."
+}

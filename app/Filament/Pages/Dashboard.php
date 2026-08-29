@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\FeaturedServiceAlertsWidget;
 use App\Filament\Widgets\FulfillmentStatsOverview;
 use App\Filament\Widgets\PendingReviewsTable;
 use App\Filament\Widgets\RecentOrdersTable;
@@ -19,6 +20,7 @@ class Dashboard extends BaseDashboard
     {
         return [
             FulfillmentStatsOverview::class,
+            FeaturedServiceAlertsWidget::class,
             RecentOrdersTable::class,
             PendingReviewsTable::class,
         ];

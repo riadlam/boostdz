@@ -1,0 +1,21 @@
+{
+  "globalRules": [
+    "Entrez le bon lien ou nom d'utilisateur. Les comptes privés et cibles incorrectes ne sont pas remboursables.",
+    "Ne passez pas une autre commande pour la même cible tant que la précédente n'est pas terminée, partielle ou annulée.",
+    "Les vitesses et heures de début sont des estimations et peuvent changer selon la charge serveur.",
+    "Les réclamations sont acceptées après 24 heures suivant la commande.",
+    "Si la cible a déjà plus de 100 000 abonnés/likes/vues, la protection de recharge ne s'applique pas.",
+    "Les commandes partielles ou annulées sont remboursées automatiquement sur votre solde.",
+    "Les commandes ne peuvent pas être annulées pour des erreurs de saisie utilisateur."
+  ],
+  "categoryRules": {
+    "igFollowersFlag": "Désactivez « Signaler pour examen » sur Instagram (Paramètres → Suivre et inviter des amis) pour que les nouveaux abonnés apparaissent automatiquement. Pas de recharge/remboursement si cela reste activé.",
+    "igFollowersUsername": "Pour les abonnés, entrez uniquement le nom d'utilisateur (pas un compte privé).",
+    "postUrl": "Pour les likes, vues, réactions et commentaires, collez l'URL exacte de la publication/média indiquée.",
+    "commentsLines": "Pour les services de commentaires personnalisés, entrez un commentaire par ligne. La quantité doit correspondre au nombre de commentaires.",
+    "publicProfile": "Assurez-vous que le profil est public et que le nom/lien correspond aux exigences du service."
+  },
+  "commentsRequired": "Entrez au moins un commentaire (un par ligne).",
+  "commentsCountMismatch": "Vous avez saisi {{count}} commentaire(s) mais la quantité est {{qty}}. Ils doivent correspondre.",
+  "bankNote": "Envoyez le montant exact de la commande. Indiquez votre référence de commande dans la note de virement si possible."
+}

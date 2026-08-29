@@ -1,0 +1,47 @@
+{
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "nameFallback": "there",
+  "subtitle": "Pick a preset, or just see how you're growing.",
+  "topUp": "Top up",
+  "stats": {
+    "ordersThisWeek": "Orders this week",
+    "ordersPlaced": "{{count}} orders placed",
+    "ordersPlaced_one": "1 order placed",
+    "completed": "Completed",
+    "deliveredOrders": "Delivered orders",
+    "inProgress": "In progress",
+    "activeOrders": "{{count}} active orders",
+    "activeOrders_one": "1 active order",
+    "spent": "Spent",
+    "thisMonth": "This month"
+  },
+  "presetsEmpty": "No preset services available right now. Browse the full catalog in",
+  "presets": {
+    "igLikes": "Boost a post",
+    "ttViews": "Go viral",
+    "ytViews": "Grow on YouTube"
+  },
+  "recentActivity": "Your recent activity",
+  "loadingRecentOrders": "Loading recent orders…",
+  "loadOrdersError": "Could not load orders.",
+  "noOrdersYet": "No orders yet.",
+  "placeFirstOrder": "Place your first order",
+  "backToDashboard": "Back to Dashboard",
+  "faqs": {
+    "title": "FAQs & Help",
+    "subtitle": "Answers about delivery, refill, safety, and payments — or reach support anytime.",
+    "filterAll": "All",
+    "searchPlaceholder": "Search questions…",
+    "questionCount": "{{count}} questions",
+    "questionCount_one": "{{count}} question",
+    "noResults": "No questions match your search. Try another keyword or category.",
+    "stillHaveQuestions": "Still have questions?",
+    "supportBlurb": "Our support team is available around the clock. Most replies land within a few minutes.",
+    "emailSupport": "Email support",
+    "liveChat": "Live chat"
+  }
+}

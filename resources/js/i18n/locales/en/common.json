@@ -1,0 +1,61 @@
+{
+  "balance": "Balance",
+  "close": "Close",
+  "closeDialog": "Close dialog",
+  "per1k": "per 1K",
+  "units": "{{count}} units",
+  "seeAll": "See all",
+  "loading": "Loading…",
+  "userFallback": "User",
+  "emDash": "—",
+  "currency": "DA",
+  "requestFailed": "Request failed.",
+  "newOrder": "New order",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "back": "Back",
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "fr": "French",
+    "ar": "Arabic"
+  },
+  "aria": {
+    "toggleTheme": "Toggle theme",
+    "signOut": "Sign out",
+    "closeMenu": "Close menu",
+    "openMenu": "Open menu",
+    "sidebar": "Sidebar",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password"
+  },
+  "status": {
+    "completed": "Completed",
+    "processing": "Processing",
+    "inProgress": "In progress",
+    "pending": "Pending",
+    "partial": "Partial",
+    "canceled": "Canceled",
+    "refunded": "Refunded",
+    "failed": "Failed",
+    "rejected": "Rejected",
+    "approved": "Completed"
+  },
+  "table": {
+    "service": "Service",
+    "order": "Order",
+    "status": "Status",
+    "progress": "Progress",
+    "amount": "Amount",
+    "reference": "Reference",
+    "method": "Method",
+    "date": "Date",
+    "category": "Category",
+    "min": "Min",
+    "max": "Max",
+    "pricePer1k": "Price / 1K",
+    "startingAt": "Starting at",
+    "action": "Action",
+    "delivery": "Delivery"
+  }
+}

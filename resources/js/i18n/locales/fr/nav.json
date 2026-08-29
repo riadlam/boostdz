@@ -1,0 +1,13 @@
+{
+  "dashboard": "Tableau de bord",
+  "orders": "Commandes",
+  "createOrder": "Créer une commande",
+  "orderHistory": "Historique des commandes",
+  "repeatedOrders": "Commandes répétées",
+  "repeatedOrdersDescription": "Gérez le rechargement automatique et les boosts récurrents pour les publications qui nécessitent un engagement continu.",
+  "checkout": "Paiement",
+  "ccpBaridimob": "CCP / BaridiMob",
+  "pricing": "Tarifs",
+  "billing": "Facturation",
+  "faqsHelp": "FAQ et aide"
+}

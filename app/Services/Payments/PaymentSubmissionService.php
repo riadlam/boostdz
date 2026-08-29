@@ -32,7 +32,7 @@ class PaymentSubmissionService
         $service = Service::query()->findOrFail((int) $data['service_id']);
 
         if (! $service->is_active) {
-            throw new InvalidArgumentException('Service is not available.');
+            throw new InvalidArgumentException(__('api.orders.service_not_available'));
         }
 
         $quantity = (int) ($data['quantity'] ?? 0);
@@ -40,17 +40,20 @@ class PaymentSubmissionService
         $amount = number_format((float) ($data['amount_dzd'] ?? 0), 2, '.', '');
 
         if ($quantity < $service->min || $quantity > $service->max) {
-            throw new InvalidArgumentException("Quantity must be between {$service->min} and {$service->max}.");
+            throw new InvalidArgumentException(__('api.orders.quantity_between', [
+                'min' => $service->min,
+                'max' => $service->max,
+            ]));
         }
 
         if ($link === '') {
-            throw new InvalidArgumentException('Link is required.');
+            throw new InvalidArgumentException(__('api.orders.link_required'));
         }
 
         $service->validateComments($data['comments'] ?? null, $quantity);
 
         if ((float) $amount <= 0) {
-            throw new InvalidArgumentException('Amount must be greater than zero.');
+            throw new InvalidArgumentException(__('api.deposits.amount_gt_zero'));
         }
 
         $idempotencyKey = (string) ($data['idempotency_key'] ?? Str::uuid());
@@ -156,7 +159,7 @@ class PaymentSubmissionService
                     'status' => PaymentSubmissionStatus::Failed,
                     'order_id' => $order->id,
                     'reviewed_at' => now(),
-                    'admin_note' => $order->error_message ?: 'Provider rejected the order.',
+                    'admin_note' => $order->error_message ?: __('api.orders.provider_rejected'),
                 ]);
             } else {
                 $locked->update([

@@ -1,0 +1,47 @@
+{
+  "greeting": {
+    "morning": "صباح الخير",
+    "afternoon": "مساء الخير",
+    "evening": "مساء الخير"
+  },
+  "nameFallback": "صديقي",
+  "subtitle": "اختر إعداداً مسبقاً أو تابع نمو حسابك.",
+  "topUp": "شحن الرصيد",
+  "stats": {
+    "ordersThisWeek": "طلبات هذا الأسبوع",
+    "ordersPlaced": "{{count}} طلبات",
+    "ordersPlaced_one": "طلب واحد",
+    "completed": "مكتملة",
+    "deliveredOrders": "طلبات مُسلّمة",
+    "inProgress": "قيد التنفيذ",
+    "activeOrders": "{{count}} طلبات نشطة",
+    "activeOrders_one": "طلب نشط واحد",
+    "spent": "المصروف",
+    "thisMonth": "هذا الشهر"
+  },
+  "presetsEmpty": "لا توجد خدمات مسبقة الإعداد حالياً. تصفّح الكتالوج الكامل في",
+  "presets": {
+    "igLikes": "عزّز منشوراً",
+    "ttViews": "انتشر بسرعة",
+    "ytViews": "انمو على يوتيوب"
+  },
+  "recentActivity": "نشاطك الأخير",
+  "loadingRecentOrders": "جارٍ تحميل الطلبات الأخيرة…",
+  "loadOrdersError": "تعذّر تحميل الطلبات.",
+  "noOrdersYet": "لا توجد طلبات بعد.",
+  "placeFirstOrder": "أنشئ طلبك الأول",
+  "backToDashboard": "العودة إلى لوحة التحكم",
+  "faqs": {
+    "title": "الأسئلة الشائعة والمساعدة",
+    "subtitle": "إجابات حول التسليم وإعادة التعبئة والأمان والمدفوعات — أو تواصل مع الدعم في أي وقت.",
+    "filterAll": "الكل",
+    "searchPlaceholder": "ابحث في الأسئلة…",
+    "questionCount": "{{count}} أسئلة",
+    "questionCount_one": "سؤال واحد",
+    "noResults": "لا توجد أسئلة مطابقة لبحثك. جرّب كلمة مفتاحية أو فئة أخرى.",
+    "stillHaveQuestions": "لا تزال لديك أسئلة؟",
+    "supportBlurb": "فريق الدعم متاح على مدار الساعة. تصل معظم الردود خلال دقائق.",
+    "emailSupport": "دعم عبر البريد",
+    "liveChat": "دردشة مباشرة"
+  }
+}

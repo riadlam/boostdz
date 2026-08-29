@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ProviderSeeder::class,
             CatalogTaxonomySeeder::class,
+            TestimonialSeeder::class,
+            StorefrontPlatformCardSeeder::class,
         ]);
 
         $user = User::query()->updateOrCreate(

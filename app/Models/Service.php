@@ -72,6 +72,11 @@ class Service extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function featuredForCategories(): HasMany
+    {
+        return $this->hasMany(CatalogCategory::class, 'featured_service_id');
+    }
+
     public function calculateChargeDzd(int $quantity): string
     {
         return app(PricingService::class)->quote($this, $quantity)->charge_dzd;
@@ -153,7 +158,7 @@ class Service extends Model
         $lines = self::parseCommentLines($comments);
 
         if ($lines === []) {
-            throw new \InvalidArgumentException('Enter at least one comment (one per line).');
+            throw new \InvalidArgumentException(__('api.comments.enter_at_least_one'));
         }
 
         if ($this->isCustomCommentsPackage()) {
@@ -163,9 +168,10 @@ class Service extends Model
         if (count($lines) !== $quantity) {
             $count = count($lines);
 
-            throw new \InvalidArgumentException(
-                "You entered {$count} comment".($count === 1 ? '' : 's')." but quantity is {$quantity}. They must match."
-            );
+            throw new \InvalidArgumentException(trans_choice('api.comments.count_mismatch', $count, [
+                'count' => $count,
+                'quantity' => $quantity,
+            ]));
         }
     }
 }

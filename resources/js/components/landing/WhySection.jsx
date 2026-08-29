@@ -1,5 +1,5 @@
 import { Zap, Shield, Headphones, Lock, Waves, RefreshCw, LayoutGrid, Activity, DollarSign } from 'lucide-react';
-import { why } from '../../content/landing';
+import { useTranslation } from 'react-i18next';
 import { HighlightText } from './HighlightText';
 
 const whyIcons = [Zap, Shield, Headphones, Lock, Waves, RefreshCw, LayoutGrid, Activity, DollarSign];
@@ -49,27 +49,32 @@ function WhyGridDecorations() {
 }
 
 export function WhySection() {
+    const { t } = useTranslation('landing');
+    const whyItems = t('why.items', { returnObjects: true });
+
     return (
-        <div id="why" className="mx-auto max-w-6xl bg-background px-4 py-16 md:px-6 md:py-20">
+        <div id="why" className="mx-auto max-w-6xl bg-background px-4 py-12 sm:py-16 md:px-6 md:py-20">
             <section
                 id="features"
-                className="relative z-10 overflow-hidden rounded-2xl bg-gray-950 p-6 ring-2 ring-white/20 ring-inset md:px-10 md:py-8 xl:rounded-[28px] xl:px-12 xl:py-10 dark:bg-gray-50 dark:ring-black/15"
+                className="relative z-10 overflow-hidden rounded-2xl bg-gray-950 p-4 ring-2 ring-white/20 ring-inset sm:p-6 md:px-10 md:py-8 xl:rounded-[28px] xl:px-12 xl:py-10 dark:bg-gray-50 dark:ring-black/15"
             >
                 <div className="relative z-20 mx-auto max-w-5xl">
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <h2 className="text-4xl leading-none font-semibold tracking-tighter text-balance text-white lg:text-6xl dark:text-gray-900">
-                            Why Creators Pick BOOSTDZ Over Everyone Else
+                    <div className="flex flex-col items-center gap-3 text-center sm:gap-4">
+                        <h2 className="text-2xl leading-tight font-semibold tracking-tighter text-balance text-white sm:text-4xl lg:text-6xl dark:text-gray-900">
+                            {t('why.title')}
                         </h2>
                         <p className="mx-auto mt-4 max-w-2xl text-sm text-gray-400 sm:text-sm dark:text-gray-500">
-                            Everything you need to{' '}
-                            <span className="font-medium text-gray-300 dark:text-gray-700">grow your social media</span> — instant
-                            delivery, real engagement, drip-feed delivery, and automatic refill, across every platform.
+                            <HighlightText
+                                text={t('why.subtitle')}
+                                highlight={t('why.growHighlight')}
+                                underlineClassName="font-medium text-gray-300 dark:text-gray-700"
+                            />
                         </p>
                     </div>
 
-                    <div className="relative mt-6 md:mt-12">
+                    <div className="relative mt-5 sm:mt-6 md:mt-12">
                         <div className="relative grid divide-y divide-white/8 border-t border-white/8 md:grid-cols-2 md:gap-6 md:divide-y-0 md:border-0 xl:grid-cols-3 xl:gap-x-6 xl:gap-y-14 dark:divide-black/8 dark:border-black/8">
-                            {why.map((item, i) => {
+                            {whyItems.map((item, i) => {
                                 const Icon = whyIcons[i];
                                 return (
                                     <div

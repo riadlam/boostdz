@@ -12,7 +12,7 @@ class PricingService
         $rate = (float) config('pricing.eur_idr', 20700);
 
         if ($rate <= 0) {
-            throw new InvalidArgumentException('PRICING_EUR_IDR must be greater than zero.');
+            throw new InvalidArgumentException(__('api.pricing.eur_idr_gt_zero'));
         }
 
         return $rate;
@@ -23,7 +23,7 @@ class PricingService
         $rate = (float) config('pricing.eur_dzd', 280);
 
         if ($rate <= 0) {
-            throw new InvalidArgumentException('PRICING_EUR_DZD must be greater than zero.');
+            throw new InvalidArgumentException(__('api.pricing.eur_dzd_gt_zero'));
         }
 
         return $rate;
@@ -51,7 +51,7 @@ class PricingService
     public function quote(Service $service, int $quantity): PricingQuote
     {
         if ($quantity < 1) {
-            throw new InvalidArgumentException('Quantity must be at least 1.');
+            throw new InvalidArgumentException(__('api.pricing.quantity_min_one'));
         }
 
         $rateIdrPer1k = number_format((float) $service->rate_idr, 4, '.', '');
@@ -90,10 +90,10 @@ class PricingService
         $actual = $this->roundDzd($quote->charge_dzd);
 
         if (abs($expected - $actual) > $tolerance) {
-            throw new InvalidArgumentException(
-                'Price changed. Expected '.number_format($expected, 0, '.', ' ').' DA but current price is '
-                .number_format($actual, 0, '.', ' ').' DA. Refresh and try again.',
-            );
+            throw new InvalidArgumentException(__('api.pricing.price_changed', [
+                'expected' => number_format($expected, 0, '.', ' '),
+                'actual' => number_format($actual, 0, '.', ' '),
+            ]));
         }
     }
 

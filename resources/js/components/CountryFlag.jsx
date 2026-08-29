@@ -1,75 +1,12 @@
 import { Globe2 } from 'lucide-react';
 import * as FlagIcons from 'country-flag-icons/react/3x2';
+import i18n from '../i18n';
 import { cn } from '../lib/cn';
 
-const COUNTRY_LABELS = {
-    worldwide: 'Worldwide',
-    us: 'United States',
-    gb: 'United Kingdom',
-    br: 'Brazil',
-    id: 'Indonesia',
-    in: 'India',
-    tr: 'Turkey',
-    ru: 'Russia',
-    fr: 'France',
-    de: 'Germany',
-    eg: 'Egypt',
-    dz: 'Algeria',
-    ar: 'Argentina',
-    mx: 'Mexico',
-    it: 'Italy',
-    es: 'Spain',
-    ca: 'Canada',
-    au: 'Australia',
-    jp: 'Japan',
-    kr: 'South Korea',
-    cn: 'China',
-    sa: 'Saudi Arabia',
-    ae: 'United Arab Emirates',
-    ma: 'Morocco',
-    tn: 'Tunisia',
-    ng: 'Nigeria',
-    pk: 'Pakistan',
-    bd: 'Bangladesh',
-    ph: 'Philippines',
-    vn: 'Vietnam',
-    th: 'Thailand',
-    pl: 'Poland',
-    ua: 'Ukraine',
-    nl: 'Netherlands',
-    se: 'Sweden',
-    no: 'Norway',
-    pt: 'Portugal',
-    gr: 'Greece',
-    ro: 'Romania',
-    za: 'South Africa',
-    co: 'Colombia',
-    cl: 'Chile',
-    pe: 'Peru',
-    my: 'Malaysia',
-    sg: 'Singapore',
-    il: 'Israel',
-    iq: 'Iraq',
-    ir: 'Iran',
-    kw: 'Kuwait',
-    qa: 'Qatar',
-    bh: 'Bahrain',
-    jo: 'Jordan',
-    lb: 'Lebanon',
-    sy: 'Syria',
-    ye: 'Yemen',
-    om: 'Oman',
-    kz: 'Kazakhstan',
-    uz: 'Uzbekistan',
-    az: 'Azerbaijan',
-    ge: 'Georgia',
-    am: 'Armenia',
-};
-
 export function countryLabel(code) {
-    if (!code) return 'Unknown';
+    if (!code) return i18n.t('unknown', { ns: 'countries' });
     const key = String(code).toLowerCase();
-    return COUNTRY_LABELS[key] || key.toUpperCase();
+    return i18n.t(key, { ns: 'countries', defaultValue: key.toUpperCase() });
 }
 
 export function CountryFlag({ code, className, labelClassName, showLabel = true }) {
@@ -97,7 +34,7 @@ export function buildCountryOptions(codes) {
         return countryLabel(a).localeCompare(countryLabel(b));
     });
     return [
-        { value: 'any', label: 'Any' },
+        { value: 'any', label: i18n.t('filters.any', { ns: 'orders' }) },
         ...unique.map((code) => ({ value: code, label: countryLabel(code), code })),
     ];
 }

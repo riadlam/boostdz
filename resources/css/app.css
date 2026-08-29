@@ -8,6 +8,7 @@
 
 @theme {
     --font-sans: 'Plus Jakarta Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+    --font-arabic: 'Noto Sans Arabic', 'Plus Jakarta Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
     --radius-lg: 0.625rem;
 
     /* igerslike.com light tokens */
@@ -400,6 +401,19 @@
 
     .dash-table tbody tr.dash-row-refill td:first-child {
         box-shadow: inset 2px 0 0 color-mix(in oklab, var(--color-primary) 55%, transparent);
+    }
+
+    @media (max-width: 639px) {
+        .dash-panel-header {
+            flex-wrap: wrap;
+            padding: 0.75rem 0.875rem;
+        }
+
+        .dash-table thead th,
+        .dash-table tbody td {
+            padding-left: 0.625rem;
+            padding-right: 0.625rem;
+        }
     }
 
     .dash-refill-chip {
@@ -837,4 +851,19 @@
         animation: none;
         transition: none;
     }
+}
+
+/* RTL / Arabic */
+html.locale-ar,
+html[dir='rtl'] {
+    font-family: var(--font-arabic);
+}
+
+html[dir='rtl'] .dash-table thead th,
+html[dir='rtl'] .dash-table tbody td {
+    text-align: start;
+}
+
+html[dir='rtl'] .dash-table .text-right {
+    text-align: end;
 }
