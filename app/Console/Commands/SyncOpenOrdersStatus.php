@@ -7,12 +7,14 @@ use Illuminate\Console\Command;
 
 class SyncOpenOrdersStatus extends Command
 {
-    protected $signature = 'orders:sync-open-status {--limit=100 : Max orders to poll}';
+    protected $signature = 'orders:sync-open-status {--limit=25 : Max orders to poll}';
 
     protected $description = 'Poll BuzzerPanel for open order delivery status (start_count / remains)';
 
     public function handle(OrderService $orderService): int
     {
+        ini_set('memory_limit', '256M');
+
         $synced = $orderService->syncOpenOrders((int) $this->option('limit'));
 
         foreach ($synced as $order) {

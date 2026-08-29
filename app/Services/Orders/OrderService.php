@@ -124,7 +124,7 @@ class OrderService
     /**
      * Poll BuzzerPanel action=status and update delivery fields (start_count, remains, status).
      */
-    public function syncStatus(Order $order, bool $force = false): Order
+    public function syncStatus(Order $order, bool $force = false, bool $lightRefresh = false): Order
     {
         if (! $order->provider_order_id) {
             return $order;
@@ -137,7 +137,7 @@ class OrderService
             && $order->last_status_check_at
             && $order->last_status_check_at->greaterThan(now()->subSeconds($minInterval))
         ) {
-            return $order->fresh(['service', 'provider', 'statusLogs']);
+            return $this->refreshOrder($order, $lightRefresh);
         }
 
         $order->loadMissing('provider');
@@ -151,7 +151,7 @@ class OrderService
                 'error_message' => $exception->getMessage(),
             ]);
 
-            return $order->fresh(['service', 'provider', 'statusLogs']);
+            return $this->refreshOrder($order, $lightRefresh);
         }
 
         $status = OrderStatus::fromProvider($remote['status'] ?? null);
@@ -202,7 +202,14 @@ class OrderService
 
         $order->update($updates);
 
-        return $order->fresh(['service', 'provider', 'statusLogs']);
+        return $this->refreshOrder($order, $lightRefresh);
+    }
+
+    protected function refreshOrder(Order $order, bool $lightRefresh): Order
+    {
+        return $lightRefresh
+            ? $order->fresh(['service', 'provider'])
+            : $order->fresh(['service', 'provider', 'statusLogs']);
     }
 
     /**
@@ -224,7 +231,7 @@ class OrderService
             ->limit($limit)
             ->get();
 
-        return $orders->map(fn (Order $order) => $this->syncStatus($order, force: true));
+        return $orders->map(fn (Order $order) => $this->syncStatus($order, force: true, lightRefresh: true));
     }
 
     public function delivery(Order $order): DeliveryProgress

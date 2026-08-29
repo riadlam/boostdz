@@ -14,6 +14,8 @@ class SyncBuzzerPanelCatalog extends Command
 
     public function handle(CatalogSyncService $catalogSync): int
     {
+        ini_set('memory_limit', '512M');
+
         $slug = $this->argument('provider') ?: config('buzzerpanel.provider_slug');
         $provider = Provider::query()->where('slug', $slug)->first();
 
