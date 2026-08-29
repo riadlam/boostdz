@@ -1,5 +1,16 @@
 <x-filament-panels::page>
     <div class="space-y-4">
+        @if ($needsMigration)
+            <section class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-danger-600/20 dark:bg-gray-900 dark:ring-danger-500/30">
+                <h2 class="text-base font-semibold text-danger-600 dark:text-danger-400">Database update required</h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    The storefront defaults feature needs a migration that is not on this server yet.
+                    SSH into the server and run:
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-lg bg-gray-950 px-4 py-3 text-sm text-gray-100">cd /home/vxxapwzq/boostdz.com
+php artisan migrate --force</pre>
+            </section>
+        @else
         <p class="text-sm text-gray-500 dark:text-gray-400">
             Pick the default service shown to users on the dashboard preset cards and pricing page for each category.
             Only categories with a healthy default appear on the storefront.
@@ -28,5 +39,6 @@
         <section>
             {{ $this->table }}
         </section>
+        @endif
     </div>
 </x-filament-panels::page>

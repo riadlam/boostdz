@@ -36,6 +36,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 use Illuminate\Support\Collection;
 
+use Illuminate\Support\Facades\Schema;
+
 use Livewire\Attributes\Url;
 
 use UnitEnum;
@@ -82,6 +84,8 @@ class ManageFeaturedServices extends Page implements HasTable
 
     public ?string $platformSlug = null;
 
+    public bool $needsMigration = false;
+
 
 
     /** @var array<int, array<string, string>>|null */
@@ -93,6 +97,16 @@ class ManageFeaturedServices extends Page implements HasTable
     public function mount(): void
 
     {
+
+        if (! Schema::hasColumn('catalog_categories', 'featured_service_id')) {
+
+            $this->needsMigration = true;
+
+            return;
+
+        }
+
+
 
         if (blank($this->platformSlug)) {
 
@@ -143,6 +157,22 @@ class ManageFeaturedServices extends Page implements HasTable
     public function table(Table $table): Table
 
     {
+
+        if ($this->needsMigration) {
+
+            return $table
+
+                ->query(fn (): Builder => CatalogCategory::query()->whereRaw('0 = 1'))
+
+                ->columns([])
+
+                ->emptyStateHeading('Database update required')
+
+                ->emptyStateDescription('Run php artisan migrate --force on the server to enable storefront defaults.');
+
+        }
+
+
 
         $health = app(FeaturedServiceHealth::class);
 
