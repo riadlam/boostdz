@@ -9,7 +9,7 @@
                         wire:click="selectPlatform(@js($platform->slug))"
                         @class([
                             'rounded-lg px-3 py-1.5 text-sm font-medium transition',
-                            $platformSlug === $platform->slug
+                            $this->platformSlug === $platform->slug
                                 ? 'bg-primary-600 text-white shadow-sm'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
                         ])
@@ -29,7 +29,7 @@
                         wire:click="selectCategory(null)"
                         @class([
                             'rounded-lg px-3 py-1.5 text-sm font-medium transition',
-                            blank($categorySlug)
+                            blank($this->categorySlug)
                                 ? 'bg-primary-600 text-white shadow-sm'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
                         ])
@@ -42,7 +42,7 @@
                             wire:click="selectCategory(@js($category->slug))"
                             @class([
                                 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition',
-                                $categorySlug === $category->slug
+                                $this->categorySlug === $category->slug
                                     ? 'bg-primary-600 text-white shadow-sm'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
                             ])
@@ -50,7 +50,7 @@
                             <span>{{ $category->name }}</span>
                             <span @class([
                                 'rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
-                                $categorySlug === $category->slug
+                                $this->categorySlug === $category->slug
                                     ? 'bg-white/20 text-white'
                                     : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
                             ])>
