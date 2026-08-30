@@ -654,41 +654,58 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        padding-left: 0.75rem;
+        padding-right: 0.875rem;
     }
 
     .phone-input__control .PhoneInputCountry {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
-        margin-right: 0.15rem;
+        margin-right: 0;
+        flex-shrink: 0;
     }
 
     .phone-input__control .PhoneInputCountryIcon {
-        width: 1.35rem;
-        height: 1rem;
-        border-radius: 0.2rem;
+        width: 1.25rem;
+        height: 0.9rem;
+        border-radius: 0.15rem;
         overflow: hidden;
-        box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-dash-border) 80%, transparent);
+        box-shadow: none;
     }
 
     .phone-input__control .PhoneInputCountrySelect {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--color-foreground);
-        background: transparent;
-        border: none;
-        outline: none;
+        position: absolute;
+        inset: 0;
+        opacity: 0;
         cursor: pointer;
+    }
+
+    .phone-input__control .PhoneInputCountryIcon--border {
+        box-shadow: none;
+        background: transparent;
     }
 
     .phone-input__text {
         flex: 1;
         min-width: 0;
+        height: 100%;
+        border: none;
+        background: transparent;
+        padding: 0;
+        box-shadow: none;
+        outline: none;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: var(--color-foreground);
     }
 
-    .phone-input--invalid .phone-input__text,
-    .phone-input--invalid .PhoneInputCountrySelect {
-        border-color: color-mix(in oklab, red 45%, var(--color-dash-border));
+    .phone-input__text:focus-visible {
+        box-shadow: none;
+    }
+
+    .phone-input__control:focus-within {
+        border-color: color-mix(in oklab, var(--color-primary) 45%, var(--color-dash-border));
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent);
     }
 
     .dash-stat-grid {

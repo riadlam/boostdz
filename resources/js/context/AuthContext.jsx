@@ -53,12 +53,11 @@ export function AuthProvider({ children }) {
         return data.user;
     }, []);
 
-    const register = useCallback(async ({ email, phone, password, password_confirmation }) => {
+    const register = useCallback(async ({ email, phone, password }) => {
         const data = await authApi.register({
             email,
             phone,
             password,
-            password_confirmation,
             device_name: 'boostdz-web',
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Algiers',
         });

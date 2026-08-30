@@ -18,7 +18,6 @@ export default function SignUp() {
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [passwordConfirmation, setPasswordConfirmation] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -34,11 +33,6 @@ export default function SignUp() {
             return;
         }
 
-        if (password !== passwordConfirmation) {
-            setFieldErrors({ password_confirmation: [t('auth:passwordMismatch')] });
-            return;
-        }
-
         setSubmitting(true);
 
         try {
@@ -46,7 +40,6 @@ export default function SignUp() {
                 email: email.trim(),
                 phone,
                 password,
-                password_confirmation: passwordConfirmation,
             });
             navigate(from, { replace: true });
         } catch (err) {
@@ -123,7 +116,6 @@ export default function SignUp() {
                                 disabled={submitting}
                                 invalid={Boolean(fieldErrors.phone)}
                             />
-                            <p className="mt-1 text-xs text-muted-foreground">{t('auth:phoneHint')}</p>
                             {fieldErrors.phone?.[0] ? (
                                 <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.phone[0]}</p>
                             ) : null}
@@ -157,27 +149,6 @@ export default function SignUp() {
                             </div>
                             {fieldErrors.password?.[0] ? (
                                 <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.password[0]}</p>
-                            ) : null}
-                        </div>
-
-                        <div>
-                            <label htmlFor="password_confirmation" className="dash-field-label">
-                                {t('auth:confirmPassword')}
-                            </label>
-                            <input
-                                id="password_confirmation"
-                                name="password_confirmation"
-                                type={showPassword ? 'text' : 'password'}
-                                autoComplete="new-password"
-                                required
-                                minLength={8}
-                                value={passwordConfirmation}
-                                onChange={(e) => setPasswordConfirmation(e.target.value)}
-                                className={cn('dash-input', fieldErrors.password_confirmation && 'border-red-500/50')}
-                                placeholder={t('auth:passwordPlaceholder')}
-                            />
-                            {fieldErrors.password_confirmation?.[0] ? (
-                                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{fieldErrors.password_confirmation[0]}</p>
                             ) : null}
                         </div>
 
