@@ -43,7 +43,7 @@ import {
 } from '../../lib/orderRules';
 import { getCategoryIcon } from '../../lib/categoryIcons';
 import { buildFacebookReactionOptions, facebookReactionLabel } from '../../lib/facebookReactions';
-import { scrollToFirstFormError } from '../../lib/formScroll';
+import { scrollDashboardToTop, scrollToFirstFormError } from '../../lib/formScroll';
 import { filterCatalogEntries, getPlatformIcon } from '../../lib/platformIcons';
 
 const EMPTY_FILTERS = {
