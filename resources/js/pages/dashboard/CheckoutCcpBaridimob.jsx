@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import CcpBankDetails from '../../components/dashboard/CcpBankDetails';
@@ -13,7 +13,7 @@ import {
     minimumCheckoutFromError,
 } from '../../lib/checkoutPolicy';
 import { formatDzd, roundDzd } from '../../lib/formatMoney';
-import { clearCheckoutDraft, loadCheckoutDraft, previewComments, saveCheckoutDraft } from '../../lib/orderRules';
+import { clearCheckoutDraft, isCheckoutDraftValid, loadCheckoutDraft, previewComments, saveCheckoutDraft } from '../../lib/orderRules';
 
 function newIdempotencyKey() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -74,16 +74,8 @@ export default function CheckoutCcpBaridimob() {
         };
     }, [draft?.charge]);
 
-    if (!draft?.serviceId) {
-        return (
-            <div className="mx-auto max-w-2xl space-y-4 py-6">
-                <h1 className="text-xl font-semibold tracking-tight">{t('ccpTitle')}</h1>
-                <p className="text-sm text-muted-foreground">{t('ccpNoDraft')}</p>
-                <Link to="/dashboard/orders/create" className="btn-primary inline-flex">
-                    {t('createOrder')}
-                </Link>
-            </div>
-        );
+    if (!isCheckoutDraftValid(draft)) {
+        return <Navigate to="/dashboard/orders/create" replace />;
     }
 
     async function onSubmit(event) {

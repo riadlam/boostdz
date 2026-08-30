@@ -137,6 +137,19 @@ export function clearCheckoutDraft() {
     }
 }
 
+export function isCheckoutDraftValid(draft) {
+    if (!draft || typeof draft !== 'object') {
+        return false;
+    }
+
+    const serviceId = Number(draft.serviceId);
+    const quantity = Number(draft.quantity);
+    const charge = Number(draft.charge);
+    const link = String(draft.link || '').trim();
+
+    return serviceId > 0 && quantity > 0 && charge > 0 && link !== '';
+}
+
 export const checkoutBankDetails = {
     accountName: 'BOOSTDZ SARL',
     bankName: 'Algérie Poste — CCP',

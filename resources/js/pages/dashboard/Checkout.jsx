@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
@@ -37,6 +37,7 @@ import {
     loadCheckoutDraft,
     previewComments,
     saveCheckoutDraft,
+    isCheckoutDraftValid,
 } from '../../lib/orderRules';
 import { getPaymentOptions } from '../../lib/paymentMethods';
 import { scrollDashboardToTop } from '../../lib/formScroll';
@@ -157,19 +158,19 @@ export default function Checkout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { refreshUser, user } = useAuth();
-    const paymentOptions = useMemo(
-        () =>
-            getPaymentOptions(t, 'checkout', {
-                walletBalance: Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0),
-                orderCharge: roundDzd(draft?.charge || 0),
-                formatMoney: formatDzd,
-            }),
-        [t, user?.wallet?.available_balance, user?.wallet?.balance, draft?.charge],
-    );
+    const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
     const walletBalance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
     const orderCharge = roundDzd(draft?.charge || 0);
     const canPayWithWallet = walletBalance >= orderCharge && orderCharge > 0;
-    const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
+    const paymentOptions = useMemo(
+        () =>
+            getPaymentOptions(t, 'checkout', {
+                walletBalance,
+                orderCharge,
+                formatMoney: formatDzd,
+            }),
+        [t, walletBalance, orderCharge],
+    );
     const [method, setMethod] = useState('algerie-post');
     const [phone, setPhone] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -233,16 +234,8 @@ export default function Checkout() {
     const PlatformIcon = getPlatformIcon(draft?.platformSlug);
     const CategoryIcon = getCategoryIcon(draft?.categorySlug);
 
-    if (!draft?.serviceId) {
-        return (
-            <div className="mx-auto max-w-2xl space-y-4 py-6">
-                <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-                <p className="text-sm text-muted-foreground">{t('noDraft')}</p>
-                <Link to="/dashboard/orders/create" className="btn-primary inline-flex">
-                    {t('createOrder')}
-                </Link>
-            </div>
-        );
+    if (!isCheckoutDraftValid(draft)) {
+        return <Navigate to="/dashboard/orders/create" replace />;
     }
     async function onContinue(event) {
         event.preventDefault();
