@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
@@ -179,7 +179,8 @@ export default function Checkout() {
 
     useEffect(() => {
         scrollDashboardToTop();
-    }, []);
+        refreshUser();
+    }, [refreshUser]);
 
     useEffect(() => {
         if (user?.phone && !phone) {
@@ -467,11 +468,30 @@ export default function Checkout() {
                 />
 
                 {method === 'wallet' ? (
-                    <div className="rounded-xl border border-violet-500/25 bg-violet-500/8 px-4 py-3 text-sm text-violet-950 dark:text-violet-100">
-                        <p className="font-medium">{t('payment.walletPayNote', { ns: 'checkout', amount: formatDzd(orderCharge) })}</p>
+                    <div
+                        className={cn(
+                            'rounded-xl border px-4 py-3 text-sm',
+                            canPayWithWallet
+                                ? 'border-violet-500/25 bg-violet-500/8 text-violet-950 dark:text-violet-100'
+                                : 'border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100',
+                        )}
+                    >
+                        <p className="font-medium">
+                            {canPayWithWallet
+                                ? t('payment.walletPayNote', { ns: 'checkout', amount: formatDzd(orderCharge) })
+                                : t('payment.walletInsufficient', { ns: 'checkout' })}
+                        </p>
                         <p className="mt-1 text-xs opacity-90">
                             {t('payment.walletBalanceNote', { ns: 'checkout', balance: formatDzd(walletBalance) })}
                         </p>
+                        {!canPayWithWallet ? (
+                            <Link
+                                to="/dashboard/billing"
+                                className="mt-2 inline-flex text-xs font-semibold text-primary underline underline-offset-2"
+                            >
+                                {t('goToBilling')}
+                            </Link>
+                        ) : null}
                     </div>
                 ) : null}
 

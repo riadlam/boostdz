@@ -11,7 +11,7 @@ export const PAYMENT_OPTION_DEFS = [
     },
     {
         id: 'wallet',
-        icons: [],
+        icons: ['/images/payments/wallet.png'],
         action: 'wallet',
         checkoutOnly: true,
     },
@@ -43,11 +43,15 @@ export function getPaymentOptions(t, context = 'checkout', opts = {}) {
             return {
                 ...def,
                 title: t('payment.walletTitle', { ns: 'checkout' }),
-                hint: t('payment.walletHint', { ns: 'checkout' }),
+                hint: formatMoney(walletBalance),
                 description: canPayWithWallet
                     ? t('payment.walletDescReady', { ns: 'checkout', balance: formatMoney(walletBalance) })
-                    : t('payment.walletDescInsufficient', { ns: 'checkout' }),
-                disabled: !canPayWithWallet,
+                    : t('payment.walletDescInsufficient', {
+                          ns: 'checkout',
+                          balance: formatMoney(walletBalance),
+                          amount: formatMoney(orderCharge),
+                      }),
+                insufficient: !canPayWithWallet,
             };
         }
 

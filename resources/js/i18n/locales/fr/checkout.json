@@ -54,7 +54,7 @@
     "walletTitle": "Solde portefeuille",
     "walletHint": "Instantané",
     "walletDescReady": "Payez instantanément depuis votre solde ({{balance}} disponible).",
-    "walletDescInsufficient": "Rechargez votre portefeuille pour payer avec le solde.",
+    "walletDescInsufficient": "Solde {{balance}} — il faut {{amount}}. Rechargez votre portefeuille pour continuer.",
     "walletPayNote": "Nous débiterons {{amount}} de votre portefeuille et passerons la commande immédiatement.",
     "walletBalanceNote": "Solde disponible : {{balance}}",
     "payFromWallet": "Payer depuis le portefeuille {{amount}}",

@@ -54,7 +54,7 @@
     "walletTitle": "رصيد المحفظة",
     "walletHint": "فوري",
     "walletDescReady": "ادفع فوراً من رصيدك ({{balance}} متاح).",
-    "walletDescInsufficient": "اشحن محفظتك للدفع من الرصيد.",
+    "walletDescInsufficient": "الرصيد {{balance}} — المطلوب {{amount}}. اشحن محفظتك للمتابعة.",
     "walletPayNote": "سنخصم {{amount}} من محفظتك ونقدّم الطلب فوراً.",
     "walletBalanceNote": "الرصيد المتاح: {{balance}}",
     "payFromWallet": "الدفع من المحفظة {{amount}}",

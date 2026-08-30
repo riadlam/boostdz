@@ -54,7 +54,7 @@
     "walletTitle": "Wallet balance",
     "walletHint": "Instant",
     "walletDescReady": "Pay instantly from your balance ({{balance}} available).",
-    "walletDescInsufficient": "Top up your wallet to pay with balance.",
+    "walletDescInsufficient": "Balance {{balance}} — need {{amount}}. Top up your wallet to continue.",
     "walletPayNote": "We will debit {{amount}} from your wallet and place the order immediately.",
     "walletBalanceNote": "Available balance: {{balance}}",
     "payFromWallet": "Pay from wallet {{amount}}",
