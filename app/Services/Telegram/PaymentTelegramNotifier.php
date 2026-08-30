@@ -69,6 +69,41 @@ class PaymentTelegramNotifier
         ]);
     }
 
+    public function notifyPending(SofizPayTransaction $transaction): void
+    {
+        if (! $this->enabled()) {
+            return;
+        }
+
+        if ($transaction->telegram_message_id) {
+            return;
+        }
+
+        try {
+            $transaction->loadMissing(['user', 'deposit', 'order.service']);
+            $text = $this->buildSofizPayMessage($transaction, 'pending');
+            $result = $this->call('sendMessage', [
+                'chat_id' => (string) config('telegram.payment_admin_chat_id'),
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true,
+            ]);
+
+            if ($result) {
+                $transaction->update([
+                    'telegram_chat_id' => (string) ($result['chat']['id'] ?? config('telegram.payment_admin_chat_id')),
+                    'telegram_message_id' => isset($result['message_id']) ? (string) $result['message_id'] : null,
+                ]);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('SofizPay Telegram pending notify failed.', [
+                'transaction_id' => $transaction->id,
+                'invoice_id' => $transaction->invoice_id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
     public function notifyCompleted(SofizPayTransaction $transaction): void
     {
         if (! $this->enabled()) {
@@ -76,37 +111,7 @@ class PaymentTelegramNotifier
         }
 
         $transaction->loadMissing(['user.wallet', 'deposit', 'order.service']);
-        $user = $transaction->user;
-        $amount = number_format((float) $transaction->amount_dzd, 2).' DA';
-
-        if ($transaction->purpose->value === 'topup') {
-            $balance = number_format((float) ($user?->wallet?->balance ?? 0), 2).' DA';
-            $lines = [
-                '💳 <b>Wallet top-up completed</b>',
-                'User: '.e($user?->name ?? 'Unknown').' (#'.$transaction->user_id.')',
-                'Amount: <b>'.$amount.'</b>',
-                'Method: Algérie Post',
-                'Invoice: '.e($transaction->invoice_id),
-                'Balance: <b>'.$balance.'</b>',
-            ];
-        } else {
-            $service = $transaction->order?->service;
-            $lines = [
-                '✅ <b>Checkout payment completed</b>',
-                'User: '.e($user?->name ?? 'Unknown').' (#'.$transaction->user_id.')',
-                'Amount: <b>'.$amount.'</b>',
-                'Service: '.e($service?->name ?? ($transaction->checkout_meta['service_name'] ?? '—')),
-                'Order: #'.($transaction->order_id ?? '—'),
-                'Invoice: '.e($transaction->invoice_id),
-            ];
-        }
-
-        $this->call('sendMessage', [
-            'chat_id' => (string) config('telegram.payment_admin_chat_id'),
-            'text' => implode("\n", $lines),
-            'parse_mode' => 'HTML',
-            'disable_web_page_preview' => true,
-        ]);
+        $this->updateSofizPayMessage($transaction, 'completed');
     }
 
     public function notifyFailed(SofizPayTransaction $transaction): void
@@ -115,22 +120,121 @@ class PaymentTelegramNotifier
             return;
         }
 
-        $transaction->loadMissing(['user']);
-        $amount = number_format((float) $transaction->amount_dzd, 2).' DA';
-        $purpose = $transaction->purpose->value === 'topup' ? 'Top-up' : 'Checkout';
+        $transaction->loadMissing(['user', 'deposit', 'order.service']);
+        $this->updateSofizPayMessage($transaction, 'failed');
+    }
 
-        $this->call('sendMessage', [
-            'chat_id' => (string) config('telegram.payment_admin_chat_id'),
-            'text' => implode("\n", [
-                '❌ <b>'.$purpose.' payment failed</b>',
-                'User: '.e($transaction->user?->name ?? 'Unknown').' (#'.$transaction->user_id.')',
-                'Amount: <b>'.$amount.'</b>',
-                'Invoice: '.e($transaction->invoice_id),
-                'Reason: '.e($transaction->failure_reason ?? 'Unknown'),
-            ]),
+    protected function updateSofizPayMessage(SofizPayTransaction $transaction, string $status): void
+    {
+        $text = $this->buildSofizPayMessage($transaction, $status);
+
+        if ($transaction->telegram_chat_id && $transaction->telegram_message_id) {
+            try {
+                $this->editMessageText(
+                    $transaction->telegram_chat_id,
+                    $transaction->telegram_message_id,
+                    $text,
+                );
+
+                return;
+            } catch (\Throwable $exception) {
+                Log::warning('SofizPay Telegram message edit failed; sending fallback.', [
+                    'transaction_id' => $transaction->id,
+                    'status' => $status,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            $this->call('sendMessage', [
+                'chat_id' => (string) config('telegram.payment_admin_chat_id'),
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('SofizPay Telegram fallback notify failed.', [
+                'transaction_id' => $transaction->id,
+                'status' => $status,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    protected function buildSofizPayMessage(SofizPayTransaction $transaction, string $status): string
+    {
+        $user = $transaction->user;
+        $amount = number_format((float) $transaction->amount_dzd, 2).' DA';
+        $isTopup = $transaction->purpose->value === 'topup';
+        $meta = is_array($transaction->checkout_meta) ? $transaction->checkout_meta : [];
+
+        $title = match ($status) {
+            'completed' => $isTopup ? '💳 <b>Wallet top-up completed</b>' : '✅ <b>Checkout payment completed</b>',
+            'failed' => $isTopup ? '❌ <b>Wallet top-up failed</b>' : '❌ <b>Checkout payment failed</b>',
+            default => $isTopup ? '💳 <b>Wallet top-up (Algérie Post)</b>' : '🛒 <b>Checkout order (Algérie Post)</b>',
+        };
+
+        $statusLine = match ($status) {
+            'completed' => 'Status: <b>Completed</b>',
+            'failed' => 'Status: <b>Failed</b>',
+            default => 'Status: <b>Pending — awaiting payment</b>',
+        };
+
+        $lines = [
+            $title,
+            'User: '.e($user?->name ?? 'Unknown').' (#'.$transaction->user_id.')',
+            'Email: '.e($user?->email ?? '—'),
+            'Amount: <b>'.$amount.'</b>',
+            'Method: Algérie Post',
+            'Invoice: '.e($transaction->invoice_id),
+        ];
+
+        if (! $isTopup) {
+            $serviceName = $transaction->order?->service?->name
+                ?? ($meta['service_name'] ?? '—');
+            $lines[] = 'Service: '.e($serviceName);
+            $lines[] = 'Qty: '.number_format((int) ($meta['quantity'] ?? 0));
+            $lines[] = 'Target: '.e((string) ($meta['link'] ?? '—'));
+
+            if ($transaction->order_id) {
+                $lines[] = 'Order: #'.$transaction->order_id;
+            }
+        }
+
+        if ($isTopup && $status === 'completed') {
+            $balance = number_format((float) ($user?->wallet?->balance ?? 0), 2).' DA';
+            $lines[] = 'Balance: <b>'.$balance.'</b>';
+        }
+
+        if ($status === 'failed') {
+            $lines[] = 'Reason: '.e($transaction->failure_reason ?? 'Unknown');
+        }
+
+        $lines[] = $statusLine;
+
+        return implode("\n", $lines);
+    }
+
+    public function editMessageText(?string $chatId, ?string $messageId, string $text, ?array $replyMarkup = null): void
+    {
+        if (! $chatId || ! $messageId) {
+            return;
+        }
+
+        $payload = [
+            'chat_id' => $chatId,
+            'message_id' => (int) $messageId,
+            'text' => $text,
             'parse_mode' => 'HTML',
             'disable_web_page_preview' => true,
-        ]);
+        ];
+
+        if ($replyMarkup !== null) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        $this->call('editMessageText', $payload);
     }
 
     public function answerCallbackQuery(string $callbackQueryId, string $text, bool $showAlert = false): void
@@ -162,14 +266,7 @@ class PaymentTelegramNotifier
         try {
             $this->call('editMessageCaption', $payload);
         } catch (RuntimeException) {
-            $this->call('editMessageText', [
-                'chat_id' => $chatId,
-                'message_id' => (int) $messageId,
-                'text' => $caption,
-                'parse_mode' => 'HTML',
-                'reply_markup' => $replyMarkup ?? ['inline_keyboard' => []],
-                'disable_web_page_preview' => true,
-            ]);
+            $this->editMessageText($chatId, $messageId, $caption, $replyMarkup ?? ['inline_keyboard' => []]);
         }
     }
 

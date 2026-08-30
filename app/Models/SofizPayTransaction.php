@@ -29,6 +29,8 @@ class SofizPayTransaction extends Model
         'verified_at',
         'completed_at',
         'failure_reason',
+        'telegram_chat_id',
+        'telegram_message_id',
     ];
 
     protected function casts(): array

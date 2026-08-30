@@ -165,6 +165,10 @@ class SofizPayPaymentService
             return $transaction->fresh(['user', 'deposit', 'order']);
         }
 
+        if ($transaction->status === SofizPayTransactionStatus::Failed) {
+            return $transaction->fresh(['user', 'deposit', 'order']);
+        }
+
         if (! $transaction->cib_transaction_id) {
             throw new InvalidArgumentException(__('api.sofizpay.missing_cib_transaction'));
         }
@@ -285,6 +289,8 @@ class SofizPayPaymentService
             'payment_url' => $paymentUrl,
             'raw_init_response' => $response,
         ]);
+
+        $this->notifier->notifyPending($transaction->fresh(['user', 'deposit', 'order.service']));
 
         return [
             'transaction' => $transaction->fresh(),
