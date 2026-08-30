@@ -10,8 +10,8 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -100,50 +100,13 @@ class ManageFeaturedServices extends Page implements HasTable
                 TextColumn::make('active_services_count')
                     ->label('Active services')
                     ->numeric(),
-                SelectColumn::make('featured_service_id')
+                ViewColumn::make('featured_service_id')
                     ->label('Featured service')
-                    ->placeholder('— None —')
-                    ->native(false)
-                    ->searchableOptions()
-                    ->optionsLimit(50)
-                    ->getOptionLabelUsing(function ($value): ?string {
-                        if (blank($value)) {
-                            return null;
-                        }
-
-                        $service = Service::query()->find((int) $value);
-
-                        if (! $service) {
-                            return '#'.$value;
-                        }
-
-                        return '#'.$service->id.' · '.$service->name;
-                    })
-                    ->getOptionsSearchResultsUsing(function (string $search, CatalogCategory $record): array {
-                        return Service::query()
-                            ->where('catalog_category_id', $record->id)
-                            ->where('is_active', true)
-                            ->when(filled($search), function (Builder $query) use ($search): void {
-                                $query->where(function (Builder $inner) use ($search): void {
-                                    $inner->where('name', 'like', '%'.$search.'%');
-
-                                    if (ctype_digit($search)) {
-                                        $inner->orWhere('id', (int) $search);
-                                    }
-                                });
-                            })
-                            ->orderBy('sort_order')
-                            ->orderBy('name')
-                            ->limit(50)
-                            ->get()
-                            ->mapWithKeys(fn (Service $service): array => [
-                                (string) $service->id => '#'.$service->id.' · '.$service->name,
-                            ])
-                            ->all();
-                    })
-                    ->afterStateUpdated(function (mixed $state, CatalogCategory $record) use ($health): void {
-                        $this->saveFeaturedSelection($record, $state, $health);
-                    }),
+                    ->extraCellAttributes(['class' => 'align-top'])
+                    ->view('filament.tables.columns.featured-service-select')
+                    ->viewData(fn (CatalogCategory $record): array => [
+                        'options' => $this->getServiceOptionsForCategory($record),
+                    ]),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -159,6 +122,62 @@ class ManageFeaturedServices extends Page implements HasTable
                         default => 'danger',
                     }),
             ]);
+    }
+
+    public function updateFeaturedService(int $categoryId, mixed $serviceId): void
+    {
+        $record = CatalogCategory::query()->findOrFail($categoryId);
+        $health = app(FeaturedServiceHealth::class);
+
+        $this->saveFeaturedSelection(
+            $record,
+            filled($serviceId) ? $serviceId : null,
+            $health,
+        );
+    }
+
+    /** @return array<string, string> */
+    protected function getServiceOptionsForCategory(CatalogCategory $category): array
+    {
+        $categoryId = $category->id;
+
+        $options = Service::query()
+            ->where('catalog_category_id', $categoryId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->limit(250)
+            ->get()
+            ->mapWithKeys(fn (Service $service): array => [
+                (string) $service->id => '#'.$service->id.' · '.$service->name,
+            ])
+            ->all();
+
+        $selectedId = $category->featured_service_id;
+
+        if ($selectedId !== null) {
+            $selectedKey = (string) $selectedId;
+
+            if (! array_key_exists($selectedKey, $options)) {
+                $selected = $category->relationLoaded('featuredService')
+                    ? $category->featuredService
+                    : Service::query()->find($selectedId);
+
+                if ($selected) {
+                    $suffix = ! $selected->is_active ? ' (inactive)' : '';
+
+                    if ($selected->catalog_category_id !== $categoryId) {
+                        $suffix = ' (wrong category)';
+                    }
+
+                    $options[$selectedKey] = '#'.$selectedId.' · '.$selected->name.$suffix;
+                }
+            }
+        }
+
+        ksort($options, SORT_NUMERIC);
+
+        return $options;
     }
 
     protected function getCategoriesQuery(): Builder
