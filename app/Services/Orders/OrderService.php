@@ -49,6 +49,8 @@ class OrderService
             throw new InvalidArgumentException(__('api.orders.link_required'));
         }
 
+        $this->assertTargetAvailableForOrder($user, $link);
+
         $idempotencyKey = (string) ($payload['idempotency_key'] ?? Str::uuid());
         $existing = Order::query()->where('idempotency_key', $idempotencyKey)->first();
 
@@ -237,6 +239,13 @@ class OrderService
     public function delivery(Order $order): DeliveryProgress
     {
         return DeliveryProgress::fromOrder($order);
+    }
+
+    public function assertTargetAvailableForOrder(User $user, string $link): void
+    {
+        if (Order::hasBlockingOrderForTarget($user->id, $link)) {
+            throw new InvalidArgumentException(__('api.orders.duplicate_target_pending'));
+        }
     }
 
     protected function buildProviderPayload(Service $service, Order $order): array

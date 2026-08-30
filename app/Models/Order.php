@@ -109,12 +109,48 @@ class Order extends Model
 
     public function isOpen(): bool
     {
-        return in_array($this->status, [
+        return in_array($this->status, self::openStatuses(), true);
+    }
+
+    /** @return list<OrderStatus> */
+    public static function openStatuses(): array
+    {
+        return [
             OrderStatus::Pending,
             OrderStatus::Processing,
             OrderStatus::InProgress,
             OrderStatus::Partial,
-        ], true);
+        ];
+    }
+
+    /** @return list<OrderStatus> */
+    public static function blockingTargetStatuses(): array
+    {
+        return [
+            OrderStatus::Pending,
+            OrderStatus::Processing,
+            OrderStatus::InProgress,
+        ];
+    }
+
+    public static function normalizeTarget(string $link): string
+    {
+        return strtolower(trim($link));
+    }
+
+    public static function hasBlockingOrderForTarget(int $userId, string $link): bool
+    {
+        $normalized = self::normalizeTarget($link);
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        return self::query()
+            ->where('user_id', $userId)
+            ->whereIn('status', self::blockingTargetStatuses())
+            ->whereRaw('LOWER(TRIM(link)) = ?', [$normalized])
+            ->exists();
     }
 
     public function supportsRefill(): bool

@@ -17,5 +17,6 @@
   },
   "commentsRequired": "Enter at least one comment (one per line).",
   "commentsCountMismatch": "You entered {{count}} comment(s) but quantity is {{qty}}. They must match.",
+  "duplicateTargetPending": "You already have an active order for this target. Wait until it is completed, partial, or canceled before ordering again.",
   "bankNote": "Send the exact order amount. Include your order reference in the transfer note if possible."
 }

@@ -63,6 +63,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('payments/sofizpay/{invoiceId}/status', [SofizPayController::class, 'status']);
 
         Route::get('orders', [OrderController::class, 'index']);
+        Route::get('orders/check-target', [OrderController::class, 'checkTarget']);
         Route::post('orders', [OrderController::class, 'store']);
         Route::get('orders/{order}', [OrderController::class, 'show']);
         Route::post('orders/{order}/sync-status', [OrderController::class, 'syncStatus']);

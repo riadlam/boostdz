@@ -17,5 +17,6 @@
   },
   "commentsRequired": "Entrez au moins un commentaire (un par ligne).",
   "commentsCountMismatch": "Vous avez saisi {{count}} commentaire(s) mais la quantité est {{qty}}. Ils doivent correspondre.",
+  "duplicateTargetPending": "Vous avez déjà une commande active pour cette cible. Attendez qu'elle soit terminée, partielle ou annulée avant de recommander.",
   "bankNote": "Envoyez le montant exact de la commande. Indiquez votre référence de commande dans la note de virement si possible."
 }

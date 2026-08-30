@@ -101,6 +101,8 @@ class SofizPayPaymentService
             throw new InvalidArgumentException(__('api.orders.link_required'));
         }
 
+        $this->orders->assertTargetAvailableForOrder($user, $link);
+
         $service->validateComments($data['comments'] ?? null, $quantity);
 
         $quote = $this->pricing->quote($service, $quantity);

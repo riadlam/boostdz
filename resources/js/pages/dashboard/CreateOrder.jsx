@@ -28,7 +28,7 @@ import {
 import { CountryFlag, buildCountryOptions, countryLabel } from '../../components/CountryFlag';
 import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
 import { useAuth } from '../../context/AuthContext';
-import { ApiError, catalogApi } from '../../lib/api';
+import { ApiError, catalogApi, ordersApi } from '../../lib/api';
 import { fetchCheckoutSettings, isBelowMinimum } from '../../lib/checkoutPolicy';
 import { cn } from '../../lib/cn';
 import { chargeForService, formatDzd, roundDzd } from '../../lib/formatMoney';
@@ -1119,6 +1119,24 @@ export default function CreateOrder() {
         };
 
         saveCheckoutDraft(draft);
+
+        try {
+            const targetCheck = await ordersApi.checkTarget(draft.link);
+            if (!targetCheck?.available) {
+                setErrors((current) => ({
+                    ...current,
+                    link: targetCheck?.message || t('duplicateTargetPending', { ns: 'validation' }),
+                }));
+                setFormError(targetCheck?.message || t('duplicateTargetPending', { ns: 'validation' }));
+                return;
+            }
+        } catch (error) {
+            if (error instanceof ApiError && error.message) {
+                setErrors((current) => ({ ...current, link: error.message }));
+                setFormError(error.message);
+                return;
+            }
+        }
 
         try {
             const settings = await fetchCheckoutSettings();

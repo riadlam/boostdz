@@ -100,6 +100,7 @@ export const contentApi = {
 
 export const ordersApi = {
     list: (params) => api(`/orders${toQuery(params)}`),
+    checkTarget: (link) => api(`/orders/check-target${toQuery({ link })}`),
     create: (payload) => api('/orders', { method: 'POST', body: payload }),
     show: (id) => api(`/orders/${id}`),
     refill: (id) => api(`/orders/${id}/refill`, { method: 'POST' }),

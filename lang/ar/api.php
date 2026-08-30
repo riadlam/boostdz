@@ -11,6 +11,7 @@ return [
         'service_not_available' => 'الخدمة غير متاحة.',
         'quantity_between' => 'يجب أن تكون الكمية بين :min و :max.',
         'link_required' => 'الرابط مطلوب.',
+        'duplicate_target_pending' => 'لديك طلب نشط لهذا الهدف بالفعل. انتظر حتى يكتمل أو يصبح جزئياً أو يُلغى قبل الطلب مجدداً.',
         'provider_rejected' => 'رفض المزود الطلب.',
     ],
 

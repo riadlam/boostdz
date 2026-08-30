@@ -107,7 +107,7 @@ class ManageFeaturedServices extends Page implements HasTable
                 SelectColumn::make('featured_service_id')
                     ->label('Featured service')
                     ->placeholder('— None —')
-                    ->options(fn (CatalogCategory $record): array => $this->getServiceOptionsForCategory($record->id))
+                    ->options(fn (CatalogCategory $record): array => $this->getServiceOptionsForCategory($record))
                     ->afterStateUpdated(function (mixed $state, CatalogCategory $record) use ($health): void {
                         $this->saveFeaturedSelection($record, $state, $health);
                     }),
@@ -152,23 +152,53 @@ class ManageFeaturedServices extends Page implements HasTable
     }
 
     /** @return array<string, string> */
-    protected function getServiceOptionsForCategory(int $categoryId): array
+    protected function getServiceOptionsForCategory(CatalogCategory $category): array
     {
+        $categoryId = $category->id;
+
         if (isset($this->serviceOptionsByCategory[$categoryId])) {
             return $this->serviceOptionsByCategory[$categoryId];
         }
 
-        $this->serviceOptionsByCategory[$categoryId] = Service::query()
+        $options = Service::query()
             ->where('catalog_category_id', $categoryId)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->limit(250)
-            ->pluck('name', 'id')
-            ->mapWithKeys(fn (string $name, int|string $id): array => [
-                (string) $id => '#'.$id.' · '.$name,
+            ->get()
+            ->mapWithKeys(fn (Service $service): array => [
+                (string) $service->id => '#'.$service->id.' · '.$service->name,
             ])
             ->all();
+
+        $selectedId = $category->featured_service_id;
+
+        if ($selectedId !== null) {
+            $selectedKey = (string) $selectedId;
+
+            if (! array_key_exists($selectedKey, $options)) {
+                $selected = $category->relationLoaded('featuredService')
+                    ? $category->featuredService
+                    : Service::query()->find($selectedId);
+
+                if ($selected) {
+                    $suffix = '';
+
+                    if (! $selected->is_active) {
+                        $suffix = ' (inactive)';
+                    } elseif ($selected->catalog_category_id !== $categoryId) {
+                        $suffix = ' (wrong category)';
+                    }
+
+                    $options[$selectedKey] = '#'.$selectedId.' · '.$selected->name.$suffix;
+                }
+            }
+        }
+
+        ksort($options, SORT_NUMERIC);
+
+        $this->serviceOptionsByCategory[$categoryId] = $options;
 
         return $this->serviceOptionsByCategory[$categoryId];
     }

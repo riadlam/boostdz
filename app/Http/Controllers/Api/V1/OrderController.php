@@ -32,6 +32,22 @@ class OrderController extends Controller
         return OrderResource::collection($orders)->response();
     }
 
+    public function checkTarget(Request $request): JsonResponse
+    {
+        $link = trim((string) $request->query('link', ''));
+
+        if ($link === '') {
+            return response()->json(['message' => __('api.orders.link_required')], 422);
+        }
+
+        $available = ! Order::hasBlockingOrderForTarget($request->user()->id, $link);
+
+        return response()->json([
+            'available' => $available,
+            'message' => $available ? null : __('api.orders.duplicate_target_pending'),
+        ]);
+    }
+
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $service = Service::query()->findOrFail($request->integer('service_id'));

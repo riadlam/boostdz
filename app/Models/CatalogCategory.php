@@ -24,6 +24,7 @@ class CatalogCategory extends Model
         return [
             'sort_order' => 'integer',
             'is_active' => 'boolean',
+            'featured_service_id' => 'integer',
             'featured_alert_sent_at' => 'datetime',
         ];
     }

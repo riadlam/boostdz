@@ -11,6 +11,7 @@ return [
         'service_not_available' => 'Le service n\'est pas disponible.',
         'quantity_between' => 'La quantité doit être comprise entre :min et :max.',
         'link_required' => 'Le lien est obligatoire.',
+        'duplicate_target_pending' => 'Vous avez déjà une commande active pour cette cible. Attendez qu\'elle soit terminée, partielle ou annulée avant de recommander.',
         'provider_rejected' => 'Le fournisseur a rejeté la commande.',
     ],
 
