@@ -650,6 +650,47 @@
         box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent);
     }
 
+    .phone-input__control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .phone-input__control .PhoneInputCountry {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-right: 0.15rem;
+    }
+
+    .phone-input__control .PhoneInputCountryIcon {
+        width: 1.35rem;
+        height: 1rem;
+        border-radius: 0.2rem;
+        overflow: hidden;
+        box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-dash-border) 80%, transparent);
+    }
+
+    .phone-input__control .PhoneInputCountrySelect {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--color-foreground);
+        background: transparent;
+        border: none;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .phone-input__text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .phone-input--invalid .phone-input__text,
+    .phone-input--invalid .PhoneInputCountrySelect {
+        border-color: color-mix(in oklab, red 45%, var(--color-dash-border));
+    }
+
     .dash-stat-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));

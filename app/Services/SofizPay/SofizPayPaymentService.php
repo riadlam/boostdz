@@ -14,6 +14,7 @@ use App\Services\Orders\OrderService;
 use App\Services\Pricing\PricingService;
 use App\Services\Telegram\PaymentTelegramNotifier;
 use App\Services\Wallet\WalletService;
+use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -45,7 +46,7 @@ class SofizPayPaymentService
         }
 
         $this->checkoutPolicy->assertMinimumTopup($amount);
-        $phone = $this->normalizePhone((string) ($data['phone'] ?? $user->phone ?? ''));
+        $phone = PhoneNumber::normalize((string) ($data['phone'] ?? $user->phone ?? ''));
         $this->persistPhone($user, $phone);
 
         $wallet = $this->wallets->forUser($user);
@@ -105,7 +106,7 @@ class SofizPayPaymentService
         $quote = $this->pricing->quote($service, $quantity);
         $this->checkoutPolicy->assertMinimumCheckout($quote);
 
-        $phone = $this->normalizePhone((string) ($data['phone'] ?? $user->phone ?? ''));
+        $phone = PhoneNumber::normalize((string) ($data['phone'] ?? $user->phone ?? ''));
         $this->persistPhone($user, $phone);
 
         $amount = number_format((float) $quote->charge_dzd, 2, '.', '');
@@ -413,25 +414,6 @@ class SofizPayPaymentService
     protected function makeInvoiceId(string $prefix, int $userId): string
     {
         return sprintf('SP-%s-%d-%s', $prefix, $userId, Str::lower(Str::random(8)));
-    }
-
-    protected function normalizePhone(string $phone): string
-    {
-        $phone = preg_replace('/\s+/', '', trim($phone)) ?? '';
-
-        if ($phone === '') {
-            throw new InvalidArgumentException(__('api.sofizpay.phone_required'));
-        }
-
-        if (preg_match('/^0[5-7][0-9]{8}$/', $phone)) {
-            return '+213'.substr($phone, 1);
-        }
-
-        if (preg_match('/^\+213[5-7][0-9]{8}$/', $phone)) {
-            return $phone;
-        }
-
-        throw new InvalidArgumentException(__('api.sofizpay.phone_invalid'));
     }
 
     protected function persistPhone(User $user, string $phone): void

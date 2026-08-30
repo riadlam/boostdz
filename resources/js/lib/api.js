@@ -64,6 +64,7 @@ export async function api(path, { method = 'GET', body, token, headers = {} } = 
 
 export const authApi = {
     login: (payload) => api('/auth/login', { method: 'POST', body: payload }),
+    register: (payload) => api('/auth/register', { method: 'POST', body: payload }),
     me: () => api('/auth/me'),
     logout: () => api('/auth/logout', { method: 'POST' }),
 };

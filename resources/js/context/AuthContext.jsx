@@ -53,6 +53,22 @@ export function AuthProvider({ children }) {
         return data.user;
     }, []);
 
+    const register = useCallback(async ({ email, phone, password, password_confirmation }) => {
+        const data = await authApi.register({
+            email,
+            phone,
+            password,
+            password_confirmation,
+            device_name: 'boostdz-web',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Algiers',
+        });
+
+        setSession({ token: data.token, user: data.user });
+        setToken(data.token);
+        setUser(data.user);
+        return data.user;
+    }, []);
+
     const logout = useCallback(async () => {
         try {
             if (getToken()) {
@@ -84,11 +100,12 @@ export function AuthProvider({ children }) {
             isAuthenticated: Boolean(token && user),
             bootstrapping,
             login,
+            register,
             logout,
             refreshUser,
             setUser,
         }),
-        [user, token, bootstrapping, login, logout, refreshUser],
+        [user, token, bootstrapping, login, register, logout, refreshUser],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

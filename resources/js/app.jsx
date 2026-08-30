@@ -6,6 +6,7 @@ import { GuestOnly, RequireAuth } from './components/auth/RequireAuth';
 import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
 import SignIn from './pages/auth/SignIn';
+import SignUp from './pages/auth/SignUp';
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import DashboardPlaceholder from './pages/dashboard/DashboardPlaceholder';
@@ -30,6 +31,14 @@ createRoot(document.getElementById('root')).render(
                         element={
                             <GuestOnly>
                                 <SignIn />
+                            </GuestOnly>
+                        }
+                    />
+                    <Route
+                        path="/auth/sign-up"
+                        element={
+                            <GuestOnly>
+                                <SignUp />
                             </GuestOnly>
                         }
                     />

@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,9 +17,13 @@ class AuthController extends Controller
 {
     public function register(RegisterRequest $request): JsonResponse
     {
+        $email = $request->string('email')->toString();
+        $phone = PhoneNumber::normalize($request->string('phone')->toString());
+
         $user = User::query()->create([
-            'name' => $request->string('name')->toString(),
-            'email' => $request->string('email')->toString(),
+            'name' => strstr($email, '@', true) ?: $email,
+            'email' => $email,
+            'phone' => $phone,
             'password' => $request->string('password')->toString(),
             'role' => 'user',
             'is_active' => true,
