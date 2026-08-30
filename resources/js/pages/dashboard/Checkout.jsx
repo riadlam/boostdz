@@ -159,7 +159,7 @@ export default function Checkout() {
     const { refreshUser, user } = useAuth();
     const paymentOptions = useMemo(() => getPaymentOptions(t, 'checkout'), [t]);
     const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
-    const [method, setMethod] = useState('');
+    const [method, setMethod] = useState('algerie-post');
     const [phone, setPhone] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
