@@ -23,7 +23,7 @@ export function ProductPlatformCard({
     cta,
     meta,
     rating = 4,
-    href = '#',
+    href = '/auth/sign-up',
     children,
     className,
     compact = false,

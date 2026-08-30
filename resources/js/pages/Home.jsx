@@ -60,7 +60,7 @@ function Header() {
                     <a href="/auth/sign-in" className="px-3 py-2 text-sm hover:text-muted-foreground">
                         {t('header.signIn')}
                     </a>
-                    <a href="/auth/sign-in" className="btn-primary">
+                    <a href="/auth/sign-up" className="btn-primary">
                         {t('header.startFree')}
                     </a>
                 </div>
@@ -82,7 +82,7 @@ function Header() {
                         <a href="/auth/sign-in" className="btn-ghost">
                             {t('header.signIn')}
                         </a>
-                        <a href="/auth/sign-in" className="btn-primary" onClick={() => setOpen(false)}>
+                        <a href="/auth/sign-up" className="btn-primary" onClick={() => setOpen(false)}>
                             {t('header.startFree')}
                         </a>
                     </div>
@@ -140,7 +140,7 @@ function Hero() {
                     {t('hero.subtitle')}
                 </p>
                 <div className="mt-6 flex flex-col items-stretch gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
-                    <a href="#platforms" className="btn-primary justify-center">
+                    <a href="/auth/sign-up" className="btn-primary justify-center">
                         {t('hero.getStarted')} <ArrowRight className="h-4 w-4" />
                     </a>
                     <a href="#why" className="btn-ghost justify-center hover:bg-muted">
