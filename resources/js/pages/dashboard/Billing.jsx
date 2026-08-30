@@ -18,7 +18,7 @@ import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
 
 import { useAuth } from '../../context/AuthContext';
 
-import { ApiError, depositsApi } from '../../lib/api';
+import { ApiError, depositsApi, sofizpayApi } from '../../lib/api';
 
 import {
 
@@ -154,7 +154,9 @@ export default function Billing() {
 
     const [customAmount, setCustomAmount] = useState('');
 
-    const [method, setMethod] = useState('ccp-baridimob');
+    const [method, setMethod] = useState('edahabia');
+
+    const [phone, setPhone] = useState('');
 
     const [wireAmount, setWireAmount] = useState('');
 
@@ -177,6 +179,12 @@ export default function Billing() {
 
 
     const paymentOptions = useMemo(() => getPaymentOptions(t, 'billing'), [t]);
+
+    useEffect(() => {
+        if (user?.phone && !phone) {
+            setPhone(user.phone);
+        }
+    }, [user?.phone, phone]);
 
 
 
@@ -321,18 +329,17 @@ export default function Billing() {
 
 
     const isCcp = method === 'ccp-baridimob';
+    const isEdahabia = method === 'edahabia';
 
     const displayAmount = customAmount ? Number(customAmount) || 0 : amount;
 
     const balance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
 
     const canSubmit =
-
         displayAmount >= minimumTopup
-
         && method
-
-        && (!isCcp || (wireAmount && Number(wireAmount) > 0 && attachment));
+        && (!isCcp || (wireAmount && Number(wireAmount) > 0 && attachment))
+        && (!isEdahabia || phone.trim() !== '');
 
 
 
@@ -386,7 +393,27 @@ export default function Billing() {
 
         setSubmitting(true);
 
-
+        if (depositMethod === 'edahabia') {
+            try {
+                const data = await sofizpayApi.initTopup({
+                    amount_dzd: roundDzd(displayAmount),
+                    phone: phone.trim(),
+                });
+                const paymentUrl = data?.payment_url;
+                if (!paymentUrl) {
+                    throw new Error(t('billing:submitError'));
+                }
+                window.location.href = paymentUrl;
+            } catch (error) {
+                if (isMinimumCheckoutError(error)) {
+                    setMinimumModal(minimumCheckoutFromError(error));
+                } else {
+                    setFormError(error instanceof ApiError ? error.message : t('billing:submitError'));
+                }
+                setSubmitting(false);
+            }
+            return;
+        }
 
         const formData = new FormData();
 
@@ -609,6 +636,26 @@ export default function Billing() {
                         className="shadow-none"
 
                     />
+
+
+
+                    {isEdahabia ? (
+                        <div className="space-y-1.5">
+                            <label htmlFor="billing-phone" className="text-xs font-medium text-muted-foreground">
+                                {t('billing:phoneLabel')}
+                            </label>
+                            <input
+                                id="billing-phone"
+                                type="tel"
+                                value={phone}
+                                onChange={(event) => setPhone(event.target.value)}
+                                placeholder={t('billing:phonePlaceholder')}
+                                className="h-11 w-full rounded-xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] px-3 text-sm"
+                                required
+                            />
+                            <p className="text-xs text-muted-foreground">{t('billing:phoneHint')}</p>
+                        </div>
+                    ) : null}
 
 
 

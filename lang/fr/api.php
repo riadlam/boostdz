@@ -52,6 +52,15 @@ return [
         'insufficient_balance' => 'Solde du portefeuille insuffisant.',
     ],
 
+    'sofizpay' => [
+        'disabled' => 'Le paiement par carte en ligne n\'est pas disponible pour le moment.',
+        'phone_required' => 'Le numéro de téléphone est requis pour le paiement par carte.',
+        'phone_invalid' => 'Saisissez un numéro mobile algérien valide (ex. 0555123456 ou +213555123456).',
+        'missing_reference' => 'Référence de paiement manquante.',
+        'missing_cib_transaction' => 'Identifiant de transaction manquant.',
+        'payment_not_successful' => 'Le paiement n\'a pas abouti.',
+    ],
+
     'comments' => [
         'required_for_service' => 'Les commentaires sont obligatoires pour ce service (un par ligne).',
         'enter_at_least_one' => 'Saisissez au moins un commentaire (un par ligne).',

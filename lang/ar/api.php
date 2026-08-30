@@ -52,6 +52,15 @@ return [
         'insufficient_balance' => 'رصيد المحفظة غير كافٍ.',
     ],
 
+    'sofizpay' => [
+        'disabled' => 'الدفع بالبطاقة غير متاح حالياً.',
+        'phone_required' => 'رقم الهاتف مطلوب للدفع بالبطاقة.',
+        'phone_invalid' => 'أدخل رقم هاتف جزائري صالح (مثل 0555123456 أو +213555123456).',
+        'missing_reference' => 'مرجع الدفع مفقود.',
+        'missing_cib_transaction' => 'معرّف المعاملة مفقود.',
+        'payment_not_successful' => 'لم يكتمل الدفع بنجاح.',
+    ],
+
     'comments' => [
         'required_for_service' => 'التعليقات مطلوبة لهذه الخدمة (واحد في كل سطر).',
         'enter_at_least_one' => 'أدخل تعليقاً واحداً على الأقل (واحد في كل سطر).',

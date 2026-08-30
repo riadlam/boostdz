@@ -50,7 +50,21 @@
     "algerieDescCheckout": "Paiement démo pour l'instant — Continuer passe la commande via BuzzerPanel.",
     "algerieDescBilling": "Payez via Algérie Post — votre solde est crédité immédiatement.",
     "labelAlgeriePost": "Algérie Post",
-    "labelCcp": "CCP / BaridiMob"
+    "labelCcp": "CCP / BaridiMob",
+    "labelEdahabia": "CIB / Edahabiya",
+    "edahabiaTitle": "CIB / Edahabiya",
+    "edahabiaHintInstant": "Paiement carte",
+    "edahabiaDescCheckout": "Payez par carte CIB ou Edahabiya. La commande est passée automatiquement après paiement.",
+    "edahabiaDescBilling": "Payez par carte CIB ou Edahabiya. Votre solde est crédité automatiquement après paiement.",
+    "phoneLabel": "Numéro mobile",
+    "phonePlaceholder": "0555123456",
+    "phoneHint": "Requis pour le paiement par carte (mobile algérien).",
+    "redirectingToGateway": "Redirection vers le paiement…",
+    "paymentSuccess": "Paiement réussi",
+    "paymentFailed": "Échec du paiement",
+    "paymentPending": "Vérification du paiement…",
+    "paymentTryAgain": "Réessayer",
+    "orderPlacedAfterPay": "Commande #{{id}} passée après paiement."
   },
   "badges": {
     "topSeller": "Meilleure vente",

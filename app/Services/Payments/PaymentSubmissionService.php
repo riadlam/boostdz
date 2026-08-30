@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\Checkout\CheckoutPolicy;
 use App\Services\Orders\OrderService;
 use App\Services\Pricing\PricingService;
-use App\Services\Telegram\TelegramClient;
+use App\Services\Telegram\PaymentTelegramNotifier;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +19,7 @@ class PaymentSubmissionService
 {
     public function __construct(
         private readonly OrderService $orders,
-        private readonly TelegramClient $telegram,
+        private readonly PaymentTelegramNotifier $telegram,
         private readonly PricingService $pricing,
         private readonly CheckoutPolicy $checkoutPolicy,
     ) {}
@@ -109,7 +109,7 @@ class PaymentSubmissionService
             $result = $this->telegram->sendPaymentReview($submission->fresh(['user', 'service']));
             if ($result) {
                 $submission->update([
-                    'telegram_chat_id' => (string) ($result['chat']['id'] ?? config('telegram.admin_chat_id')),
+                    'telegram_chat_id' => (string) ($result['chat']['id'] ?? config('telegram.payment_admin_chat_id')),
                     'telegram_message_id' => isset($result['message_id']) ? (string) $result['message_id'] : null,
                 ]);
             }

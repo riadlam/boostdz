@@ -50,7 +50,21 @@
     "algerieDescCheckout": "دفع تجريبي حالياً — الضغط على متابعة ينشئ الطلب عبر BuzzerPanel.",
     "algerieDescBilling": "ادفع عبر بريد الجزائر — يُضاف رصيدك فوراً.",
     "labelAlgeriePost": "بريد الجزائر",
-    "labelCcp": "CCP / BaridiMob"
+    "labelCcp": "CCP / BaridiMob",
+    "labelEdahabia": "CIB / الذهبية",
+    "edahabiaTitle": "CIB / الذهبية",
+    "edahabiaHintInstant": "دفع بالبطاقة",
+    "edahabiaDescCheckout": "ادفع ببطاقة CIB أو الذهبية. يتم تقديم الطلب تلقائياً بعد الدفع.",
+    "edahabiaDescBilling": "ادفع ببطاقة CIB أو الذهبية. يُضاف الرصيد تلقائياً بعد الدفع.",
+    "phoneLabel": "رقم الهاتف",
+    "phonePlaceholder": "0555123456",
+    "phoneHint": "مطلوب للدفع بالبطاقة (هاتف جزائري).",
+    "redirectingToGateway": "جاري التحويل للدفع…",
+    "paymentSuccess": "تم الدفع بنجاح",
+    "paymentFailed": "فشل الدفع",
+    "paymentPending": "جاري التحقق من الدفع…",
+    "paymentTryAgain": "حاول مجدداً",
+    "orderPlacedAfterPay": "تم تقديم الطلب #{{id}} بعد الدفع."
   },
   "badges": {
     "topSeller": "الأكثر مبيعاً",

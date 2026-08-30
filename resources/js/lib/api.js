@@ -114,6 +114,12 @@ export const depositsApi = {
     create: (formData) => api('/deposits', { method: 'POST', body: formData }),
 };
 
+export const sofizpayApi = {
+    initCheckout: (payload) => api('/payments/sofizpay/checkout', { method: 'POST', body: payload }),
+    initTopup: (payload) => api('/payments/sofizpay/topup', { method: 'POST', body: payload }),
+    status: (invoiceId) => api(`/payments/sofizpay/${encodeURIComponent(invoiceId)}/status`),
+};
+
 export const walletApi = {
     show: () => api('/wallet'),
 };

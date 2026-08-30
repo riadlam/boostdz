@@ -12,6 +12,9 @@ use App\Http\Controllers\Api\V1\DepositController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\RefillController;
 use App\Http\Controllers\Api\V1\ServiceController;
+use App\Http\Controllers\Api\V1\PaymentTelegramWebhookController;
+use App\Http\Controllers\Api\V1\SofizPayController;
+use App\Http\Controllers\Api\V1\SofizPayWebhookController;
 use App\Http\Controllers\Api\V1\TelegramWebhookController;
 use App\Http\Controllers\Api\V1\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +24,12 @@ Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login']);
 
     Route::post('telegram/webhook', TelegramWebhookController::class);
+    Route::post('telegram/payment-webhook', PaymentTelegramWebhookController::class);
+
+    Route::match(['get', 'post'], 'sofizpay/return', [SofizPayWebhookController::class, 'return'])
+        ->middleware('throttle:30,1');
+    Route::post('sofizpay/webhook', [SofizPayWebhookController::class, 'webhook'])
+        ->middleware('throttle:30,1');
 
     Route::get('content/testimonials', [ContentController::class, 'testimonials']);
     Route::get('content/platform-cards', [ContentController::class, 'platformCards']);
@@ -48,6 +57,10 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('checkout/settings', [CheckoutController::class, 'settings']);
         Route::post('checkout/ccp-receipt', [CheckoutController::class, 'storeCcpReceipt']);
+
+        Route::post('payments/sofizpay/checkout', [SofizPayController::class, 'initCheckout']);
+        Route::post('payments/sofizpay/topup', [SofizPayController::class, 'initTopup']);
+        Route::get('payments/sofizpay/{invoiceId}/status', [SofizPayController::class, 'status']);
 
         Route::get('orders', [OrderController::class, 'index']);
         Route::post('orders', [OrderController::class, 'store']);

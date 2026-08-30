@@ -16,6 +16,8 @@ import Billing from './pages/dashboard/Billing';
 import FaqsHelp from './pages/dashboard/FaqsHelp';
 import Checkout from './pages/dashboard/Checkout';
 import CheckoutCcpBaridimob from './pages/dashboard/CheckoutCcpBaridimob';
+import CheckoutEdahabiaReturn from './pages/dashboard/CheckoutEdahabiaReturn';
+import BillingReturn from './pages/dashboard/BillingReturn';
 
 createRoot(document.getElementById('root')).render(
     <ThemeProvider>
@@ -53,6 +55,7 @@ createRoot(document.getElementById('root')).render(
                         />
                         <Route path="pricing" element={<Pricing />} />
                         <Route path="billing" element={<Billing />} />
+                        <Route path="billing/return" element={<BillingReturn />} />
                         <Route path="faqs" element={<FaqsHelp />} />
                         <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Route>
@@ -66,6 +69,7 @@ createRoot(document.getElementById('root')).render(
                     >
                         <Route index element={<Checkout />} />
                         <Route path="ccp-baridimob" element={<CheckoutCcpBaridimob />} />
+                        <Route path="edahabia/return" element={<CheckoutEdahabiaReturn />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

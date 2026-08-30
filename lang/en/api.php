@@ -52,6 +52,15 @@ return [
         'insufficient_balance' => 'Insufficient wallet balance.',
     ],
 
+    'sofizpay' => [
+        'disabled' => 'Online card payment is not available right now.',
+        'phone_required' => 'Phone number is required for card payment.',
+        'phone_invalid' => 'Enter a valid Algerian mobile number (e.g. 0555123456 or +213555123456).',
+        'missing_reference' => 'Payment reference is missing.',
+        'missing_cib_transaction' => 'Payment transaction ID is missing.',
+        'payment_not_successful' => 'Payment was not completed successfully.',
+    ],
+
     'comments' => [
         'required_for_service' => 'Comments are required for this service (one per line).',
         'enter_at_least_one' => 'Enter at least one comment (one per line).',

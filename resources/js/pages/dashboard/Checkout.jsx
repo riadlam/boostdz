@@ -21,7 +21,7 @@ import { CountryFlag, countryLabel } from '../../components/CountryFlag';
 import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
 import PaymentMethodPicker from '../../components/dashboard/PaymentMethodPicker';
 import { useAuth } from '../../context/AuthContext';
-import { ApiError, ordersApi } from '../../lib/api';
+import { ApiError, ordersApi, sofizpayApi } from '../../lib/api';
 import {
     fetchCheckoutSettings,
     isBelowMinimum,
@@ -155,13 +155,20 @@ export default function Checkout() {
     const { t } = useTranslation(['checkout', 'common']);
     const navigate = useNavigate();
     const location = useLocation();
-    const { refreshUser } = useAuth();
+    const { refreshUser, user } = useAuth();
     const paymentOptions = useMemo(() => getPaymentOptions(t, 'checkout'), [t]);
     const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
     const [method, setMethod] = useState('');
+    const [phone, setPhone] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
     const [minimumModal, setMinimumModal] = useState(null);
+
+    useEffect(() => {
+        if (user?.phone && !phone) {
+            setPhone(user.phone);
+        }
+    }, [user?.phone, phone]);
 
     useEffect(() => {
         let active = true;
@@ -290,6 +297,41 @@ export default function Checkout() {
             return;
         }
 
+        if (method === 'edahabia') {
+            setSubmitting(true);
+            try {
+                const data = await sofizpayApi.initCheckout({
+                    service_id: draft.serviceId,
+                    link: draft.link,
+                    quantity: Number(draft.quantity),
+                    is_repeat: Boolean(draft.isRepeat),
+                    idempotency_key: newIdempotencyKey(),
+                    phone: phone.trim(),
+                    country: draft.countryCode || undefined,
+                    quality: draft.qualityTier || undefined,
+                    comments: draft.comments || undefined,
+                    platform_slug: draft.platformSlug || undefined,
+                    category_slug: draft.categorySlug || undefined,
+                });
+                const paymentUrl = data?.payment_url;
+                if (!paymentUrl) {
+                    throw new Error(t('uploadError'));
+                }
+                window.location.href = paymentUrl;
+            } catch (error) {
+                if (isMinimumCheckoutError(error)) {
+                    setMinimumModal(minimumCheckoutFromError(error));
+                } else if (error instanceof ApiError) {
+                    setFormError(error.message);
+                } else {
+                    setFormError(error?.message || t('uploadError'));
+                }
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
         if (method === 'algerie-post') {
             setSubmitting(true);
             try {
@@ -414,6 +456,24 @@ export default function Checkout() {
                     options={paymentOptions}
                 />
 
+                {method === 'edahabia' ? (
+                    <div className="space-y-1.5">
+                        <label htmlFor="checkout-phone" className="text-xs font-medium text-muted-foreground">
+                            {t('payment.phoneLabel', { ns: 'checkout' })}
+                        </label>
+                        <input
+                            id="checkout-phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(event) => setPhone(event.target.value)}
+                            placeholder={t('payment.phonePlaceholder', { ns: 'checkout' })}
+                            className="h-11 w-full rounded-xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] px-3 text-sm"
+                            required
+                        />
+                        <p className="text-xs text-muted-foreground">{t('payment.phoneHint', { ns: 'checkout' })}</p>
+                    </div>
+                ) : null}
+
                 <section className="rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/10 px-4 py-3.5">
                     <p className="inline-flex items-center gap-2 text-[0.8125rem] font-bold tracking-wide text-amber-900 uppercase dark:text-amber-200">
                         <Info className="size-4" />
@@ -431,7 +491,7 @@ export default function Checkout() {
 
                 <button
                     type="submit"
-                    disabled={!method || submitting || Boolean(minimumModal)}
+                    disabled={!method || submitting || Boolean(minimumModal) || (method === 'edahabia' && !phone.trim())}
                     className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_1px_2px_0_rgba(14,18,27,0.24),0_0_0_1px_var(--color-primary)] transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-45"
                 >
                     {submitting ? (
@@ -442,6 +502,11 @@ export default function Checkout() {
                     ) : method === 'algerie-post' ? (
                         <>
                             {t('payAndPlace')}
+                            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+                        </>
+                    ) : method === 'edahabia' ? (
+                        <>
+                            {submitting ? t('payment.redirectingToGateway', { ns: 'checkout' }) : t('payAndPlace')}
                             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
                         </>
                     ) : (
