@@ -273,7 +273,7 @@ export default function DashboardLayout() {
                             </div>
                         </header>
 
-                        <div className="relative min-h-0 flex-1 overflow-y-auto px-3 py-2 sm:px-4 sm:py-3">
+                        <div data-dashboard-scroll className="relative min-h-0 flex-1 overflow-y-auto px-3 py-2 sm:px-4 sm:py-3">
                             <Outlet />
                         </div>
                     </main>

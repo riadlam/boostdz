@@ -61,6 +61,14 @@
     "paymentTryAgain": "Try again",
     "orderPlacedAfterPay": "Order #{{id}} placed after payment."
   },
+  "paymentResult": {
+    "kicker": "Algérie Post",
+    "successTitle": "Payment received",
+    "successBody": "Your payment has been received successfully. Thank you for your trust — we are processing your order.",
+    "successBodyWithOrder": "Your payment has been received successfully. Order #{{orderId}} has been placed and is now being processed. Thank you for your trust.",
+    "failedTitle": "Payment not completed",
+    "failedBody": "We were unable to complete your payment. No charge has been applied to your account. Please try again or choose another payment method."
+  },
   "badges": {
     "topSeller": "Top seller",
     "bestPrice": "Best price",

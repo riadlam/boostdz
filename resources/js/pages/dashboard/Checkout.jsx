@@ -39,6 +39,7 @@ import {
     saveCheckoutDraft,
 } from '../../lib/orderRules';
 import { getPaymentOptions } from '../../lib/paymentMethods';
+import { scrollDashboardToTop } from '../../lib/formScroll';
 import { getCategoryIcon } from '../../lib/categoryIcons';
 import { getPlatformIcon } from '../../lib/platformIcons';
 
@@ -163,6 +164,10 @@ export default function Checkout() {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
     const [minimumModal, setMinimumModal] = useState(null);
+
+    useEffect(() => {
+        scrollDashboardToTop();
+    }, []);
 
     useEffect(() => {
         if (user?.phone && !phone) {

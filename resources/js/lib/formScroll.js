@@ -6,6 +6,16 @@ function hasFieldError(errors, key) {
     return Boolean(value);
 }
 
+export function scrollDashboardToTop(behavior = 'auto') {
+    const container = document.querySelector('[data-dashboard-scroll]');
+    if (container) {
+        container.scrollTo({ top: 0, behavior });
+        return;
+    }
+
+    window.scrollTo({ top: 0, behavior });
+}
+
 export function scrollToFirstFormError(errors, { fieldOrder = DEFAULT_FIELD_ORDER, formErrorSelector } = {}) {
     const firstKey = fieldOrder.find((key) => hasFieldError(errors, key));
 

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
     ArrowRight,
     Bookmark,
@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { CountryFlag, buildCountryOptions, countryLabel } from '../../components/CountryFlag';
 import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
+import PaymentResultModal from '../../components/PaymentResultModal';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError, catalogApi, ordersApi } from '../../lib/api';
 import { fetchCheckoutSettings, isBelowMinimum } from '../../lib/checkoutPolicy';
@@ -634,6 +635,7 @@ export default function CreateOrder() {
     const { t } = useTranslation(['orders', 'common', 'validation']);
     const { user, refreshUser } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
     const initialUrlRef = useRef({
         platform: searchParams.get('platform'),
@@ -667,6 +669,7 @@ export default function CreateOrder() {
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
     const [minimumModal, setMinimumModal] = useState(null);
+    const [paymentNotice, setPaymentNotice] = useState(null);
 
     const searchTimer = useRef(null);
     const requestSeq = useRef(0);
@@ -753,6 +756,16 @@ export default function CreateOrder() {
         || hasRefillDayRefine;
     const deliverySettingsActive = hasActiveRefine || isRepeat || (showCustomCommentsSettings && useCustomComments);
     const protectionRowActive = (showProtectionSettings && refine.protection !== 'any') || hasRefillDayRefine;
+
+    useEffect(() => {
+        const notice = location.state?.paymentNotice;
+        if (!notice?.type) return;
+
+        setPaymentNotice(notice);
+        scrollDashboardToTop();
+        navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.state?.paymentNotice]);
 
     useEffect(() => {
         let cancelled = false;
@@ -1977,6 +1990,14 @@ export default function CreateOrder() {
                     minimum={minimumModal.minimum}
                     message={minimumModal.message}
                     onClose={() => setMinimumModal(null)}
+                />
+            ) : null}
+
+            {paymentNotice ? (
+                <PaymentResultModal
+                    type={paymentNotice.type}
+                    orderId={paymentNotice.orderId ?? null}
+                    onClose={() => setPaymentNotice(null)}
                 />
             ) : null}
         </div>

@@ -61,6 +61,14 @@
     "paymentTryAgain": "Réessayer",
     "orderPlacedAfterPay": "Commande #{{id}} passée après paiement."
   },
+  "paymentResult": {
+    "kicker": "Algérie Post",
+    "successTitle": "Paiement reçu",
+    "successBody": "Votre paiement a bien été reçu. Nous vous remercions de votre confiance — votre commande est en cours de traitement.",
+    "successBodyWithOrder": "Votre paiement a bien été reçu. La commande n°{{orderId}} a été enregistrée et est en cours de traitement. Nous vous remercions de votre confiance.",
+    "failedTitle": "Paiement non abouti",
+    "failedBody": "Nous n'avons pas pu finaliser votre paiement. Aucun montant n'a été débité. Veuillez réessayer ou choisir un autre mode de paiement."
+  },
   "badges": {
     "topSeller": "Meilleure vente",
     "bestPrice": "Meilleur prix",
