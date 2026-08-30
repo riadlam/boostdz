@@ -10,8 +10,8 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -104,13 +104,12 @@ class ManageFeaturedServices extends Page implements HasTable
                 TextColumn::make('active_services_count')
                     ->label('Active services')
                     ->numeric(),
-                SelectColumn::make('featured_service_id')
+                ViewColumn::make('featured_service_id')
                     ->label('Featured service')
-                    ->placeholder('— None —')
-                    ->options(fn (CatalogCategory $record): array => $this->getServiceOptionsForCategory($record))
-                    ->afterStateUpdated(function (mixed $state, CatalogCategory $record) use ($health): void {
-                        $this->saveFeaturedSelection($record, $state, $health);
-                    }),
+                    ->view('filament.tables.columns.featured-service-select')
+                    ->viewData(fn (CatalogCategory $record): array => [
+                        'options' => $this->getServiceOptionsForCategory($record),
+                    ]),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -126,6 +125,21 @@ class ManageFeaturedServices extends Page implements HasTable
                         default => 'danger',
                     }),
             ]);
+    }
+
+    public function updateFeaturedService(int $categoryId, mixed $serviceId): void
+    {
+        $record = CatalogCategory::query()->findOrFail($categoryId);
+        $health = app(FeaturedServiceHealth::class);
+
+        $this->saveFeaturedSelection(
+            $record,
+            filled($serviceId) ? $serviceId : null,
+            $health,
+        );
+
+        $this->serviceOptionsByCategory = [];
+        $this->resetTable();
     }
 
     protected function getCategoriesQuery(): Builder

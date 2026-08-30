@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "predev": "node scripts/prepare-assets.mjs",
-        "prebuild": "node scripts/clean-for-build.mjs",
+        "prebuild": "node scripts/clean-for-build.mjs && php artisan filament:assets",
         "build": "vite build",
         "deploy": "npm run build && php artisan filament:assets",
         "dev": "vite"
