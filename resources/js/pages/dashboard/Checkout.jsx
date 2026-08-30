@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -173,7 +173,8 @@ export default function Checkout() {
             }),
         [t, walletBalance, orderCharge],
     );
-    const [method, setMethod] = useState('algerie-post');
+    const [method, setMethod] = useState('');
+    const methodDefaultedRef = useRef(false);
     const [phone, setPhone] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
@@ -207,8 +208,20 @@ export default function Checkout() {
         };
     }, []);
 
+    useEffect(() => {
+        if (!minimumAmount || !draft?.charge || methodDefaultedRef.current) {
+            return;
+        }
+
+        methodDefaultedRef.current = true;
+
+        if (!isBelowMinimum(draft.charge, minimumAmount)) {
+            setMethod('algerie-post');
+        }
+    }, [minimumAmount, draft?.charge]);
+
     const orderBelowMinimum = minimumAmount > 0 && isBelowMinimum(draft?.charge, minimumAmount);
-    const blockedByMinimum = orderBelowMinimum && method !== 'wallet';
+    const blockedByMinimum = orderBelowMinimum && Boolean(method) && method !== 'wallet';
 
     useEffect(() => {
         if (blockedByMinimum) {
