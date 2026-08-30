@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SofizPayTransaction extends Model
 {
+    protected $table = 'sofizpay_transactions';
+
     protected $fillable = [
         'user_id',
         'purpose',
