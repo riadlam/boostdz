@@ -106,6 +106,8 @@ class ManageFeaturedServices extends Page implements HasTable
                     ->numeric(),
                 ViewColumn::make('featured_service_id')
                     ->label('Featured service')
+                    ->width('20rem')
+                    ->extraCellAttributes(['class' => 'align-top'])
                     ->view('filament.tables.columns.featured-service-select')
                     ->viewData(fn (CatalogCategory $record): array => [
                         'options' => $this->getServiceOptionsForCategory($record),
@@ -139,7 +141,6 @@ class ManageFeaturedServices extends Page implements HasTable
         );
 
         $this->serviceOptionsByCategory = [];
-        $this->resetTable();
     }
 
     protected function getCategoriesQuery(): Builder
