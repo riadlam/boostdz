@@ -36,7 +36,6 @@ export default function CheckoutCcpBaridimob() {
     const [file, setFile] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
-    const [sent, setSent] = useState(null);
     const [minimumModal, setMinimumModal] = useState(null);
     const commentsPreview = useMemo(
         () => (draft?.comments ? previewComments(draft.comments) : null),
@@ -126,15 +125,19 @@ export default function CheckoutCcpBaridimob() {
         try {
             const data = await checkoutApi.submitCcpReceipt(formData);
             const submission = data?.submission?.data ?? data?.submission;
-            saveCheckoutDraft({
-                ...draft,
-                paymentMethod: 'ccp-baridimob',
-                transferAmount: amount,
-                reference,
-                paymentSubmissionId: submission?.id,
-            });
-            setSent(submission || { status: 'pending' });
             clearCheckoutDraft();
+            navigate('/dashboard/orders/history', {
+                replace: true,
+                state: {
+                    paymentNotice: {
+                        type: 'success',
+                        title: t('receiptPending'),
+                        subtitle: t('receiptPendingNote', {
+                            id: submission?.id || t('emDash', { ns: 'common' }),
+                        }),
+                    },
+                },
+            });
         } catch (error) {
             if (isMinimumCheckoutError(error)) {
                 setMinimumModal(minimumCheckoutFromError(error));
@@ -193,49 +196,22 @@ export default function CheckoutCcpBaridimob() {
                 </div>
             ) : null}
 
-            {sent ? (
-                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-                    <p className="font-semibold">
-                        {sent.status === 'approved'
-                            ? t('orderPlaced', { id: sent.order_id || t('emDash', { ns: 'common' }) })
-                            : sent.status === 'failed'
-                              ? t('receiptFailed')
-                              : t('receiptPending')}
-                    </p>
-                    <p className="mt-1 text-xs opacity-90">
-                        {sent.status === 'approved'
-                            ? t('receiptApprovedNote')
-                            : sent.status === 'failed'
-                              ? sent.admin_note || t('receiptFailedNote')
-                              : t('receiptPendingNote', { id: sent.id || t('emDash', { ns: 'common' }) })}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-3">
-                        <Link to="/dashboard/orders/history" className="inline-flex text-xs font-semibold underline underline-offset-2">
-                            {t('goToHistory')}
-                        </Link>
-                        <Link to="/dashboard/orders/create" className="inline-flex text-xs font-semibold underline underline-offset-2">
-                            {t('createAnother')}
-                        </Link>
-                    </div>
-                </div>
-            ) : (
-                <form onSubmit={onSubmit} className="min-w-0 space-y-3 rounded-xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] p-4">
-                    <p className="text-sm font-semibold text-foreground">{t('uploadSend')}</p>
-                    <CcpReceiptFields
-                        amount={amount}
-                        onAmountChange={setAmount}
-                        reference={reference}
-                        onReferenceChange={setReference}
-                        file={file}
-                        onFileChange={setFile}
-                        disabled={submitting}
-                    />
-                    <CcpSubmitButton
-                        submitting={submitting}
-                        disabled={!amount || !file || Boolean(minimumModal)}
-                    />
-                </form>
-            )}
+            <form onSubmit={onSubmit} className="min-w-0 space-y-3 rounded-xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] p-4">
+                <p className="text-sm font-semibold text-foreground">{t('uploadSend')}</p>
+                <CcpReceiptFields
+                    amount={amount}
+                    onAmountChange={setAmount}
+                    reference={reference}
+                    onReferenceChange={setReference}
+                    file={file}
+                    onFileChange={setFile}
+                    disabled={submitting}
+                />
+                <CcpSubmitButton
+                    submitting={submitting}
+                    disabled={!amount || !file || Boolean(minimumModal)}
+                />
+            </form>
 
             {minimumModal ? (
                 <MinimumCheckoutModal

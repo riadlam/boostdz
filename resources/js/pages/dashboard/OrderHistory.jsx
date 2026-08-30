@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, LoaderCircle, RotateCcw, X } from 'lucide-react';
+import { Check, ExternalLink, LoaderCircle, RotateCcw, X } from 'lucide-react';
 import { DashboardPanel, DashboardTable } from '../../components/dashboard/DashboardPanel';
 import PaymentResultModal from '../../components/PaymentResultModal';
 import { ApiError, ordersApi } from '../../lib/api';
@@ -41,18 +41,53 @@ function mapOrder(order, t) {
 
     return {
         id: order.id,
+        kind: 'order',
         title: order.service?.name || t('orders:titleFallback'),
         platform,
         status: order.status || 'pending',
         progress: percent,
         deliveryLabel: order.delivery?.label || null,
         when: formatDateTime(order.created_at, { withYear: true }),
+        sortAt: order.created_at,
         amount: Number(order.charge_dzd || 0),
         canRefill: Boolean(order.can_request_refill),
         refillLifetime,
         refillWarrantyDays: order.refill_warranty_days ? Number(order.refill_warranty_days) : null,
         errorMessage: order.error_message,
+        proofUrl: null,
     };
+}
+
+function mapPaymentSubmission(submission, t) {
+    const platform = String(submission.service?.platform || '').toLowerCase();
+    const paymentStatus = submission.status || 'pending';
+
+    return {
+        id: `payment-${submission.id}`,
+        kind: 'payment_submission',
+        title: submission.service?.name || t('orders:titleFallback'),
+        platform,
+        status: paymentStatus === 'declined' ? 'failed' : 'pending',
+        paymentStatus,
+        progress: 0,
+        deliveryLabel: null,
+        when: formatDateTime(submission.created_at, { withYear: true }),
+        sortAt: submission.created_at,
+        amount: Number(submission.amount_dzd || 0),
+        canRefill: false,
+        refillLifetime: false,
+        refillWarrantyDays: null,
+        errorMessage: paymentStatus === 'declined' ? submission.admin_note : null,
+        proofUrl: submission.proof_url || null,
+    };
+}
+
+function sortHistoryRows(rows) {
+    return [...rows].sort((a, b) => {
+        const aTime = Date.parse(a.sortAt || '') || 0;
+        const bTime = Date.parse(b.sortAt || '') || 0;
+        return bTime - aTime;
+    });
 }
 
 export default function OrderHistory() {
@@ -93,7 +128,12 @@ export default function OrderHistory() {
             try {
                 const data = await ordersApi.list({ per_page: 50 });
                 const rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-                if (!cancelled) setOrders(rows.map((order) => mapOrder(order, t)));
+                const pendingPayments = Array.isArray(data?.pending_payments) ? data.pending_payments : [];
+                const merged = sortHistoryRows([
+                    ...rows.map((order) => mapOrder(order, t)),
+                    ...pendingPayments.map((submission) => mapPaymentSubmission(submission, t)),
+                ]);
+                if (!cancelled) setOrders(merged);
             } catch (err) {
                 if (!cancelled) {
                     setError(err instanceof ApiError ? err.message : t('orders:loadError'));
@@ -231,7 +271,10 @@ export default function OrderHistory() {
                                 const refillState = requested[order.id];
                                 const showRefill = order.canRefill;
                                 const warranty = warrantyLabel(order);
-                                const showProgress = ['processing', 'in_progress', 'pending', 'partial'].includes(order.status);
+                                const isPaymentSubmission = order.kind === 'payment_submission';
+                                const showProgress =
+                                    !isPaymentSubmission &&
+                                    ['processing', 'in_progress', 'pending', 'partial'].includes(order.status);
 
                                 return (
                                     <tr key={order.id} className={cn(showRefill && refillState !== 'done' && 'dash-row-refill')}>
@@ -243,6 +286,9 @@ export default function OrderHistory() {
                                                 <div className="min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <span className="font-medium">{order.title}</span>
+                                                        {isPaymentSubmission ? (
+                                                            <span className="dash-refill-chip">{t('orders:wireTransfer')}</span>
+                                                        ) : null}
                                                         {showRefill && refillState !== 'done' && warranty ? (
                                                             <span className="dash-refill-chip">{t('orders:protected', { warranty })}</span>
                                                         ) : null}
@@ -272,6 +318,12 @@ export default function OrderHistory() {
                                                         {order.deliveryLabel || `${Math.round(order.progress)}%`}
                                                     </span>
                                                 </div>
+                                            ) : isPaymentSubmission ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {order.paymentStatus === 'declined'
+                                                        ? t('orders:paymentDeclined')
+                                                        : t('orders:paymentPendingReview')}
+                                                </span>
                                             ) : (
                                                 <span className="text-xs text-muted-foreground">
                                                     {order.status === 'completed' ? t('orders:delivered') : order.deliveryLabel || t('common:emDash')}
@@ -281,7 +333,17 @@ export default function OrderHistory() {
                                         <td className="text-muted-foreground">{order.when}</td>
                                         <td className="text-right font-medium tabular-nums">{formatDzd(order.amount)}</td>
                                         <td className="text-right">
-                                            {showRefill ? (
+                                            {isPaymentSubmission && order.proofUrl ? (
+                                                <a
+                                                    href={order.proofUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary transition hover:text-primary/80"
+                                                >
+                                                    <ExternalLink className="size-3.5" strokeWidth={2} />
+                                                    {t('orders:viewReceipt')}
+                                                </a>
+                                            ) : showRefill ? (
                                                 refillState === 'done' ? (
                                                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                                         <Check className="size-3.5 text-emerald-500" strokeWidth={2.25} />

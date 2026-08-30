@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Exceptions\MinimumCheckoutException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreOrderRequest;
+use App\Enums\PaymentSubmissionStatus;
 use App\Http\Resources\OrderRefillResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\OrderStatusLogResource;
+use App\Http\Resources\PaymentSubmissionResource;
 use App\Models\Order;
+use App\Models\PaymentSubmission;
 use App\Models\Service;
 use App\Services\Orders\OrderService;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +32,23 @@ class OrderController extends Controller
             ->latest()
             ->paginate(min((int) $request->input('per_page', 20), 100));
 
-        return OrderResource::collection($orders)->response();
+        $pendingPayments = PaymentSubmission::query()
+            ->where('user_id', $request->user()->id)
+            ->whereNull('order_id')
+            ->whereIn('status', [
+                PaymentSubmissionStatus::Pending,
+                PaymentSubmissionStatus::Declined,
+            ])
+            ->with('service')
+            ->latest()
+            ->limit(50)
+            ->get();
+
+        return OrderResource::collection($orders)
+            ->additional([
+                'pending_payments' => PaymentSubmissionResource::collection($pendingPayments)->resolve(),
+            ])
+            ->response();
     }
 
     public function checkTarget(Request $request): JsonResponse
