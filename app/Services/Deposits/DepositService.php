@@ -6,8 +6,10 @@ use App\Enums\DepositStatus;
 use App\Models\Deposit;
 use App\Models\User;
 use App\Services\Checkout\CheckoutPolicy;
+use App\Services\Telegram\PaymentTelegramNotifier;
 use App\Services\Wallet\WalletService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
@@ -16,6 +18,7 @@ class DepositService
     public function __construct(
         private readonly WalletService $wallets,
         private readonly CheckoutPolicy $checkoutPolicy,
+        private readonly PaymentTelegramNotifier $telegram,
     ) {}
 
     /**
@@ -58,10 +61,31 @@ class DepositService
             'provider_reference' => $data['provider_reference'] ?? null,
         ]);
 
-        return $deposit->fresh(['wallet']);
+        $deposit = $deposit->fresh(['wallet', 'user']);
+
+        if (config('telegram.auto_accept')) {
+            return $this->approve($deposit, null, 'Auto-accepted (TELEGRAM_AUTO_ACCEPT=true)');
+        }
+
+        try {
+            $result = $this->telegram->sendDepositReview($deposit);
+            if ($result) {
+                $deposit->update([
+                    'telegram_chat_id' => (string) ($result['chat']['id'] ?? config('telegram.payment_admin_chat_id')),
+                    'telegram_message_id' => isset($result['message_id']) ? (string) $result['message_id'] : null,
+                ]);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Deposit Telegram notify failed.', [
+                'deposit_id' => $deposit->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
+        return $deposit->fresh(['wallet', 'user']);
     }
 
-    public function approve(Deposit $deposit, User $admin, ?string $note = null): Deposit
+    public function approve(Deposit $deposit, ?User $admin = null, ?string $note = null): Deposit
     {
         if ($deposit->status !== DepositStatus::Pending) {
             throw new InvalidArgumentException(__('api.deposits.pending_only_approve'));
@@ -69,7 +93,7 @@ class DepositService
 
         $deposit->update([
             'status' => DepositStatus::Approved,
-            'reviewed_by' => $admin->id,
+            'reviewed_by' => $admin?->id,
             'reviewed_at' => now(),
             'admin_note' => $note,
         ]);
@@ -81,7 +105,7 @@ class DepositService
         return $deposit->fresh(['wallet', 'reviewer']);
     }
 
-    public function reject(Deposit $deposit, User $admin, ?string $note = null): Deposit
+    public function reject(Deposit $deposit, ?User $admin = null, ?string $note = null): Deposit
     {
         if ($deposit->status !== DepositStatus::Pending) {
             throw new InvalidArgumentException(__('api.deposits.pending_only_reject'));
@@ -93,7 +117,7 @@ class DepositService
 
         $deposit->update([
             'status' => DepositStatus::Rejected,
-            'reviewed_by' => $admin->id,
+            'reviewed_by' => $admin?->id,
             'reviewed_at' => now(),
             'admin_note' => $note,
         ]);

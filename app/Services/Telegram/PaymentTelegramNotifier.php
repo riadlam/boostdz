@@ -2,6 +2,7 @@
 
 namespace App\Services\Telegram;
 
+use App\Models\Deposit;
 use App\Models\PaymentSubmission;
 use App\Models\SofizPayTransaction;
 use Illuminate\Support\Facades\Http;
@@ -46,6 +47,58 @@ class PaymentTelegramNotifier
 
             if ($contents === false) {
                 throw new RuntimeException('Could not read receipt file for Telegram upload.');
+            }
+
+            return $this->call($method, [
+                'chat_id' => $chatId,
+                'caption' => $caption,
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
+            ], [
+                'name' => $field,
+                'contents' => $contents,
+                'filename' => basename($absolutePath),
+            ]);
+        }
+
+        return $this->call('sendMessage', [
+            'chat_id' => $chatId,
+            'text' => $caption."\n\n⚠️ Receipt file missing on disk.",
+            'parse_mode' => 'HTML',
+            'reply_markup' => $keyboard,
+            'disable_web_page_preview' => true,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function sendDepositReview(Deposit $deposit): array
+    {
+        if (! $this->enabled()) {
+            Log::warning('Deposit Telegram review skipped (disabled or missing config).', [
+                'deposit_id' => $deposit->id,
+            ]);
+
+            return [];
+        }
+
+        $deposit->loadMissing(['user', 'wallet']);
+        $chatId = (string) config('telegram.payment_admin_chat_id');
+        $caption = $this->buildDepositCaption($deposit);
+        $keyboard = $this->depositReviewKeyboard($deposit);
+        $absolutePath = $deposit->proof_path
+            ? Storage::disk('public')->path($deposit->proof_path)
+            : null;
+
+        if ($absolutePath && is_file($absolutePath)) {
+            $isImage = $this->isImagePath($deposit->proof_path);
+            $field = $isImage ? 'photo' : 'document';
+            $method = $isImage ? 'sendPhoto' : 'sendDocument';
+            $contents = file_get_contents($absolutePath);
+
+            if ($contents === false) {
+                throw new RuntimeException('Could not read deposit receipt file for Telegram upload.');
             }
 
             return $this->call($method, [
@@ -360,6 +413,53 @@ class PaymentTelegramNotifier
         ];
 
         $url = $submission->proofPublicUrl();
+        if ($url) {
+            if (! str_starts_with($url, 'http')) {
+                $url = rtrim((string) config('app.url'), '/').'/'.ltrim($url, '/');
+            }
+
+            $rows[] = [
+                ['text' => '👁 View receipt', 'url' => $url],
+            ];
+        }
+
+        return ['inline_keyboard' => $rows];
+    }
+
+    protected function buildDepositCaption(Deposit $deposit): string
+    {
+        $user = $deposit->user;
+        $amount = number_format((float) $deposit->amount_dzd, 2).' DA';
+        $wired = $deposit->wired_amount_dzd
+            ? number_format((float) $deposit->wired_amount_dzd, 2).' DA'
+            : '—';
+        $ref = $deposit->provider_reference ?: '—';
+
+        return implode("\n", [
+            '<b>CCP / BaridiMob wallet top-up</b>',
+            'Deposit #'.$deposit->id,
+            'User: '.e($user?->name ?? 'Unknown').' (#'.$deposit->user_id.')',
+            'Email: '.e($user?->email ?? '—'),
+            'Top-up amount: <b>'.$amount.'</b>',
+            'Wired amount: '.$wired,
+            'Reference: '.e($ref),
+            'Status: <b>'.$deposit->status->value.'</b>',
+        ]);
+    }
+
+    /**
+     * @return array{inline_keyboard: array<int, array<int, array<string, string>>>}
+     */
+    protected function depositReviewKeyboard(Deposit $deposit): array
+    {
+        $rows = [
+            [
+                ['text' => '✅ Accept', 'callback_data' => 'dep:accept:'.$deposit->id],
+                ['text' => '❌ Decline', 'callback_data' => 'dep:decline:'.$deposit->id],
+            ],
+        ];
+
+        $url = $deposit->proofPublicUrl();
         if ($url) {
             if (! str_starts_with($url, 'http')) {
                 $url = rtrim((string) config('app.url'), '/').'/'.ltrim($url, '/');

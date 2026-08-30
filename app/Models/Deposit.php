@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DepositStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Deposit extends Model
 {
@@ -20,6 +21,8 @@ class Deposit extends Model
         'reviewed_by',
         'reviewed_at',
         'admin_note',
+        'telegram_chat_id',
+        'telegram_message_id',
     ];
 
     protected function casts(): array
@@ -45,5 +48,14 @@ class Deposit extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function proofPublicUrl(): ?string
+    {
+        if (! $this->proof_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->proof_path);
     }
 }
