@@ -14,6 +14,8 @@ import {
 } from '../../lib/checkoutPolicy';
 import { formatDzd, roundDzd } from '../../lib/formatMoney';
 import { clearCheckoutDraft, isCheckoutDraftValid, loadCheckoutDraft, previewComments, saveCheckoutDraft } from '../../lib/orderRules';
+import { useAuth } from '../../context/AuthContext';
+import { canViewServiceCatalog } from '../../lib/serviceCatalogVisibility';
 
 function newIdempotencyKey() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -30,6 +32,8 @@ export default function CheckoutCcpBaridimob() {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation(['checkout', 'common']);
+    const { user } = useAuth();
+    const showServiceCatalog = canViewServiceCatalog(user);
     const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
     const [amount, setAmount] = useState(String(Math.round(Number(draft?.charge || 0)) || ''));
     const [reference, setReference] = useState('');
@@ -164,7 +168,11 @@ export default function CheckoutCcpBaridimob() {
 
             <section className="min-w-0 rounded-xl border border-[var(--color-dash-border)] bg-[var(--color-dash-surface)] p-4">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t('orderSummary')}</p>
-                <p className="mt-1 font-semibold text-foreground">{draft.serviceName}</p>
+                <p className="mt-1 font-semibold text-foreground">
+                    {showServiceCatalog && draft.serviceName
+                        ? draft.serviceName
+                        : [draft.platformName, draft.categoryName].filter(Boolean).join(' · ')}
+                </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                     {t('qtySummary', {
                         amount: formatDzd(draft.charge),

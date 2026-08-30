@@ -26,7 +26,7 @@ class OrderController extends Controller
     {
         $orders = Order::query()
             ->where('user_id', $request->user()->id)
-            ->with(['service.providerService', 'refills'])
+            ->with(['service.catalogCategory', 'service.providerService', 'refills'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->boolean('repeat'), fn ($q) => $q->where('is_repeat', true))
             ->latest()
@@ -39,7 +39,7 @@ class OrderController extends Controller
                 PaymentSubmissionStatus::Pending,
                 PaymentSubmissionStatus::Declined,
             ])
-            ->with('service')
+            ->with('service.catalogCategory')
             ->latest()
             ->limit(50)
             ->get();

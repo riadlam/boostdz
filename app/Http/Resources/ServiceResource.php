@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\ServiceCatalogVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,16 +11,23 @@ class ServiceResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $canView = ServiceCatalogVisibility::canView($request->user());
+
         return [
             'id' => $this->id,
-            'slug' => $this->slug,
+            'slug' => $canView ? $this->slug : null,
             'platform' => $this->platform,
-            'name' => $this->name,
-            'description' => $this->description,
+            'name' => $canView ? $this->name : null,
+            'description' => $canView ? $this->description : null,
             'type' => $this->type,
             'requires_custom_comments' => $this->requiresCustomComments(),
             'is_custom_comments_package' => $this->isCustomCommentsPackage(),
             'catalog_category_id' => $this->catalog_category_id,
+            'category' => $this->whenLoaded('catalogCategory', fn () => [
+                'id' => $this->catalogCategory->id,
+                'slug' => $this->catalogCategory->slug,
+                'name' => $this->catalogCategory->name,
+            ]),
             'quality_tier' => $this->quality_tier,
             'is_hot' => (bool) $this->is_hot,
             'is_cheap' => (bool) $this->is_cheap,

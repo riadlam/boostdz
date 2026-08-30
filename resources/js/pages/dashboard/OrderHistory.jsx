@@ -10,6 +10,8 @@ import { cn } from '../../lib/cn';
 import { formatDateTime } from '../../lib/formatDate';
 import { formatDzd } from '../../lib/formatMoney';
 import { getPlatformIcon } from '../../lib/platformIcons';
+import { useAuth } from '../../context/AuthContext';
+import { canViewServiceCatalog } from '../../lib/serviceCatalogVisibility';
 
 const STATUS_STYLES = {
     completed: { dot: 'bg-emerald-500', key: 'status.completed' },
@@ -34,7 +36,19 @@ function StatusBadge({ status }) {
     );
 }
 
-function mapOrder(order, t) {
+function orderDisplayTitle(service, canView, t) {
+    if (canView && service?.name) {
+        return service.name;
+    }
+
+    if (service?.category?.name) {
+        return service.category.name;
+    }
+
+    return t('orders:titleFallback');
+}
+
+function mapOrder(order, t, canView) {
     const platform = String(order.service?.platform || '').toLowerCase();
     const percent = Number(order.delivery?.percent ?? 0);
     const refillLifetime = Boolean(order.refill_lifetime || order.service?.refill_mode === 'lifetime');
@@ -42,7 +56,7 @@ function mapOrder(order, t) {
     return {
         id: order.id,
         kind: 'order',
-        title: order.service?.name || t('orders:titleFallback'),
+        title: orderDisplayTitle(order.service, canView, t),
         platform,
         status: order.status || 'pending',
         progress: percent,
@@ -58,14 +72,14 @@ function mapOrder(order, t) {
     };
 }
 
-function mapPaymentSubmission(submission, t) {
+function mapPaymentSubmission(submission, t, canView) {
     const platform = String(submission.service?.platform || '').toLowerCase();
     const paymentStatus = submission.status || 'pending';
 
     return {
         id: `payment-${submission.id}`,
         kind: 'payment_submission',
-        title: submission.service?.name || t('orders:titleFallback'),
+        title: orderDisplayTitle(submission.service, canView, t),
         platform,
         status: paymentStatus === 'declined' ? 'failed' : 'pending',
         paymentStatus,
@@ -92,6 +106,8 @@ function sortHistoryRows(rows) {
 
 export default function OrderHistory() {
     const { t } = useTranslation(['orders', 'common']);
+    const { user } = useAuth();
+    const showServiceCatalog = canViewServiceCatalog(user);
     const navigate = useNavigate();
     const location = useLocation();
     const [orders, setOrders] = useState([]);
@@ -130,8 +146,8 @@ export default function OrderHistory() {
                 const rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
                 const pendingPayments = Array.isArray(data?.pending_payments) ? data.pending_payments : [];
                 const merged = sortHistoryRows([
-                    ...rows.map((order) => mapOrder(order, t)),
-                    ...pendingPayments.map((submission) => mapPaymentSubmission(submission, t)),
+                    ...rows.map((order) => mapOrder(order, t, showServiceCatalog)),
+                    ...pendingPayments.map((submission) => mapPaymentSubmission(submission, t, showServiceCatalog)),
                 ]);
                 if (!cancelled) setOrders(merged);
             } catch (err) {
@@ -145,7 +161,7 @@ export default function OrderHistory() {
         return () => {
             cancelled = true;
         };
-    }, [t]);
+    }, [t, showServiceCatalog]);
 
     useEffect(() => {
         if (!toast) return undefined;

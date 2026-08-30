@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\ServiceCatalogVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,6 +20,7 @@ class UserResource extends JsonResource
             'timezone' => $this->timezone,
             'is_active' => $this->is_active,
             'wallet' => WalletResource::make($this->whenLoaded('wallet')),
+            'can_view_service_catalog' => ServiceCatalogVisibility::canView($this->resource),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

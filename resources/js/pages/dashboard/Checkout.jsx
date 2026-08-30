@@ -44,6 +44,7 @@ import { getPaymentOptions } from '../../lib/paymentMethods';
 import { scrollDashboardToTop } from '../../lib/formScroll';
 import { getCategoryIcon } from '../../lib/categoryIcons';
 import { getPlatformIcon } from '../../lib/platformIcons';
+import { canViewServiceCatalog } from '../../lib/serviceCatalogVisibility';
 
 function formatAmount(n) {
     return Number(n || 0).toLocaleString('fr-DZ', { maximumFractionDigits: 0 });
@@ -160,6 +161,7 @@ export default function Checkout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { refreshUser, user } = useAuth();
+    const showServiceCatalog = canViewServiceCatalog(user);
     const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
     const walletBalance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
     const orderCharge = roundDzd(draft?.charge || 0);
@@ -429,9 +431,11 @@ export default function Checkout() {
                                     {draft.categoryName}
                                 </span>
                             </div>
+                            {showServiceCatalog && draft.serviceName ? (
                             <h2 className="mt-1.5 line-clamp-2 text-[0.95rem] leading-snug font-semibold text-foreground">
                                 {draft.serviceName}
                             </h2>
+                            ) : null}
                             {badges.length ? (
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                     {badges.map((b) => (

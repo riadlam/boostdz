@@ -44,6 +44,7 @@ import { getCategoryIcon } from '../../lib/categoryIcons';
 import { buildFacebookReactionOptions, facebookReactionLabel } from '../../lib/facebookReactions';
 import { scrollDashboardToTop, scrollToFirstFormError } from '../../lib/formScroll';
 import { filterCatalogEntries, getPlatformIcon } from '../../lib/platformIcons';
+import { canViewServiceCatalog } from '../../lib/serviceCatalogVisibility';
 
 const EMPTY_FILTERS = {
     quality_tier: '',
@@ -610,6 +611,7 @@ function filtersToParams(filters) {
 export default function CreateOrder() {
     const { t } = useTranslation(['orders', 'common', 'validation']);
     const { user, refreshUser } = useAuth();
+    const showServiceCatalog = canViewServiceCatalog(user);
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
@@ -1158,7 +1160,7 @@ export default function CreateOrder() {
 
         const draft = {
             serviceId: selectedService.id,
-            serviceName: selectedService.name,
+            serviceName: showServiceCatalog ? selectedService.name : '',
             serviceType: selectedService.type || null,
             requiresCustomComments,
             useCustomComments,
@@ -1299,6 +1301,7 @@ export default function CreateOrder() {
                             </div>
                         </div>
 
+                        {showServiceCatalog ? (
                         <div className="grid min-w-0 gap-2" data-form-field="service">
                             <FieldLabel required>{t('servicePackage')}</FieldLabel>
                             <div className="relative min-w-0">
@@ -1379,6 +1382,7 @@ export default function CreateOrder() {
                                 <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.service}</p>
                             ) : null}
                         </div>
+                        ) : null}
 
                         <div className="grid min-w-0 gap-2" data-form-field="quantity">
                             <FieldLabel required>{t('amount')}</FieldLabel>

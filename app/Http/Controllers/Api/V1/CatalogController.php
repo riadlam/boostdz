@@ -7,6 +7,7 @@ use App\Http\Resources\ServiceResource;
 use App\Models\CatalogCategory;
 use App\Models\CatalogPlatform;
 use App\Models\Service;
+use App\Support\ServiceCatalogVisibility;
 use App\Services\Catalog\FeaturedServiceHealth;
 use App\Services\Pricing\PricingService;
 use Illuminate\Http\JsonResponse;
@@ -96,7 +97,7 @@ class CatalogController extends Controller
         ]);
     }
 
-    public function storefront(PricingService $pricing, FeaturedServiceHealth $featuredHealth): JsonResponse
+    public function storefront(Request $request, PricingService $pricing, FeaturedServiceHealth $featuredHealth): JsonResponse
     {
         $items = Cache::remember(FeaturedServiceHealth::CACHE_KEY, 300, function () use ($pricing, $featuredHealth) {
             return CatalogCategory::query()
@@ -127,7 +128,7 @@ class CatalogController extends Controller
                             'slug' => $category->slug,
                             'name' => $category->name,
                         ],
-                        'service' => ServiceResource::make($service)->resolve(),
+                        'service_id' => $service->id,
                         'price_per_1k_dzd' => $pricePer1k,
                         'starting_price_dzd' => $startingPrice,
                         'min' => (int) $service->min,
@@ -137,6 +138,19 @@ class CatalogController extends Controller
                 ->values()
                 ->all();
         });
+
+        $serviceIds = collect($items)->pluck('service_id')->unique()->filter()->all();
+        $services = Service::query()->whereIn('id', $serviceIds)->get()->keyBy('id');
+
+        $items = collect($items)->map(function (array $item) use ($request, $services) {
+            $service = $services->get($item['service_id']);
+            $item['service'] = $service
+                ? ServiceResource::make($service)->resolve($request)
+                : null;
+            unset($item['service_id']);
+
+            return $item;
+        })->all();
 
         return response()->json([
             'items' => $items,
@@ -242,10 +256,12 @@ class CatalogController extends Controller
         }
 
         if ($search = $request->string('search')->toString()) {
-            $query->where(function ($builder) use ($search): void {
-                $builder->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+            if (ServiceCatalogVisibility::canView($request->user())) {
+                $query->where(function ($builder) use ($search): void {
+                    $builder->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
         }
 
         $limit = min(max((int) $request->input('per_page', 200), 1), 400);
@@ -277,9 +293,13 @@ class CatalogController extends Controller
 
         $groups = [];
 
+        $canView = ServiceCatalogVisibility::canView($request->user());
+
         foreach ($services as $service) {
-            $label = $this->groupLabel($service);
-            $key = strtolower(str_replace([' · ', ' '], ['_', '_'], $label));
+            $label = $canView ? $this->groupLabel($service) : '';
+            $key = $canView
+                ? strtolower(str_replace([' · ', ' '], ['_', '_'], $label))
+                : 'default';
 
             if (! isset($groups[$key])) {
                 $groups[$key] = [
@@ -289,7 +309,7 @@ class CatalogController extends Controller
                 ];
             }
 
-            $groups[$key]['items'][] = ServiceResource::make($service)->resolve();
+            $groups[$key]['items'][] = ServiceResource::make($service)->resolve($request);
         }
 
         return response()->json([
