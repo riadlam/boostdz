@@ -6,12 +6,12 @@ export const PAYMENT_OPTION_DEFS = [
     },
     {
         id: 'algerie-post',
-        icons: ['/images/payments/algerie-post.png'],
+        icons: ['/images/payments/algerie-post.svg'],
         action: 'redirect_gateway',
     },
     {
         id: 'wallet',
-        icons: ['/images/payments/wallet.png'],
+        icons: ['/images/payments/wallet.svg'],
         action: 'wallet',
         checkoutOnly: true,
     },

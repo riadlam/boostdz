@@ -162,7 +162,7 @@ export default function CheckoutCcpBaridimob() {
                 </div>
                 <div className="flex items-center gap-1.5">
                     <img src="/images/payments/ccp.svg" alt="" className="size-8 rounded-lg border border-[var(--color-dash-border-subtle)] bg-white object-contain p-1" />
-                    <img src="/images/payments/baridimob.png" alt="" className="size-8 rounded-lg border border-[var(--color-dash-border-subtle)] bg-white object-contain p-1" />
+                    <img src="/images/payments/baridimob.svg" alt="" className="size-8 rounded-lg border border-[var(--color-dash-border-subtle)] bg-white object-contain p-1" />
                 </div>
             </div>
 
