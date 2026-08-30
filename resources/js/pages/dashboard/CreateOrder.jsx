@@ -176,7 +176,52 @@ function pickPreferredService(items, {
         const featured = items.find((service) => service.id === preferredServiceId);
         if (featured) return featured;
     }
-    return items[0] ?? null;
+    if (preferFirst) {
+        return items[0] ?? null;
+    }
+    return null;
+}
+
+function refineFromService(service) {
+    if (!service) return { ...EMPTY_REFINE };
+
+    const next = { ...EMPTY_REFINE };
+
+    const tier = String(service.quality_tier || '').toLowerCase();
+    if (tier === 'premium') next.quality = 'premium';
+    else if (tier === 'standard') next.quality = 'standard';
+    else if (tier === 'economy') next.quality = 'economy';
+    else if (service.is_hot) next.quality = 'top';
+    else if (service.is_cheap) next.quality = 'budget';
+
+    const start = String(service.start_class || 'normal').toLowerCase();
+    if (start === 'instant') next.delivery = 'instant';
+    else if (start === 'fast') next.delivery = 'fast';
+    else if (start === 'slow') next.delivery = 'slow';
+    else if (start === 'normal') next.delivery = 'normal';
+
+    const mode = String(service.refill_mode || '').toLowerCase();
+    if (mode === 'auto') next.protection = 'auto';
+    else if (mode === 'lifetime') next.protection = 'lifetime';
+    else if (service.refill || (mode && mode !== 'none')) next.protection = 'refill';
+
+    if (service.country_code) {
+        next.country = String(service.country_code).toLowerCase();
+    }
+
+    if (service.audience_gender === 'male') next.audience = 'male';
+    else if (service.audience_gender === 'female') next.audience = 'female';
+
+    if (service.reaction_type) {
+        next.reaction = String(service.reaction_type).toLowerCase();
+    }
+
+    const days = Number(service.refill_days);
+    if (Number.isFinite(days) && days > 0) {
+        next.refillDays = [days];
+    }
+
+    return next;
 }
 
 function clampRefineToOptions(refine, caps) {
@@ -822,6 +867,12 @@ export default function CreateOrder() {
                 setCustomQuantity(String(nextQty));
                 setCustomMode(false);
             }
+
+            if (preferFirst && useFeaturedDefault && preferredServiceId) {
+                const storefrontDefault = items.find((service) => service.id === preferredServiceId);
+                setRefine(storefrontDefault ? refineFromService(storefrontDefault) : EMPTY_REFINE);
+            }
+
             return { groups: nextGroups, items };
         } catch (error) {
             if (seq === requestSeq.current) {
@@ -863,7 +914,6 @@ export default function CreateOrder() {
             }
 
             if (cancelled) return;
-            setRefine(EMPTY_REFINE);
         })();
 
         return () => {
@@ -1002,7 +1052,6 @@ export default function CreateOrder() {
             nextRefine: next,
             preferFirst: true,
             preferCustomComments: selectedCategory?.slug === 'comments',
-            preferredServiceId: selectedCategory?.default_service_id ?? null,
         });
     }
 
@@ -1021,7 +1070,6 @@ export default function CreateOrder() {
             nextRefine: next,
             preferFirst: true,
             preferCustomComments: selectedCategory?.slug === 'comments',
-            preferredServiceId: selectedCategory?.default_service_id ?? null,
         });
     }
 
