@@ -53,8 +53,8 @@ return [
     ],
 
     'sofizpay' => [
-        'disabled' => 'Le paiement par carte en ligne n\'est pas disponible pour le moment.',
-        'phone_required' => 'Le numéro de téléphone est requis pour le paiement par carte.',
+        'disabled' => 'Le paiement Algérie Post n\'est pas disponible pour le moment.',
+        'phone_required' => 'Le numéro de téléphone est requis pour le paiement Algérie Post.',
         'phone_invalid' => 'Saisissez un numéro mobile algérien valide (ex. 0555123456 ou +213555123456).',
         'missing_reference' => 'Référence de paiement manquante.',
         'missing_cib_transaction' => 'Identifiant de transaction manquant.',

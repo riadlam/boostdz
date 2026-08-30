@@ -56,7 +56,7 @@ class SofizPayPaymentService
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'amount_dzd' => $amount,
-            'method' => 'edahabia',
+            'method' => 'algerie_post',
             'status' => DepositStatus::Pending,
             'provider_reference' => $invoiceId,
         ]);
@@ -325,7 +325,7 @@ class SofizPayPaymentService
             'comments' => $meta['comments'] ?? null,
             'expected_charge_dzd' => $meta['quoted_charge_dzd'] ?? null,
             'meta' => array_merge($meta, [
-                'payment_method' => 'edahabia',
+                'payment_method' => 'algerie_post',
                 'sofizpay_transaction_id' => $transaction->id,
                 'invoice_id' => $transaction->invoice_id,
             ]),
@@ -425,7 +425,7 @@ class SofizPayPaymentService
 
     protected function checkoutReturnUrl(): string
     {
-        return rtrim((string) config('app.url'), '/').'/checkout/edahabia/return';
+        return rtrim((string) config('app.url'), '/').'/checkout/algerie-post/return';
     }
 
     protected function topupReturnUrl(): string

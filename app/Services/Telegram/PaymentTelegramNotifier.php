@@ -85,7 +85,7 @@ class PaymentTelegramNotifier
                 '💳 <b>Wallet top-up completed</b>',
                 'User: '.e($user?->name ?? 'Unknown').' (#'.$transaction->user_id.')',
                 'Amount: <b>'.$amount.'</b>',
-                'Method: Edahabiya / CIB',
+                'Method: Algérie Post',
                 'Invoice: '.e($transaction->invoice_id),
                 'Balance: <b>'.$balance.'</b>',
             ];

@@ -297,7 +297,7 @@ export default function Checkout() {
             return;
         }
 
-        if (method === 'edahabia') {
+        if (method === 'algerie-post') {
             setSubmitting(true);
             try {
                 const data = await sofizpayApi.initCheckout({
@@ -330,23 +330,6 @@ export default function Checkout() {
                 setSubmitting(false);
             }
             return;
-        }
-
-        if (method === 'algerie-post') {
-            setSubmitting(true);
-            try {
-                await placeOrderViaApi('algerie-post');
-            } catch (error) {
-                if (isMinimumCheckoutError(error)) {
-                    setMinimumModal(minimumCheckoutFromError(error));
-                } else if (error instanceof ApiError) {
-                    setFormError(error.message);
-                } else {
-                    setFormError(error?.message || t('uploadError'));
-                }
-            } finally {
-                setSubmitting(false);
-            }
         }
     }
 
@@ -456,7 +439,7 @@ export default function Checkout() {
                     options={paymentOptions}
                 />
 
-                {method === 'edahabia' ? (
+                {method === 'algerie-post' ? (
                     <div className="space-y-1.5">
                         <label htmlFor="checkout-phone" className="text-xs font-medium text-muted-foreground">
                             {t('payment.phoneLabel', { ns: 'checkout' })}
@@ -491,7 +474,7 @@ export default function Checkout() {
 
                 <button
                     type="submit"
-                    disabled={!method || submitting || Boolean(minimumModal) || (method === 'edahabia' && !phone.trim())}
+                    disabled={!method || submitting || Boolean(minimumModal) || (method === 'algerie-post' && !phone.trim())}
                     className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_1px_2px_0_rgba(14,18,27,0.24),0_0_0_1px_var(--color-primary)] transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-45"
                 >
                     {submitting ? (
@@ -500,11 +483,6 @@ export default function Checkout() {
                             {t('placingOrder')}
                         </>
                     ) : method === 'algerie-post' ? (
-                        <>
-                            {t('payAndPlace')}
-                            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-                        </>
-                    ) : method === 'edahabia' ? (
                         <>
                             {submitting ? t('payment.redirectingToGateway', { ns: 'checkout' }) : t('payAndPlace')}
                             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />

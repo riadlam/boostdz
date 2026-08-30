@@ -154,7 +154,7 @@ export default function Billing() {
 
     const [customAmount, setCustomAmount] = useState('');
 
-    const [method, setMethod] = useState('edahabia');
+    const [method, setMethod] = useState('algerie-post');
 
     const [phone, setPhone] = useState('');
 
@@ -329,7 +329,7 @@ export default function Billing() {
 
 
     const isCcp = method === 'ccp-baridimob';
-    const isEdahabia = method === 'edahabia';
+    const isAlgeriePost = method === 'algerie-post';
 
     const displayAmount = customAmount ? Number(customAmount) || 0 : amount;
 
@@ -339,7 +339,7 @@ export default function Billing() {
         displayAmount >= minimumTopup
         && method
         && (!isCcp || (wireAmount && Number(wireAmount) > 0 && attachment))
-        && (!isEdahabia || phone.trim() !== '');
+        && (!isAlgeriePost || phone.trim() !== '');
 
 
 
@@ -393,7 +393,7 @@ export default function Billing() {
 
         setSubmitting(true);
 
-        if (depositMethod === 'edahabia') {
+        if (depositMethod === 'algerie_post') {
             try {
                 const data = await sofizpayApi.initTopup({
                     amount_dzd: roundDzd(displayAmount),
@@ -453,21 +453,13 @@ export default function Billing() {
 
 
 
-            if (depositMethod === 'algerie_post') {
+            setSuccessMessage(t('billing:receiptSubmitted'));
 
-                setSuccessMessage(t('billing:addedToBalance', { amount: formatDzd(displayAmount) }));
+            setWireAmount('');
 
-            } else {
+            setReference('');
 
-                setSuccessMessage(t('billing:receiptSubmitted'));
-
-                setWireAmount('');
-
-                setReference('');
-
-                setAttachment(null);
-
-            }
+            setAttachment(null);
 
         } catch (error) {
 
@@ -639,7 +631,7 @@ export default function Billing() {
 
 
 
-                    {isEdahabia ? (
+                    {isAlgeriePost ? (
                         <div className="space-y-1.5">
                             <label htmlFor="billing-phone" className="text-xs font-medium text-muted-foreground">
                                 {t('billing:phoneLabel')}
@@ -687,15 +679,15 @@ export default function Billing() {
 
                         </div>
 
-                    ) : (
+                    ) : isAlgeriePost ? (
 
-                        <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-200">
+                        <p className="rounded-lg border border-[var(--color-dash-border)] bg-[var(--color-dash-canvas)] px-3 py-2 text-xs text-muted-foreground">
 
-                            {t('billing:algeriePostInstantNote')}
+                            {t('billing:algeriePostGatewayNote')}
 
                         </p>
 
-                    )}
+                    ) : null}
 
 
 

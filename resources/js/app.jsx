@@ -78,7 +78,7 @@ createRoot(document.getElementById('root')).render(
                     >
                         <Route index element={<Checkout />} />
                         <Route path="ccp-baridimob" element={<CheckoutCcpBaridimob />} />
-                        <Route path="edahabia/return" element={<CheckoutEdahabiaReturn />} />
+                        <Route path="algerie-post/return" element={<CheckoutEdahabiaReturn />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

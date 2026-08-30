@@ -22,7 +22,7 @@ class StoreDepositRequest extends FormRequest
 
         return [
             'amount_dzd' => $amountRules,
-            'method' => ['required', 'in:ccp,algerie_post'],
+            'method' => ['required', 'in:ccp'],
             'wired_amount_dzd' => ['nullable', 'numeric', 'min:0'],
             'provider_reference' => ['nullable', 'string', 'max:255'],
             'proof' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],

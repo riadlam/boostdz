@@ -17,9 +17,9 @@ export const paymentMethods = [
     {
         id: 'algerie-post',
         label: 'Algérie Post',
-        hint: 'Instant',
-        description: 'Pay through Algérie Post — your balance is updated automatically right away.',
-        processing: 'instant',
+        hint: 'Online payment',
+        description: 'Pay through Algérie Post. You will be redirected to complete payment securely.',
+        processing: 'gateway',
     },
 ];
 

@@ -32,37 +32,31 @@ class DepositService
 
         $this->checkoutPolicy->assertMinimumTopup($amount);
 
-        if (! in_array($method, ['ccp', 'algerie_post'], true)) {
+        if ($method !== 'ccp') {
             throw new InvalidArgumentException(__('api.deposits.invalid_method'));
         }
 
         $wallet = $this->wallets->forUser($user);
         $proofPath = null;
 
-        if ($method === 'ccp') {
-            if (! $proof) {
-                throw new InvalidArgumentException(__('api.deposits.ccp_proof_required'));
-            }
-
-            $proofPath = $proof->store('deposits/'.$user->id, 'public');
+        if (! $proof) {
+            throw new InvalidArgumentException(__('api.deposits.ccp_proof_required'));
         }
+
+        $proofPath = $proof->store('deposits/'.$user->id, 'public');
 
         $deposit = Deposit::query()->create([
             'user_id' => $user->id,
             'wallet_id' => $wallet->id,
             'amount_dzd' => $amount,
             'method' => $method,
-            'status' => $method === 'algerie_post' ? DepositStatus::Completed : DepositStatus::Pending,
+            'status' => DepositStatus::Pending,
             'proof_path' => $proofPath,
             'wired_amount_dzd' => isset($data['wired_amount_dzd'])
                 ? number_format((float) $data['wired_amount_dzd'], 2, '.', '')
                 : null,
             'provider_reference' => $data['provider_reference'] ?? null,
         ]);
-
-        if ($method === 'algerie_post') {
-            $this->wallets->creditDeposit($deposit);
-        }
 
         return $deposit->fresh(['wallet']);
     }
