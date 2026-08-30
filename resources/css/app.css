@@ -911,17 +911,7 @@
     }
 }
 
-/* RTL / Arabic */
-html.locale-ar,
-html[dir='rtl'] {
+/* Arabic font only — layout stays LTR */
+html.locale-ar {
     font-family: var(--font-arabic);
-}
-
-html[dir='rtl'] .dash-table thead th,
-html[dir='rtl'] .dash-table tbody td {
-    text-align: start;
-}
-
-html[dir='rtl'] .dash-table .text-right {
-    text-align: end;
 }

@@ -22,11 +22,12 @@
                     var lng = (localStorage.getItem('boostdz-locale') || navigator.language || 'en').split('-')[0].toLowerCase();
                     if (lng === 'ar') {
                         document.documentElement.lang = 'ar';
-                        document.documentElement.dir = 'rtl';
+                        document.documentElement.dir = 'ltr';
                         document.documentElement.classList.add('locale-ar');
                     } else {
                         document.documentElement.lang = lng === 'fr' ? 'fr' : 'en';
                         document.documentElement.dir = 'ltr';
+                        document.documentElement.classList.remove('locale-ar');
                     }
                 } catch (e) {
                     document.documentElement.lang = 'en';
