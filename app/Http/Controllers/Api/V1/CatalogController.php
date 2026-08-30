@@ -146,9 +146,14 @@ class CatalogController extends Controller
         ]);
     }
 
-    public function services(Request $request, CatalogCategory $category): JsonResponse
+    public function services(Request $request, CatalogCategory $category, FeaturedServiceHealth $featuredHealth): JsonResponse
     {
         abort_unless($category->is_active, 404);
+
+        $category->loadMissing('featuredService');
+        $defaultServiceId = $featuredHealth->featuredServiceStatus($category) === FeaturedServiceHealth::STATUS_OK
+            ? (int) $category->featured_service_id
+            : null;
 
         $query = Service::query()
             ->where('is_active', true)
@@ -256,6 +261,20 @@ class CatalogController extends Controller
             ->limit($limit)
             ->get();
 
+        if ($defaultServiceId && ! $services->contains(fn (Service $service): bool => (int) $service->id === $defaultServiceId)) {
+            if ((clone $query)->where('id', $defaultServiceId)->exists()) {
+                $featured = Service::query()
+                    ->where('id', $defaultServiceId)
+                    ->where('is_active', true)
+                    ->where('catalog_category_id', $category->id)
+                    ->first();
+
+                if ($featured) {
+                    $services = $services->prepend($featured)->unique('id')->values();
+                }
+            }
+        }
+
         $groups = [];
 
         foreach ($services as $service) {
@@ -279,6 +298,7 @@ class CatalogController extends Controller
                 'slug' => $category->slug,
                 'name' => $category->name,
                 'platform_id' => $category->platform_id,
+                'default_service_id' => $defaultServiceId,
             ],
             'groups' => array_values($groups),
             'meta' => [

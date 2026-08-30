@@ -161,6 +161,11 @@ function isRefineEmpty(refine) {
     );
 }
 
+function sameServiceId(left, right) {
+    if (left == null || right == null) return false;
+    return Number(left) === Number(right);
+}
+
 function pickPreferredService(items, {
     preferFirst = false,
     preferCustomComments = false,
@@ -173,7 +178,7 @@ function pickPreferredService(items, {
         if (custom) return custom;
     }
     if (preferFirst && useFeaturedDefault && preferredServiceId) {
-        const featured = items.find((service) => service.id === preferredServiceId);
+        const featured = items.find((service) => sameServiceId(service.id, preferredServiceId));
         if (featured) return featured;
     }
     if (preferFirst) {
@@ -664,6 +669,7 @@ export default function CreateOrder() {
 
     const searchTimer = useRef(null);
     const requestSeq = useRef(0);
+    const storefrontApplyRef = useRef(false);
 
     const selectedPlatform = useMemo(
         () => platforms.find((p) => p.slug === platformSlug) || null,
@@ -842,6 +848,7 @@ export default function CreateOrder() {
 
             const nextGroups = data.groups || [];
             const items = nextGroups.flatMap((g) => g.items || []);
+            const resolvedDefaultId = preferredServiceId ?? data.category?.default_service_id ?? null;
             setGroups(nextGroups);
 
             const useFeaturedDefault = isRefineEmpty(nextRefine) && !search;
@@ -852,12 +859,12 @@ export default function CreateOrder() {
             const pickOptions = {
                 preferFirst,
                 preferCustomComments,
-                preferredServiceId,
+                preferredServiceId: resolvedDefaultId,
                 useFeaturedDefault,
             };
 
             setServiceId((current) => {
-                if (!preferFirst && current && items.some((row) => row.id === current)) return current;
+                if (!preferFirst && current && items.some((row) => sameServiceId(row.id, current))) return current;
                 return pickPreferredService(items, pickOptions)?.id ?? null;
             });
             const preferred = pickPreferredService(items, pickOptions);
@@ -868,12 +875,12 @@ export default function CreateOrder() {
                 setCustomMode(false);
             }
 
-            if (preferFirst && useFeaturedDefault && preferredServiceId) {
-                const storefrontDefault = items.find((service) => service.id === preferredServiceId);
+            if (preferFirst && useFeaturedDefault && resolvedDefaultId) {
+                const storefrontDefault = items.find((service) => sameServiceId(service.id, resolvedDefaultId));
                 setRefine(storefrontDefault ? refineFromService(storefrontDefault) : EMPTY_REFINE);
             }
 
-            return { groups: nextGroups, items };
+            return { groups: nextGroups, items, defaultServiceId: resolvedDefaultId };
         } catch (error) {
             if (seq === requestSeq.current) {
                 setGroups([]);
@@ -887,11 +894,14 @@ export default function CreateOrder() {
     }
 
     useEffect(() => {
-        if (!categoryId) return undefined;
+        if (!categoryId || !categories.length) return undefined;
         let cancelled = false;
 
         (async () => {
-            const cat = categories.find((c) => c.id === categoryId);
+            window.clearTimeout(searchTimer.current);
+            storefrontApplyRef.current = true;
+
+            const cat = categories.find((c) => sameServiceId(c.id, categoryId));
             let preferredServiceId = cat?.default_service_id ?? null;
             if (!urlAppliedRef.current && initialUrlRef.current.service) {
                 preferredServiceId = initialUrlRef.current.service;
@@ -914,16 +924,18 @@ export default function CreateOrder() {
             }
 
             if (cancelled) return;
+            storefrontApplyRef.current = false;
         })();
 
         return () => {
             cancelled = true;
+            storefrontApplyRef.current = false;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [categoryId]);
+    }, [categoryId, categories]);
 
     useEffect(() => {
-        if (!categoryId) return undefined;
+        if (!categoryId || storefrontApplyRef.current) return undefined;
         window.clearTimeout(searchTimer.current);
         searchTimer.current = window.setTimeout(() => {
             loadServices({
@@ -1003,7 +1015,7 @@ export default function CreateOrder() {
     }, [openMenu]);
 
     useEffect(() => {
-        if (!categoryServices.length) return;
+        if (!categoryServices.length || storefrontApplyRef.current) return;
         const { next, changed } = clampRefineToOptions(refine, deliveryCaps);
         if (!changed) return;
         setRefine(next);
@@ -1034,8 +1046,10 @@ export default function CreateOrder() {
 
     function selectCategory(id) {
         urlAppliedRef.current = true;
+        window.clearTimeout(searchTimer.current);
         setCategoryId(id);
         setServiceSearch('');
+        setRefine(EMPTY_REFINE);
         setOpenMenu(null);
     }
 
