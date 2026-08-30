@@ -1,4 +1,5 @@
 import { cn } from '../../lib/cn';
+import { MARQUEE_IMAGES } from '../../content/marquee-manifest';
 
 const PLATFORM_CONFIG = {
     instagram: {
@@ -25,7 +26,8 @@ const PLATFORM_CONFIG = {
 };
 
 function marqueeSrc(platform, n) {
-    return `/assets/marquee/${platform}/${((n - 1) % 10) + 1}.webp`;
+    const files = MARQUEE_IMAGES[platform] ?? MARQUEE_IMAGES.instagram;
+    return `/assets/marquee/${platform}/${files[((n - 1) % files.length)]}`;
 }
 
 function MarqueeThumb({ platform, n }) {

@@ -1,37 +1,16 @@
 /**
- * Downloads MENA-relevant royalty-free images from Unsplash and saves
- * platform-specific crops under public/assets/marquee/{platform}/.
+ * Downloads platform-specific MENA-relevant images (10 unique per platform).
+ * Instagram / TikTok / YouTube / Facebook each get a different photo set.
  *
  * Usage: node scripts/fetch-marquee-images.mjs
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const outRoot = join(root, 'public', 'assets', 'marquee');
-
-const BASE_PHOTOS = [
-    'photo-1578662996442-48f60103fc96', // Arabic coffee
-    'photo-1555881400-74d7acaacd8b', // Moroccan architecture
-    'photo-1518548419970-58e3b4079ab2', // Sahara dunes
-    'photo-1567306301408-9b74779a11af', // Fresh produce market
-    'photo-1547036967-23d11aacaee0', // Street scene
-];
-
-/** Vary focal-point crops so the same base photo looks distinct in the ticker */
-const CROP_VARIANTS = [
-    '',
-    '&fp-x=0.2&fp-y=0.3&fp-z=1.2',
-    '&fp-x=0.7&fp-y=0.4&fp-z=1.1',
-    '&fp-x=0.5&fp-y=0.8&fp-z=1.3',
-    '&fp-x=0.35&fp-y=0.55&fp-z=1.15',
-    '&fp-x=0.8&fp-y=0.2&fp-z=1.25',
-    '&fp-x=0.15&fp-y=0.65&fp-z=1.2',
-    '&fp-x=0.6&fp-y=0.75&fp-z=1.1',
-    '&fp-x=0.45&fp-y=0.25&fp-z=1.3',
-    '&fp-x=0.25&fp-y=0.5&fp-z=1.2',
-];
+const manifestPath = join(root, 'resources', 'js', 'content', 'marquee-manifest.js');
 
 const PLATFORMS = {
     instagram: { w: 512, h: 512 },
@@ -40,13 +19,74 @@ const PLATFORMS = {
     facebook: { w: 512, h: 640 },
 };
 
-function unsplashUrl(photoId, w, h, crop = '') {
-    return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&crop=focalpoint${crop}&w=${w}&h=${h}&q=80&fm=webp`;
+/** 10 unique sources per platform — no overlap between platforms */
+const PLATFORM_SOURCES = {
+    instagram: [
+        { type: 'unsplash', id: 'photo-1578662996442-48f60103fc96' },
+        { type: 'unsplash', id: 'photo-1555881400-74d7acaacd8b' },
+        { type: 'unsplash', id: 'photo-1567306301408-9b74779a11af' },
+        { type: 'pexels', id: '3601264' },
+        { type: 'pexels', id: '6342316' },
+        { type: 'unsplash', id: 'photo-1555939594-58d7cb561ad1' },
+        { type: 'unsplash', id: 'photo-1565299624946-b28f40a0ae38' },
+        { type: 'unsplash', id: 'photo-1502920917128-1aa500764cbd' },
+        { type: 'pexels', id: '1199957' },
+        { type: 'unsplash', id: 'photo-1528712306091-ed0763094c98' },
+    ],
+    tiktok: [
+        { type: 'unsplash', id: 'photo-1518548419970-58e3b4079ab2' },
+        { type: 'unsplash', id: 'photo-1547036967-23d11aacaee0' },
+        { type: 'pexels', id: '2774556' },
+        { type: 'pexels', id: '3938022' },
+        { type: 'unsplash', id: 'photo-1469854523086-cc02fe5d8800' },
+        { type: 'unsplash', id: 'photo-1501785888041-af3ef285b470' },
+        { type: 'unsplash', id: 'photo-1506905925346-21bda4d32df4' },
+        { type: 'pexels', id: '1450360' },
+        { type: 'unsplash', id: 'photo-1493246507139-91e8fad9978e' },
+        { type: 'unsplash', id: 'photo-1470071459604-3b5ec3a7fe05' },
+    ],
+    youtube: [
+        { type: 'unsplash', id: 'photo-1414235077428-338989a2e8c0' },
+        { type: 'unsplash', id: 'photo-1504674900247-0877df9cc836' },
+        { type: 'unsplash', id: 'photo-1551218808-94e220e084d2' },
+        { type: 'unsplash', id: 'photo-1556910103-1c02745aae4d' },
+        { type: 'unsplash', id: 'photo-1556911220-e15b29be8c8f' },
+        { type: 'unsplash', id: 'photo-1556911220-bff31c812dba' },
+        { type: 'unsplash', id: 'photo-1567620905732-2d1ec7ab7445' },
+        { type: 'unsplash', id: 'photo-1540189549336-e6e99c3679fe' },
+        { type: 'unsplash', id: 'photo-1512621776951-a57141f2eefd' },
+        { type: 'unsplash', id: 'photo-1606787366850-de6330128bfc' },
+    ],
+    facebook: [
+        { type: 'unsplash', id: 'photo-1447752875215-b2761acb3c5d' },
+        { type: 'unsplash', id: 'photo-1441974231531-c6227db76b6e' },
+        { type: 'unsplash', id: 'photo-1469474968028-56623f02e42e' },
+        { type: 'unsplash', id: 'photo-1500534314209-a25ddb2bd429' },
+        { type: 'unsplash', id: 'photo-1519681393784-d120267933ba' },
+        { type: 'unsplash', id: 'photo-1501594907352-04cda38ebc29' },
+        { type: 'pexels', id: '250698' },
+        { type: 'pexels', id: '2070033' },
+        { type: 'pexels', id: '325044' },
+        { type: 'pexels', id: '1267320' },
+    ],
+};
+
+function buildUrl(source, w, h) {
+    if (source.type === 'unsplash') {
+        return `https://images.unsplash.com/${source.id}?auto=format&fit=crop&w=${w}&h=${h}&q=80&fm=webp`;
+    }
+
+    return `https://images.pexels.com/photos/${source.id}/pexels-photo-${source.id}.jpeg?auto=compress&cs=tinysrgb&w=${w}&h=${h}&fit=crop&dpr=1`;
+}
+
+function fileExtension(source) {
+    return source.type === 'unsplash' ? 'webp' : 'jpg';
 }
 
 async function download(url) {
     const response = await fetch(url, {
         headers: { 'User-Agent': 'BoostDZ-Asset-Script/1.0' },
+        redirect: 'follow',
     });
 
     if (!response.ok) {
@@ -56,28 +96,46 @@ async function download(url) {
     return Buffer.from(await response.arrayBuffer());
 }
 
+function writeManifest(manifest) {
+    const body = `/** Auto-generated by scripts/fetch-marquee-images.mjs — do not edit manually */\nexport const MARQUEE_IMAGES = ${JSON.stringify(manifest, null, 4)};\n`;
+    writeFileSync(manifestPath, body);
+}
+
 async function main() {
+    const manifest = {};
+
     for (const platform of Object.keys(PLATFORMS)) {
         const { w, h } = PLATFORMS[platform];
+        const sources = PLATFORM_SOURCES[platform];
         const dir = join(outRoot, platform);
         mkdirSync(dir, { recursive: true });
 
+        for (const existing of readdirSync(dir)) {
+            unlinkSync(join(dir, existing));
+        }
+
+        manifest[platform] = [];
+
         console.log(`\n${platform} (${w}x${h}):`);
 
-        for (let i = 0; i < 10; i++) {
-            const photoId = BASE_PHOTOS[i % BASE_PHOTOS.length];
-            const crop = CROP_VARIANTS[i];
-            const url = unsplashUrl(photoId, w, h, crop);
-            const file = join(dir, `${i + 1}.webp`);
+        for (let i = 0; i < sources.length; i++) {
+            const source = sources[i];
+            const ext = fileExtension(source);
+            const filename = `${i + 1}.${ext}`;
+            const url = buildUrl(source, w, h);
+            const file = join(dir, filename);
 
-            process.stdout.write(`  ${i + 1}.webp <- ${photoId} ... `);
+            process.stdout.write(`  ${filename} <- ${source.type}:${source.id} ... `);
             const data = await download(url);
             writeFileSync(file, data);
+            manifest[platform].push(filename);
             console.log(`ok (${data.length} bytes)`);
         }
     }
 
-    console.log('\nDone — 40 marquee images written.');
+    writeManifest(manifest);
+    console.log(`\nManifest written to ${manifestPath}`);
+    console.log('Done — 40 unique platform images written.');
 }
 
 main().catch((err) => {
