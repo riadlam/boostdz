@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Moon, Sun, Menu, X, ArrowRight, LayoutDashboard, ShoppingBag, Minus, Square, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { BrandLogo, PressLogos } from '../components/Brand';
+import { BrandLogo } from '../components/Brand';
 import { heroPlatforms, InstagramIcon } from '../components/PlatformIcons';
 import { WhySection } from '../components/landing/WhySection';
 import { PlatformsSection } from '../components/landing/PlatformsSection';
@@ -146,13 +146,6 @@ function Hero() {
                     <a href="#why" className="btn-ghost justify-center hover:bg-muted">
                         {t('hero.learnMoreCta')}
                     </a>
-                </div>
-                <div className="mt-8 sm:mt-12 opacity-70 transition-opacity hover:opacity-100">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{t('hero.asSeenOn')}</p>
-                    <div className="mt-3">
-                        <PressLogos />
-                    </div>
-                    <p className="mt-2 text-[10px] text-muted-foreground/70">{t('hero.asSeenNote')}</p>
                 </div>
             </div>
         </section>
@@ -417,12 +410,10 @@ function Footer() {
     const { t } = useTranslation('landing');
     const links = t('footer.links', { returnObjects: true });
     const products = t('footer.products', { returnObjects: true });
-    const tools = t('footer.tools', { returnObjects: true });
-    const comparisons = t('footer.comparisons', { returnObjects: true });
 
     return (
         <footer className="border-t border-border px-4 py-12 sm:py-16">
-            <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-4 md:gap-10">
+            <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 md:grid-cols-3 md:gap-10">
                 <div>
                     <BrandLogo />
                     <p className="mt-4 text-sm text-muted-foreground">{t('footer.about')}</p>
@@ -449,28 +440,6 @@ function Footer() {
                         {products.slice(0, 8).map((l) => (
                             <li key={l}>
                                 <a href="#platforms" className="hover:text-foreground">
-                                    {l}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-                <div>
-                    <p className="text-sm font-semibold">{t('footer.sections.tools')}</p>
-                    <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                        {tools.slice(0, 6).map((l) => (
-                            <li key={l}>
-                                <a href="#" className="hover:text-foreground">
-                                    {l}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
-                    <p className="mt-6 text-sm font-semibold">{t('footer.sections.comparisons')}</p>
-                    <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                        {comparisons.slice(0, 5).map((l) => (
-                            <li key={l}>
-                                <a href="#" className="hover:text-foreground">
                                     {l}
                                 </a>
                             </li>

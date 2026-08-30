@@ -14,9 +14,7 @@
     "titleLine2": "Real Likes, Real Followers.",
     "subtitle": "Buy real likes, followers, and views for Instagram, TikTok, YouTube, and X — with instant delivery and no password required. Genuine engagement that helps every post travel further.",
     "getStarted": "Get Started",
-    "learnMoreCta": "Learn More",
-    "asSeenOn": "As seen on",
-    "asSeenNote": "Yes, it's not fake, we really did get featured"
+    "learnMoreCta": "Learn More"
   },
   "preview": {
     "dashboard": "Dashboard",
@@ -246,22 +244,6 @@
       {
         "label": "Contact",
         "href": "#"
-      },
-      {
-        "label": "API Docs",
-        "href": "#"
-      },
-      {
-        "label": "Blog & News",
-        "href": "#"
-      },
-      {
-        "label": "Who It's For",
-        "href": "#"
-      },
-      {
-        "label": "Brand Assets",
-        "href": "#"
       }
     ],
     "products": [
@@ -278,34 +260,9 @@
       "Buy Instagram Followers",
       "Buy YouTube Subscribers"
     ],
-    "tools": [
-      "Free TikTok Counter",
-      "Free Instagram Likes",
-      "Free AI Hashtag Generator",
-      "Free TikTok Likes Counter",
-      "Free Instagram Story Viewer",
-      "Free TikTok Money Calculator",
-      "Free TikTok Video Downloader",
-      "Free Instagram Followers Counter",
-      "Free TikTok Engagement Rate Calculator",
-      "Free YouTube Views"
-    ],
-    "comparisons": [
-      "Twicsy Alternative",
-      "Buzzoid Alternative",
-      "Famoid Alternative",
-      "Likes.io Alternative",
-      "Media Mister Alternative",
-      "Best Sites: Instagram Followers",
-      "Best Sites: Instagram Likes",
-      "Best Sites: TikTok Followers",
-      "Best Sites: TikTok Views"
-    ],
     "sections": {
       "links": "Links",
-      "products": "Featured Products",
-      "tools": "Free Tools",
-      "comparisons": "Comparisons"
+      "products": "Featured Products"
     },
     "about": "Powering social media growth. BOOSTDZ serves creators, agencies, and brands with engagement services across Instagram, TikTok, YouTube, and X. Based in Algeria.",
     "rights": "All rights reserved.",

@@ -14,9 +14,7 @@
     "titleLine2": "Vrais likes, vrais abonnés.",
     "subtitle": "Achetez de vrais likes, abonnés et vues pour Instagram, TikTok, YouTube et X — livraison instantanée sans mot de passe. Un engagement authentique qui fait voyager chaque publication plus loin.",
     "getStarted": "Commencer",
-    "learnMoreCta": "En savoir plus",
-    "asSeenOn": "Vu dans",
-    "asSeenNote": "Oui, ce n'est pas faux, nous avons vraiment été mis en avant"
+    "learnMoreCta": "En savoir plus"
   },
   "preview": {
     "dashboard": "Tableau de bord",
@@ -246,22 +244,6 @@
       {
         "label": "Contact",
         "href": "#"
-      },
-      {
-        "label": "Documentation API",
-        "href": "#"
-      },
-      {
-        "label": "Blog et actualités",
-        "href": "#"
-      },
-      {
-        "label": "Pour qui",
-        "href": "#"
-      },
-      {
-        "label": "Ressources de marque",
-        "href": "#"
       }
     ],
     "products": [
@@ -278,34 +260,9 @@
       "Acheter des abonnés Instagram",
       "Acheter des abonnés YouTube"
     ],
-    "tools": [
-      "Compteur TikTok gratuit",
-      "Likes Instagram gratuits",
-      "Générateur de hashtags IA gratuit",
-      "Compteur de likes TikTok gratuit",
-      "Visionneuse de stories Instagram gratuite",
-      "Calculateur de revenus TikTok gratuit",
-      "Téléchargeur de vidéos TikTok gratuit",
-      "Compteur d'abonnés Instagram gratuit",
-      "Calculateur de taux d'engagement TikTok gratuit",
-      "Vues YouTube gratuites"
-    ],
-    "comparisons": [
-      "Alternative à Twicsy",
-      "Alternative à Buzzoid",
-      "Alternative à Famoid",
-      "Alternative à Likes.io",
-      "Alternative à Media Mister",
-      "Meilleurs sites : abonnés Instagram",
-      "Meilleurs sites : likes Instagram",
-      "Meilleurs sites : abonnés TikTok",
-      "Meilleurs sites : vues TikTok"
-    ],
     "sections": {
       "links": "Liens",
-      "products": "Produits phares",
-      "tools": "Outils gratuits",
-      "comparisons": "Comparaisons"
+      "products": "Produits phares"
     },
     "about": "Propulser la croissance sur les réseaux sociaux. BOOSTDZ accompagne créateurs, agences et marques avec des services d'engagement sur Instagram, TikTok, YouTube et X. Basé en Algérie.",
     "rights": "Tous droits réservés.",
