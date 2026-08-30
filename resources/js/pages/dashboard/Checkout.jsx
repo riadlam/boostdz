@@ -177,7 +177,8 @@ export default function Checkout() {
     const [phone, setPhone] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
-    const [minimumModal, setMinimumModal] = useState(null);
+    const [minimumAmount, setMinimumAmount] = useState(0);
+    const [minimumModalOpen, setMinimumModalOpen] = useState(false);
 
     useEffect(() => {
         scrollDashboardToTop();
@@ -193,34 +194,29 @@ export default function Checkout() {
     useEffect(() => {
         let active = true;
 
-        async function checkMinimum() {
-            if (!draft?.charge) {
-                return;
-            }
-
-            try {
-                const settings = await fetchCheckoutSettings();
-                if (!active) {
-                    return;
+        fetchCheckoutSettings()
+            .then((settings) => {
+                if (active) {
+                    setMinimumAmount(settings.minimum_amount_dzd);
                 }
-
-                if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd) && !canPayWithWallet) {
-                    setMinimumModal({
-                        charge: roundDzd(draft.charge),
-                        minimum: settings.minimum_amount_dzd,
-                    });
-                }
-            } catch {
-                // Server enforces the minimum if settings cannot be loaded.
-            }
-        }
-
-        checkMinimum();
+            })
+            .catch(() => {});
 
         return () => {
             active = false;
         };
-    }, [draft?.charge, canPayWithWallet]);
+    }, []);
+
+    const orderBelowMinimum = minimumAmount > 0 && isBelowMinimum(draft?.charge, minimumAmount);
+    const blockedByMinimum = orderBelowMinimum && method !== 'wallet';
+
+    useEffect(() => {
+        if (blockedByMinimum) {
+            setMinimumModalOpen(true);
+        } else {
+            setMinimumModalOpen(false);
+        }
+    }, [blockedByMinimum]);
 
     const importantRules = useMemo(() => {
         if (!draft) return [];
@@ -255,19 +251,16 @@ export default function Checkout() {
         if (!method || submitting) return;
         setFormError('');
 
-        const walletBypassMinimum = method === 'wallet' && canPayWithWallet;
-
-        if (minimumModal && !walletBypassMinimum) {
+        if (blockedByMinimum) {
+            setMinimumModalOpen(true);
             return;
         }
 
         try {
             const settings = await fetchCheckoutSettings();
-            if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd) && !walletBypassMinimum) {
-                setMinimumModal({
-                    charge: roundDzd(draft.charge),
-                    minimum: settings.minimum_amount_dzd,
-                });
+            if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd) && method !== 'wallet') {
+                setMinimumAmount(settings.minimum_amount_dzd);
+                setMinimumModalOpen(true);
                 return;
             }
         } catch {
@@ -319,7 +312,9 @@ export default function Checkout() {
                 });
             } catch (error) {
                 if (isMinimumCheckoutError(error)) {
-                    setMinimumModal(minimumCheckoutFromError(error));
+                    const modal = minimumCheckoutFromError(error);
+                    setMinimumAmount(modal.minimum);
+                    setMinimumModalOpen(true);
                 } else if (error instanceof ApiError) {
                     setFormError(error.message);
                 } else {
@@ -360,7 +355,9 @@ export default function Checkout() {
                 window.location.href = paymentUrl;
             } catch (error) {
                 if (isMinimumCheckoutError(error)) {
-                    setMinimumModal(minimumCheckoutFromError(error));
+                    const modal = minimumCheckoutFromError(error);
+                    setMinimumAmount(modal.minimum);
+                    setMinimumModalOpen(true);
                 } else if (error instanceof ApiError) {
                     setFormError(error.message);
                 } else {
@@ -545,7 +542,7 @@ export default function Checkout() {
                     disabled={
                         !method
                         || submitting
-                        || (minimumModal && !(method === 'wallet' && canPayWithWallet))
+                        || blockedByMinimum
                         || (method === 'algerie-post' && !phone.trim())
                         || (method === 'wallet' && !canPayWithWallet)
                     }
@@ -586,12 +583,11 @@ export default function Checkout() {
                 </button>
             </form>
 
-            {minimumModal ? (
+            {minimumModalOpen ? (
                 <MinimumCheckoutModal
-                    charge={minimumModal.charge}
-                    minimum={minimumModal.minimum}
-                    message={minimumModal.message}
-                    onClose={() => setMinimumModal(null)}
+                    charge={roundDzd(draft.charge)}
+                    minimum={minimumAmount}
+                    onClose={() => setMinimumModalOpen(false)}
                 />
             ) : null}
         </div>

@@ -26,11 +26,9 @@ import {
     Zap,
 } from 'lucide-react';
 import { CountryFlag, buildCountryOptions, countryLabel } from '../../components/CountryFlag';
-import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
 import PaymentResultModal from '../../components/PaymentResultModal';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError, catalogApi, ordersApi } from '../../lib/api';
-import { fetchCheckoutSettings, isBelowMinimum } from '../../lib/checkoutPolicy';
 import { cn } from '../../lib/cn';
 import { chargeForService, formatDzd, roundDzd } from '../../lib/formatMoney';
 import { getTargetFieldMeta } from '../../lib/targetFieldMeta';
@@ -646,7 +644,6 @@ export default function CreateOrder() {
     const [settingsRowOpen, setSettingsRowOpen] = useState(null);
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
-    const [minimumModal, setMinimumModal] = useState(null);
     const [paymentNotice, setPaymentNotice] = useState(null);
 
     const searchTimer = useRef(null);
@@ -1212,19 +1209,6 @@ export default function CreateOrder() {
                 scrollToFirstFormError({ link: error.message }, { formErrorSelector: '[data-form-error-banner]' });
                 return;
             }
-        }
-
-        try {
-            const settings = await fetchCheckoutSettings();
-            if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd)) {
-                setMinimumModal({
-                    charge: roundDzd(draft.charge),
-                    minimum: settings.minimum_amount_dzd,
-                });
-                return;
-            }
-        } catch {
-            // Server enforces the minimum if settings cannot be loaded.
         }
 
         navigate('/checkout', { state: { draft } });
@@ -1974,15 +1958,6 @@ export default function CreateOrder() {
                     {t('confirmTarget')}
                 </p>
             </form>
-
-            {minimumModal ? (
-                <MinimumCheckoutModal
-                    charge={minimumModal.charge}
-                    minimum={minimumModal.minimum}
-                    message={minimumModal.message}
-                    onClose={() => setMinimumModal(null)}
-                />
-            ) : null}
 
             {paymentNotice ? (
                 <PaymentResultModal
