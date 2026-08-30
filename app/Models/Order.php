@@ -48,6 +48,8 @@ class Order extends Model
         'last_status_check_at',
         'error_code',
         'error_message',
+        'telegram_chat_id',
+        'telegram_message_id',
         'raw_last_response',
     ];
 

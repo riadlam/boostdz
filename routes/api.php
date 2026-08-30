@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\PaymentTelegramWebhookController;
 use App\Http\Controllers\Api\V1\SofizPayController;
 use App\Http\Controllers\Api\V1\SofizPayWebhookController;
 use App\Http\Controllers\Api\V1\TelegramWebhookController;
+use App\Http\Controllers\Api\V1\WalletCheckoutController;
 use App\Http\Controllers\Api\V1\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,7 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('checkout/settings', [CheckoutController::class, 'settings']);
         Route::post('checkout/ccp-receipt', [CheckoutController::class, 'storeCcpReceipt']);
+        Route::post('checkout/wallet', [WalletCheckoutController::class, 'store']);
 
         Route::post('payments/sofizpay/checkout', [SofizPayController::class, 'initCheckout']);
         Route::post('payments/sofizpay/topup', [SofizPayController::class, 'initTopup']);

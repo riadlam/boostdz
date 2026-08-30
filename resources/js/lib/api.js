@@ -111,6 +111,10 @@ export const checkoutApi = {
     submitCcpReceipt: (formData) => api('/checkout/ccp-receipt', { method: 'POST', body: formData }),
 };
 
+export const walletCheckoutApi = {
+    checkout: (payload) => api('/checkout/wallet', { method: 'POST', body: payload }),
+};
+
 export const depositsApi = {
     list: (params) => api(`/deposits${toQuery(params)}`),
     create: (formData) => api('/deposits', { method: 'POST', body: formData }),

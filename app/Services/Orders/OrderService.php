@@ -12,6 +12,7 @@ use App\Services\BuzzerPanel\BuzzerPanelException;
 use App\Exceptions\MinimumCheckoutException;
 use App\Services\Checkout\CheckoutPolicy;
 use App\Services\Pricing\PricingService;
+use App\Services\Telegram\PaymentTelegramNotifier;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,6 +23,7 @@ class OrderService
     public function __construct(
         private readonly PricingService $pricing,
         private readonly CheckoutPolicy $checkoutPolicy,
+        private readonly PaymentTelegramNotifier $telegram,
     ) {}
 
     /**
@@ -59,7 +61,13 @@ class OrderService
         }
 
         $quote = $this->pricing->quote($service, $quantity);
-        $this->checkoutPolicy->assertMinimumCheckout($quote);
+
+        if (! (bool) ($payload['_skip_minimum_check'] ?? false)) {
+            $this->checkoutPolicy->assertMinimumCheckout($quote);
+        }
+
+        unset($payload['_skip_minimum_check']);
+
         $this->pricing->assertExpectedCharge(
             isset($payload['expected_charge_dzd']) ? (string) $payload['expected_charge_dzd'] : null,
             $quote,
@@ -204,6 +212,10 @@ class OrderService
 
         $order->update($updates);
 
+        if ($changed) {
+            $this->maybeUpdateWalletTelegramStatus($order->fresh(['user.wallet', 'service']), $status);
+        }
+
         return $this->refreshOrder($order, $lightRefresh);
     }
 
@@ -245,6 +257,37 @@ class OrderService
     {
         if (Order::hasBlockingOrderForTarget($user->id, $link)) {
             throw new InvalidArgumentException(__('api.orders.duplicate_target_pending'));
+        }
+    }
+
+    protected function maybeUpdateWalletTelegramStatus(Order $order, OrderStatus $status): void
+    {
+        $meta = is_array($order->payload_meta) ? $order->payload_meta : [];
+
+        if (($meta['payment_method'] ?? null) !== 'wallet') {
+            return;
+        }
+
+        if (! $order->telegram_chat_id || ! $order->telegram_message_id) {
+            return;
+        }
+
+        if (! in_array($status, [
+            OrderStatus::Completed,
+            OrderStatus::Partial,
+            OrderStatus::Failed,
+            OrderStatus::Canceled,
+            OrderStatus::Refunded,
+            OrderStatus::InProgress,
+            OrderStatus::Processing,
+        ], true)) {
+            return;
+        }
+
+        try {
+            $this->telegram->updateWalletOrderMessage($order->fresh(['user.wallet', 'service']), $status->value);
+        } catch (\Throwable) {
+            // Non-blocking delivery notification.
         }
     }
 

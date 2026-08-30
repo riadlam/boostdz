@@ -3,8 +3,10 @@
 namespace App\Services\Telegram;
 
 use App\Models\Deposit;
+use App\Models\Order;
 use App\Models\PaymentSubmission;
 use App\Models\SofizPayTransaction;
+use App\Services\Orders\DeliveryProgress;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -68,6 +70,134 @@ class PaymentTelegramNotifier
             'reply_markup' => $keyboard,
             'disable_web_page_preview' => true,
         ]);
+    }
+
+    public function notifyWalletCheckout(Order $order, string $status = 'placed'): void
+    {
+        if (! $this->enabled()) {
+            return;
+        }
+
+        if ($order->telegram_message_id) {
+            $this->updateWalletOrderMessage($order, $status === 'failed' ? 'failed' : ($order->status?->value ?? 'processing'));
+
+            return;
+        }
+
+        try {
+            $order->loadMissing(['user.wallet', 'service']);
+            $text = $this->buildWalletOrderMessage($order, $status === 'failed' ? 'failed' : 'placed');
+            $result = $this->call('sendMessage', [
+                'chat_id' => (string) config('telegram.payment_admin_chat_id'),
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true,
+            ]);
+
+            if ($result) {
+                $order->update([
+                    'telegram_chat_id' => (string) ($result['chat']['id'] ?? config('telegram.payment_admin_chat_id')),
+                    'telegram_message_id' => isset($result['message_id']) ? (string) $result['message_id'] : null,
+                ]);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Wallet checkout Telegram notify failed.', [
+                'order_id' => $order->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    public function updateWalletOrderMessage(Order $order, string $deliveryStatus): void
+    {
+        if (! $this->enabled()) {
+            return;
+        }
+
+        $text = $this->buildWalletOrderMessage($order, $deliveryStatus);
+
+        if ($order->telegram_chat_id && $order->telegram_message_id) {
+            try {
+                $this->editMessageText($order->telegram_chat_id, $order->telegram_message_id, $text);
+
+                return;
+            } catch (\Throwable $exception) {
+                Log::warning('Wallet order Telegram edit failed; sending fallback.', [
+                    'order_id' => $order->id,
+                    'status' => $deliveryStatus,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            $this->call('sendMessage', [
+                'chat_id' => (string) config('telegram.payment_admin_chat_id'),
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('Wallet order Telegram fallback notify failed.', [
+                'order_id' => $order->id,
+                'status' => $deliveryStatus,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    protected function buildWalletOrderMessage(Order $order, string $deliveryStatus): string
+    {
+        $user = $order->user;
+        $service = $order->service;
+        $amount = number_format((float) $order->charge_dzd, 2).' DA';
+        $balance = number_format((float) ($user?->wallet?->balance ?? 0), 2).' DA';
+        $delivery = DeliveryProgress::fromOrder($order);
+
+        $title = match ($deliveryStatus) {
+            'failed' => '❌ <b>Wallet checkout failed</b>',
+            'completed' => '✅ <b>Wallet order completed</b>',
+            'partial' => '⚠️ <b>Wallet order partial</b>',
+            'canceled', 'refunded' => '⚠️ <b>Wallet order '.$deliveryStatus.'</b>',
+            'placed' => '💼 <b>Wallet checkout placed</b>',
+            default => '📦 <b>Wallet order update</b>',
+        };
+
+        $statusLine = match ($deliveryStatus) {
+            'failed' => 'Status: <b>Failed</b>',
+            'completed' => 'Delivery: <b>Completed</b>',
+            'partial' => 'Delivery: <b>Partial</b>',
+            'canceled' => 'Delivery: <b>Canceled</b>',
+            'refunded' => 'Delivery: <b>Refunded</b>',
+            'placed' => 'Status: <b>Placed — sent to provider</b>',
+            'processing', 'in_progress', 'pending' => 'Delivery: <b>'.e(ucfirst(str_replace('_', ' ', $deliveryStatus))).'</b>',
+            default => 'Delivery: <b>'.e(ucfirst(str_replace('_', ' ', $deliveryStatus))).'</b>',
+        };
+
+        $lines = [
+            $title,
+            'User: '.e($user?->name ?? 'Unknown').' (#'.$order->user_id.')',
+            'Email: '.e($user?->email ?? '—'),
+            'Service: '.e($service?->name ?? ('#'.$order->service_id)),
+            'Qty: '.number_format((int) $order->quantity),
+            'Amount: <b>'.$amount.'</b>',
+            'Target: '.e($order->link),
+            'Order: #'.$order->id,
+            'Method: Wallet',
+            'Balance after charge: <b>'.$balance.'</b>',
+        ];
+
+        if ($deliveryStatus !== 'failed' && $deliveryStatus !== 'placed') {
+            $lines[] = 'Progress: <b>'.$delivery->percent.'%</b> · '.$delivery->label;
+        }
+
+        if ($deliveryStatus === 'failed' && $order->error_message) {
+            $lines[] = 'Reason: '.e($order->error_message);
+        }
+
+        $lines[] = $statusLine;
+
+        return implode("\n", $lines);
     }
 
     /**

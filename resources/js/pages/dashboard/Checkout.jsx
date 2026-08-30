@@ -21,7 +21,7 @@ import { CountryFlag, countryLabel } from '../../components/CountryFlag';
 import MinimumCheckoutModal from '../../components/MinimumCheckoutModal';
 import PaymentMethodPicker from '../../components/dashboard/PaymentMethodPicker';
 import { useAuth } from '../../context/AuthContext';
-import { ApiError, ordersApi, sofizpayApi } from '../../lib/api';
+import { ApiError, sofizpayApi, walletCheckoutApi } from '../../lib/api';
 import {
     fetchCheckoutSettings,
     isBelowMinimum,
@@ -157,7 +157,18 @@ export default function Checkout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { refreshUser, user } = useAuth();
-    const paymentOptions = useMemo(() => getPaymentOptions(t, 'checkout'), [t]);
+    const paymentOptions = useMemo(
+        () =>
+            getPaymentOptions(t, 'checkout', {
+                walletBalance: Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0),
+                orderCharge: roundDzd(draft?.charge || 0),
+                formatMoney: formatDzd,
+            }),
+        [t, user?.wallet?.available_balance, user?.wallet?.balance, draft?.charge],
+    );
+    const walletBalance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
+    const orderCharge = roundDzd(draft?.charge || 0);
+    const canPayWithWallet = walletBalance >= orderCharge && orderCharge > 0;
     const draft = useMemo(() => location.state?.draft || loadCheckoutDraft(), [location.state]);
     const [method, setMethod] = useState('algerie-post');
     const [phone, setPhone] = useState('');
@@ -189,7 +200,7 @@ export default function Checkout() {
                     return;
                 }
 
-                if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd)) {
+                if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd) && !canPayWithWallet) {
                     setMinimumModal({
                         charge: roundDzd(draft.charge),
                         minimum: settings.minimum_amount_dzd,
@@ -205,7 +216,7 @@ export default function Checkout() {
         return () => {
             active = false;
         };
-    }, [draft?.charge]);
+    }, [draft?.charge, canPayWithWallet]);
 
     const importantRules = useMemo(() => {
         if (!draft) return [];
@@ -233,59 +244,20 @@ export default function Checkout() {
             </div>
         );
     }
-    async function placeOrderViaApi(paymentMethod) {
-        const payload = {
-            service_id: draft.serviceId,
-            link: draft.link,
-            quantity: Number(draft.quantity),
-            is_repeat: Boolean(draft.isRepeat),
-            idempotency_key: newIdempotencyKey(),
-            expected_charge_dzd: roundDzd(draft.charge || 0),
-            country: draft.countryCode || undefined,
-            quality: draft.qualityTier || undefined,
-            comments: draft.comments || undefined,
-            meta: {
-                payment_method: paymentMethod,
-                checkout_demo: paymentMethod === 'algerie-post',
-                platform_slug: draft.platformSlug || null,
-                category_slug: draft.categorySlug || null,
-            },
-        };
-
-        const data = await ordersApi.create(payload);
-        const order = data?.order?.data ?? data?.order;
-
-        if (!order) {
-            throw new Error('Order response was empty.');
-        }
-
-        if (order.status === 'failed') {
-            throw new ApiError(order.error_message || 'Provider rejected the order.', { status: 422 });
-        }
-
-        await refreshUser();
-        clearCheckoutDraft();
-        navigate('/dashboard/orders/history', {
-            state: {
-                placedOrderId: order.id,
-                placedStatus: order.status,
-            },
-            replace: true,
-        });
-    }
-
     async function onContinue(event) {
         event.preventDefault();
         if (!method || submitting) return;
         setFormError('');
 
-        if (minimumModal) {
+        const walletBypassMinimum = method === 'wallet' && canPayWithWallet;
+
+        if (minimumModal && !walletBypassMinimum) {
             return;
         }
 
         try {
             const settings = await fetchCheckoutSettings();
-            if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd)) {
+            if (isBelowMinimum(draft.charge, settings.minimum_amount_dzd) && !walletBypassMinimum) {
                 setMinimumModal({
                     charge: roundDzd(draft.charge),
                     minimum: settings.minimum_amount_dzd,
@@ -294,6 +266,63 @@ export default function Checkout() {
             }
         } catch {
             // Server enforces the minimum if settings cannot be loaded.
+        }
+
+        if (method === 'wallet') {
+            if (!canPayWithWallet) {
+                setFormError(t('payment.walletInsufficient', { ns: 'checkout' }));
+                return;
+            }
+
+            setSubmitting(true);
+            try {
+                const data = await walletCheckoutApi.checkout({
+                    service_id: draft.serviceId,
+                    link: draft.link,
+                    quantity: Number(draft.quantity),
+                    is_repeat: Boolean(draft.isRepeat),
+                    idempotency_key: newIdempotencyKey(),
+                    expected_charge_dzd: roundDzd(draft.charge || 0),
+                    country: draft.countryCode || undefined,
+                    quality: draft.qualityTier || undefined,
+                    comments: draft.comments || undefined,
+                    platform_slug: draft.platformSlug || undefined,
+                    category_slug: draft.categorySlug || undefined,
+                });
+                const order = data?.order?.data ?? data?.order;
+
+                if (!order) {
+                    throw new Error(t('uploadError'));
+                }
+
+                if (order.status === 'failed') {
+                    throw new ApiError(order.error_message || t('payment.walletOrderFailed', { ns: 'checkout' }), { status: 422 });
+                }
+
+                await refreshUser();
+                clearCheckoutDraft();
+                navigate('/dashboard/orders/history', {
+                    state: {
+                        paymentNotice: {
+                            type: 'success',
+                            title: t('payment.walletSuccessTitle', { ns: 'checkout' }),
+                            subtitle: t('payment.orderPlacedAfterPay', { ns: 'checkout', id: order.id }),
+                        },
+                    },
+                    replace: true,
+                });
+            } catch (error) {
+                if (isMinimumCheckoutError(error)) {
+                    setMinimumModal(minimumCheckoutFromError(error));
+                } else if (error instanceof ApiError) {
+                    setFormError(error.message);
+                } else {
+                    setFormError(error?.message || t('uploadError'));
+                }
+            } finally {
+                setSubmitting(false);
+            }
+            return;
         }
 
         if (method === 'ccp-baridimob') {
@@ -444,6 +473,15 @@ export default function Checkout() {
                     options={paymentOptions}
                 />
 
+                {method === 'wallet' ? (
+                    <div className="rounded-xl border border-violet-500/25 bg-violet-500/8 px-4 py-3 text-sm text-violet-950 dark:text-violet-100">
+                        <p className="font-medium">{t('payment.walletPayNote', { ns: 'checkout', amount: formatDzd(orderCharge) })}</p>
+                        <p className="mt-1 text-xs opacity-90">
+                            {t('payment.walletBalanceNote', { ns: 'checkout', balance: formatDzd(walletBalance) })}
+                        </p>
+                    </div>
+                ) : null}
+
                 {method === 'algerie-post' ? (
                     <div className="space-y-1.5">
                         <label htmlFor="checkout-phone" className="text-xs font-medium text-muted-foreground">
@@ -479,13 +517,24 @@ export default function Checkout() {
 
                 <button
                     type="submit"
-                    disabled={!method || submitting || Boolean(minimumModal) || (method === 'algerie-post' && !phone.trim())}
+                    disabled={
+                        !method
+                        || submitting
+                        || (minimumModal && !(method === 'wallet' && canPayWithWallet))
+                        || (method === 'algerie-post' && !phone.trim())
+                        || (method === 'wallet' && !canPayWithWallet)
+                    }
                     className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_1px_2px_0_rgba(14,18,27,0.24),0_0_0_1px_var(--color-primary)] transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-45"
                 >
                     {submitting ? (
                         <>
                             <LoaderCircle className="size-4 animate-spin" />
                             {t('placingOrder')}
+                        </>
+                    ) : method === 'wallet' ? (
+                        <>
+                            {t('payment.payFromWallet', { ns: 'checkout', amount: formatDzd(orderCharge) })}
+                            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
                         </>
                     ) : method === 'algerie-post' ? (
                         <>
