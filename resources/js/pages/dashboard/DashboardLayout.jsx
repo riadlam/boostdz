@@ -132,12 +132,6 @@ function SidebarFooter() {
     const [loggingOut, setLoggingOut] = useState(false);
 
     const name = user?.name || t('userFallback');
-    const initials = name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('') || 'U';
     const balance = Number(user?.wallet?.available_balance ?? user?.wallet?.balance ?? 0);
 
     async function handleLogout() {
@@ -154,9 +148,6 @@ function SidebarFooter() {
         <div className="mt-auto border-t border-[var(--color-dash-border)] p-2">
             <div className="space-y-2 rounded-lg p-2 hover:bg-[var(--color-dash-row-hover)]">
                 <div className="flex items-center gap-2">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-                        {initials}
-                    </div>
                     <div className="min-w-0 flex-1">
                         <span className="block truncate text-[0.9375rem] font-semibold">{name}</span>
                     </div>

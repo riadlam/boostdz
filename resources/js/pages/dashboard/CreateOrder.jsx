@@ -42,6 +42,7 @@ import {
 } from '../../lib/orderRules';
 import { getCategoryIcon } from '../../lib/categoryIcons';
 import { buildFacebookReactionOptions, facebookReactionLabel } from '../../lib/facebookReactions';
+import { scrollToFirstFormError } from '../../lib/formScroll';
 import { filterCatalogEntries, getPlatformIcon } from '../../lib/platformIcons';
 
 const EMPTY_FILTERS = {
@@ -1140,8 +1141,18 @@ export default function CreateOrder() {
         } else if (useCustomComments && requiresCustomComments && !commentValidation.ok) {
             next.comments = commentValidation.message;
         }
+
+        if (next.comments) {
+            setDeliverySettingsOpen(true);
+            setSettingsRowOpen('comments');
+        }
+
         setErrors(next);
-        return Object.keys(next).length === 0;
+        if (Object.keys(next).length > 0) {
+            scrollToFirstFormError(next, { formErrorSelector: '[data-form-error-banner]' });
+            return false;
+        }
+        return true;
     }
 
     async function onCheckout(event) {
@@ -1185,17 +1196,20 @@ export default function CreateOrder() {
         try {
             const targetCheck = await ordersApi.checkTarget(draft.link);
             if (!targetCheck?.available) {
+                const message = targetCheck?.message || t('duplicateTargetPending', { ns: 'validation' });
                 setErrors((current) => ({
                     ...current,
-                    link: targetCheck?.message || t('duplicateTargetPending', { ns: 'validation' }),
+                    link: message,
                 }));
-                setFormError(targetCheck?.message || t('duplicateTargetPending', { ns: 'validation' }));
+                setFormError(message);
+                scrollToFirstFormError({ link: message }, { formErrorSelector: '[data-form-error-banner]' });
                 return;
             }
         } catch (error) {
             if (error instanceof ApiError && error.message) {
                 setErrors((current) => ({ ...current, link: error.message }));
                 setFormError(error.message);
+                scrollToFirstFormError({ link: error.message }, { formErrorSelector: '[data-form-error-banner]' });
                 return;
             }
         }
@@ -1232,7 +1246,7 @@ export default function CreateOrder() {
 
             <form className="w-full space-y-2" onSubmit={onCheckout}>
                 {formError ? (
-                    <div role="alert" className="rounded-md border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-300">
+                    <div data-form-error-banner role="alert" className="rounded-md border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-300">
                         {formError}
                     </div>
                 ) : null}
@@ -1243,7 +1257,7 @@ export default function CreateOrder() {
                         <div className="space-y-1.5">
                             <FieldLabel required>{t('categoryProduct')}</FieldLabel>
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                                <div className="relative min-w-0">
+                                <div className="relative min-w-0" data-form-field="platform">
                                     <SelectButton
                                         open={openMenu === 'platform'}
                                         disabled={loadingPlatforms || platforms.length === 0}
@@ -1271,7 +1285,7 @@ export default function CreateOrder() {
                                     </Dropdown>
                                 </div>
 
-                                <div className="relative min-w-0 sm:col-span-2">
+                                <div className="relative min-w-0 sm:col-span-2" data-form-field="category">
                                     <SelectButton
                                         open={openMenu === 'category'}
                                         disabled={loadingCategories || categories.length === 0}
@@ -1301,7 +1315,7 @@ export default function CreateOrder() {
                             </div>
                         </div>
 
-                        <div className="grid min-w-0 gap-2">
+                        <div className="grid min-w-0 gap-2" data-form-field="service">
                             <FieldLabel required>{t('servicePackage')}</FieldLabel>
                             <div className="relative min-w-0">
                                 <SelectButton
@@ -1382,7 +1396,7 @@ export default function CreateOrder() {
                             ) : null}
                         </div>
 
-                        <div className="grid min-w-0 gap-2">
+                        <div className="grid min-w-0 gap-2" data-form-field="quantity">
                             <FieldLabel required>{t('amount')}</FieldLabel>
                             {customMode || !selectedService ? (
                                 <input
@@ -1458,7 +1472,7 @@ export default function CreateOrder() {
                             {errors.quantity ? <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.quantity}</p> : null}
                         </div>
 
-                        <div className="grid min-w-0 gap-2">
+                        <div className="grid min-w-0 gap-2" data-form-field="link">
                             <FieldLabel required>{target.label}</FieldLabel>
                             <div className="group relative">
                                 <input
@@ -1553,6 +1567,7 @@ export default function CreateOrder() {
                                     </SettingsRow>
 
                                     {showCustomCommentsSettings ? (
+                                        <div data-form-field="comments">
                                         <SettingsRow
                                             icon={MessageCircle}
                                             title={t('customComments')}
@@ -1666,6 +1681,7 @@ export default function CreateOrder() {
                                                 )}
                                             </div>
                                         </SettingsRow>
+                                        </div>
                                     ) : null}
 
                                     {showQualitySettings ? (
