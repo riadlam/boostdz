@@ -84,6 +84,34 @@
     "platformsHighlight": "Instagram, TikTok, YouTube, X et Facebook",
     "reviewsLabel": "avis",
     "metaLine": "{{startingAt}} {{price}} · {{reviews}} {{reviewsLabel}}",
+    "demoTweetDate": "10:05 · 19 déc. 2020",
+    "demoTweets": [
+      {
+        "user": "Amira B.",
+        "handle": "@amira_bsk",
+        "text": "J'ai commandé mes likes X sur BOOSTDZ, livraison rapide et résultat top !"
+      },
+      {
+        "user": "Karim DZ",
+        "handle": "@karim_dz",
+        "text": "BOOSTDZ m'a aidé à booster ma page, je recommande à tous les créateurs algériens."
+      },
+      {
+        "user": "Sofia M.",
+        "handle": "@sofia_mgh",
+        "text": "Mes tweets ont enfin de la visibilité grâce à BOOSTDZ, vraiment satisfaite."
+      },
+      {
+        "user": "Yacine A.",
+        "handle": "@yacine_alg",
+        "text": "Service sérieux, paiement en DA et likes réels — BOOSTDZ c'est du solide."
+      },
+      {
+        "user": "Nadia R.",
+        "handle": "@nadia_rsk",
+        "text": "Mon profil X décolle depuis que j'utilise BOOSTDZ, merci l'équipe !"
+      }
+    ],
     "cards": [
       {
         "id": "instagram",

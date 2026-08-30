@@ -84,6 +84,34 @@
     "platformsHighlight": "Instagram, TikTok, YouTube, X, and Facebook",
     "reviewsLabel": "reviews",
     "metaLine": "{{startingAt}} {{price}} · {{reviews}} {{reviewsLabel}}",
+    "demoTweetDate": "10:05 AM · Dec 19, 2020",
+    "demoTweets": [
+      {
+        "user": "Rosa Becty",
+        "handle": "@rosabecty",
+        "text": "Just got my Twitter likes from BOOSTDZ, truly satisfied!"
+      },
+      {
+        "user": "Ada Lovelace",
+        "handle": "@adalovelace",
+        "text": "Ordered my X likes on BOOSTDZ, what a game changer!"
+      },
+      {
+        "user": "Jorge Nortan",
+        "handle": "@jorgenortan",
+        "text": "BOOSTDZ made my Twitter game strong, really happy!"
+      },
+      {
+        "user": "Isaac Newton",
+        "handle": "@isaacnewton",
+        "text": "Boosted my social media through BOOSTDZ, so worth it!"
+      },
+      {
+        "user": "Peter Izac",
+        "handle": "@peterizac",
+        "text": "My X profile is soaring thanks to BOOSTDZ!"
+      }
+    ],
     "cards": [
       {
         "id": "instagram",

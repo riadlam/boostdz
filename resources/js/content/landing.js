@@ -63,12 +63,3 @@ export const faqs = [
         ],
     },
 ];
-
-/** Decorative demo tweets for the X/Twitter platform card ticker. */
-export const tweets = [
-    { user: 'Rosa Becty', handle: '@rosabecty', text: 'Just got my Twitter likes from BOOSTDZ, truly satisfied!' },
-    { user: 'Ada Lovelace', handle: '@adalovelace', text: 'Ordered my X likes on BOOSTDZ, what a game changer!' },
-    { user: 'Jorge Nortan', handle: '@jorgenortan', text: 'BOOSTDZ made my Twitter game strong, really happy!' },
-    { user: 'Isaac Newton', handle: '@isaacnewton', text: 'Boosted my social media through BOOSTDZ, so worth it!' },
-    { user: 'Peter Izac', handle: '@peterizac', text: 'My X profile is soaring thanks to BOOSTDZ!' },
-];

@@ -84,6 +84,34 @@
     "platformsHighlight": "Instagram وTikTok وYouTube وX وFacebook",
     "reviewsLabel": "تقييم",
     "metaLine": "{{startingAt}} {{price}} · {{reviews}} {{reviewsLabel}}",
+    "demoTweetDate": "10:05 ص · 19 ديسمبر 2020",
+    "demoTweets": [
+      {
+        "user": "أميرة ب.",
+        "handle": "@amira_bsk",
+        "text": "طلبت إعجابات X من BOOSTDZ، توصيل سريع ونتيجة ممتازة!"
+      },
+      {
+        "user": "كريم الجزائر",
+        "handle": "@karim_dz",
+        "text": "BOOSTDZ ساعدني أطور حسابي، أنصح به كل صانع محتوى جزائري."
+      },
+      {
+        "user": "صفية م.",
+        "handle": "@sofia_mgh",
+        "text": "تغريداتي صارت تصل لجمهور أكبر بفضل BOOSTDZ، راضية جداً."
+      },
+      {
+        "user": "ياسين ع.",
+        "handle": "@yacine_alg",
+        "text": "خدمة موثوقة، دفع بالدينار وإعجابات حقيقية — BOOSTDZ يستاهل."
+      },
+      {
+        "user": "نادية ر.",
+        "handle": "@nadia_rsk",
+        "text": "حسابي على X بدأ ينمو منذ ما استخدمت BOOSTDZ، شكراً للفريق!"
+      }
+    ],
     "cards": [
       {
         "id": "instagram",
