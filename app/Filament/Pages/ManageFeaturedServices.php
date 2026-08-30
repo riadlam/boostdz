@@ -10,8 +10,8 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -44,9 +44,6 @@ class ManageFeaturedServices extends Page implements HasTable
 
     public bool $needsMigration = false;
 
-    /** @var array<int, array<string, string>> */
-    protected array $serviceOptionsByCategory = [];
-
     public function mount(): void
     {
         if (! Schema::hasColumn('catalog_categories', 'featured_service_id')) {
@@ -66,7 +63,6 @@ class ManageFeaturedServices extends Page implements HasTable
     public function selectPlatform(string $slug): void
     {
         $this->platformSlug = $slug;
-        $this->serviceOptionsByCategory = [];
         $this->resetTable();
     }
 
@@ -104,14 +100,50 @@ class ManageFeaturedServices extends Page implements HasTable
                 TextColumn::make('active_services_count')
                     ->label('Active services')
                     ->numeric(),
-                ViewColumn::make('featured_service_id')
+                SelectColumn::make('featured_service_id')
                     ->label('Featured service')
-                    ->width('20rem')
-                    ->extraCellAttributes(['class' => 'align-top'])
-                    ->view('filament.tables.columns.featured-service-select')
-                    ->viewData(fn (CatalogCategory $record): array => [
-                        'options' => $this->getServiceOptionsForCategory($record),
-                    ]),
+                    ->placeholder('— None —')
+                    ->native(false)
+                    ->searchableOptions()
+                    ->optionsLimit(50)
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        if (blank($value)) {
+                            return null;
+                        }
+
+                        $service = Service::query()->find((int) $value);
+
+                        if (! $service) {
+                            return '#'.$value;
+                        }
+
+                        return '#'.$service->id.' · '.$service->name;
+                    })
+                    ->getOptionsSearchResultsUsing(function (string $search, CatalogCategory $record): array {
+                        return Service::query()
+                            ->where('catalog_category_id', $record->id)
+                            ->where('is_active', true)
+                            ->when(filled($search), function (Builder $query) use ($search): void {
+                                $query->where(function (Builder $inner) use ($search): void {
+                                    $inner->where('name', 'like', '%'.$search.'%');
+
+                                    if (ctype_digit($search)) {
+                                        $inner->orWhere('id', (int) $search);
+                                    }
+                                });
+                            })
+                            ->orderBy('sort_order')
+                            ->orderBy('name')
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn (Service $service): array => [
+                                (string) $service->id => '#'.$service->id.' · '.$service->name,
+                            ])
+                            ->all();
+                    })
+                    ->afterStateUpdated(function (mixed $state, CatalogCategory $record) use ($health): void {
+                        $this->saveFeaturedSelection($record, $state, $health);
+                    }),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -127,20 +159,6 @@ class ManageFeaturedServices extends Page implements HasTable
                         default => 'danger',
                     }),
             ]);
-    }
-
-    public function updateFeaturedService(int $categoryId, mixed $serviceId): void
-    {
-        $record = CatalogCategory::query()->findOrFail($categoryId);
-        $health = app(FeaturedServiceHealth::class);
-
-        $this->saveFeaturedSelection(
-            $record,
-            filled($serviceId) ? $serviceId : null,
-            $health,
-        );
-
-        $this->serviceOptionsByCategory = [];
     }
 
     protected function getCategoriesQuery(): Builder
@@ -164,58 +182,6 @@ class ManageFeaturedServices extends Page implements HasTable
             ->orderBy('catalog_categories.sort_order')
             ->orderBy('catalog_categories.name')
             ->select('catalog_categories.*');
-    }
-
-    /** @return array<string, string> */
-    protected function getServiceOptionsForCategory(CatalogCategory $category): array
-    {
-        $categoryId = $category->id;
-
-        if (isset($this->serviceOptionsByCategory[$categoryId])) {
-            return $this->serviceOptionsByCategory[$categoryId];
-        }
-
-        $options = Service::query()
-            ->where('catalog_category_id', $categoryId)
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->limit(250)
-            ->get()
-            ->mapWithKeys(fn (Service $service): array => [
-                (string) $service->id => '#'.$service->id.' · '.$service->name,
-            ])
-            ->all();
-
-        $selectedId = $category->featured_service_id;
-
-        if ($selectedId !== null) {
-            $selectedKey = (string) $selectedId;
-
-            if (! array_key_exists($selectedKey, $options)) {
-                $selected = $category->relationLoaded('featuredService')
-                    ? $category->featuredService
-                    : Service::query()->find($selectedId);
-
-                if ($selected) {
-                    $suffix = '';
-
-                    if (! $selected->is_active) {
-                        $suffix = ' (inactive)';
-                    } elseif ($selected->catalog_category_id !== $categoryId) {
-                        $suffix = ' (wrong category)';
-                    }
-
-                    $options[$selectedKey] = '#'.$selectedId.' · '.$selected->name.$suffix;
-                }
-            }
-        }
-
-        ksort($options, SORT_NUMERIC);
-
-        $this->serviceOptionsByCategory[$categoryId] = $options;
-
-        return $this->serviceOptionsByCategory[$categoryId];
     }
 
     protected function saveFeaturedSelection(CatalogCategory $record, mixed $state, FeaturedServiceHealth $health): void
