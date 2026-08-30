@@ -85,6 +85,318 @@
     "women": "Femmes",
     "men": "Hommes"
   },
+  "targetFields": {
+    "instagram": {
+      "followers": {
+        "label": "Profil ou nom d'utilisateur Instagram",
+        "hint": "Entrez @username ou l'URL du profil public. Le compte doit être public.",
+        "placeholder": "https://www.instagram.com/username"
+      },
+      "likes": {
+        "label": "URL publication ou Reel Instagram",
+        "hint": "Collez le lien exact de la publication ou du Reel — pas un profil.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "views": {
+        "label": "URL Reel ou vidéo Instagram",
+        "hint": "Collez le lien du Reel ou de la vidéo à booster.",
+        "placeholder": "https://www.instagram.com/reel/..."
+      },
+      "comments": {
+        "label": "URL publication Instagram",
+        "hint": "Collez le lien de la publication pour les commentaires.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "stories": {
+        "label": "URL profil Instagram",
+        "hint": "Collez le lien du profil public pour les services Story.",
+        "placeholder": "https://www.instagram.com/username"
+      },
+      "saves": {
+        "label": "URL publication Instagram",
+        "hint": "Collez le lien de la publication pour les enregistrements.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "reach": {
+        "label": "URL publication Instagram",
+        "hint": "Collez le lien de la publication pour la portée ou les impressions.",
+        "placeholder": "https://www.instagram.com/p/..."
+      }
+    },
+    "tiktok": {
+      "followers": {
+        "label": "URL profil TikTok",
+        "hint": "Collez le lien du profil public TikTok ou @username.",
+        "placeholder": "https://www.tiktok.com/@username"
+      },
+      "likes": {
+        "label": "URL vidéo TikTok",
+        "hint": "Collez le lien exact de la vidéo — pas un profil.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "views": {
+        "label": "URL vidéo TikTok",
+        "hint": "Collez le lien de la vidéo à booster en vues.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "comments": {
+        "label": "URL vidéo TikTok",
+        "hint": "Collez le lien de la vidéo pour les commentaires.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "shares": {
+        "label": "URL vidéo TikTok",
+        "hint": "Collez le lien de la vidéo pour les partages.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      }
+    },
+    "youtube": {
+      "followers": {
+        "label": "URL chaîne YouTube",
+        "hint": "Collez le lien de votre chaîne publique — pas une vidéo.",
+        "placeholder": "https://www.youtube.com/@channel"
+      },
+      "views": {
+        "label": "URL vidéo YouTube",
+        "hint": "Collez le lien exact de la vidéo à booster.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      },
+      "likes": {
+        "label": "URL vidéo YouTube",
+        "hint": "Collez le lien de la vidéo pour les likes.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      },
+      "comments": {
+        "label": "URL vidéo YouTube",
+        "hint": "Collez le lien de la vidéo pour les commentaires.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      }
+    },
+    "facebook": {
+      "followers": {
+        "label": "URL profil Facebook",
+        "hint": "Collez le lien du profil public pour les abonnés.",
+        "placeholder": "https://www.facebook.com/username"
+      },
+      "friends": {
+        "label": "URL profil Facebook",
+        "hint": "Collez le lien du profil public.",
+        "placeholder": "https://www.facebook.com/username"
+      },
+      "members": {
+        "label": "URL groupe Facebook",
+        "hint": "Collez le lien du groupe public pour les membres.",
+        "placeholder": "https://www.facebook.com/groups/..."
+      },
+      "page_likes": {
+        "label": "URL page Facebook",
+        "hint": "Collez le lien de la page — pas un profil personnel.",
+        "placeholder": "https://www.facebook.com/pagename"
+      },
+      "likes": {
+        "label": "URL publication Facebook",
+        "hint": "Collez le lien exact de la publication pour les likes ou réactions.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "views": {
+        "label": "URL vidéo ou Reel Facebook",
+        "hint": "Collez le lien de la vidéo ou du Reel à booster.",
+        "placeholder": "https://www.facebook.com/reel/..."
+      },
+      "comments": {
+        "label": "URL publication Facebook",
+        "hint": "Collez le lien de la publication pour les commentaires.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "shares": {
+        "label": "URL publication Facebook",
+        "hint": "Collez le lien de la publication pour les partages.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "stories": {
+        "label": "URL story ou publication Facebook",
+        "hint": "Collez le lien de la story ou publication pour les réactions.",
+        "placeholder": "https://www.facebook.com/stories/..."
+      },
+      "reactions": {
+        "label": "URL publication Facebook",
+        "hint": "Collez le lien de la publication pour les réactions.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      }
+    },
+    "twitter": {
+      "followers": {
+        "label": "URL profil X",
+        "hint": "Collez le lien du profil public ou @username.",
+        "placeholder": "https://x.com/username"
+      },
+      "likes": {
+        "label": "URL du tweet",
+        "hint": "Collez le lien exact du tweet — pas un profil.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "views": {
+        "label": "URL du tweet",
+        "hint": "Collez le lien du tweet à booster en vues.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "comments": {
+        "label": "URL du tweet",
+        "hint": "Collez le lien du tweet pour les réponses.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "shares": {
+        "label": "URL du tweet",
+        "hint": "Collez le lien du tweet pour les retweets.",
+        "placeholder": "https://x.com/user/status/..."
+      }
+    },
+    "telegram": {
+      "members": {
+        "label": "URL chaîne ou groupe Telegram",
+        "hint": "Collez le lien public de la chaîne ou du groupe.",
+        "placeholder": "https://t.me/channelname"
+      },
+      "views": {
+        "label": "URL publication Telegram",
+        "hint": "Collez le lien de la publication à booster en vues.",
+        "placeholder": "https://t.me/channelname/123"
+      },
+      "reactions": {
+        "label": "URL publication Telegram",
+        "hint": "Collez le lien de la publication pour les réactions.",
+        "placeholder": "https://t.me/channelname/123"
+      }
+    },
+    "threads": {
+      "followers": {
+        "label": "URL profil Threads",
+        "hint": "Collez le lien du profil Threads public.",
+        "placeholder": "https://www.threads.net/@username"
+      },
+      "likes": {
+        "label": "URL publication Threads",
+        "hint": "Collez le lien exact de la publication.",
+        "placeholder": "https://www.threads.net/@user/post/..."
+      }
+    },
+    "spotify": {
+      "followers": {
+        "label": "URL artiste ou profil Spotify",
+        "hint": "Collez le lien de l'artiste ou du profil.",
+        "placeholder": "https://open.spotify.com/artist/..."
+      },
+      "plays": {
+        "label": "URL morceau ou album Spotify",
+        "hint": "Collez le lien du morceau ou de l'album à booster.",
+        "placeholder": "https://open.spotify.com/track/..."
+      }
+    },
+    "linkedin": {
+      "followers": {
+        "label": "URL page ou profil LinkedIn",
+        "hint": "Collez le lien de la page entreprise ou du profil.",
+        "placeholder": "https://www.linkedin.com/company/..."
+      },
+      "likes": {
+        "label": "URL publication LinkedIn",
+        "hint": "Collez le lien de la publication à engager.",
+        "placeholder": "https://www.linkedin.com/posts/..."
+      }
+    },
+    "_default": {
+      "followers": {
+        "label": "URL profil ou nom d'utilisateur",
+        "hint": "Entrez le lien du profil public ou le nom d'utilisateur.",
+        "placeholder": "@username"
+      },
+      "likes": {
+        "label": "URL publication",
+        "hint": "Collez le lien exact de la publication attendu.",
+        "placeholder": "https://…"
+      },
+      "views": {
+        "label": "URL vidéo ou média",
+        "hint": "Collez le lien de la vidéo ou du média à booster.",
+        "placeholder": "https://…"
+      },
+      "comments": {
+        "label": "URL publication",
+        "hint": "Collez le lien de la publication pour les commentaires.",
+        "placeholder": "https://…"
+      },
+      "stories": {
+        "label": "URL profil ou story",
+        "hint": "Collez le lien du profil ou de la story requis.",
+        "placeholder": "https://…"
+      },
+      "shares": {
+        "label": "URL publication",
+        "hint": "Collez le lien de la publication pour les partages.",
+        "placeholder": "https://…"
+      },
+      "members": {
+        "label": "URL groupe ou chaîne",
+        "hint": "Collez le lien public du groupe ou de la chaîne.",
+        "placeholder": "https://…"
+      },
+      "page_likes": {
+        "label": "URL page",
+        "hint": "Collez le lien de la page — pas un profil personnel.",
+        "placeholder": "https://…"
+      },
+      "friends": {
+        "label": "URL profil",
+        "hint": "Collez le lien du profil public.",
+        "placeholder": "https://…"
+      },
+      "saves": {
+        "label": "URL publication",
+        "hint": "Collez le lien de la publication pour les enregistrements.",
+        "placeholder": "https://…"
+      },
+      "reach": {
+        "label": "URL publication",
+        "hint": "Collez le lien de la publication pour la portée.",
+        "placeholder": "https://…"
+      },
+      "impressions": {
+        "label": "URL publication",
+        "hint": "Collez le lien de la publication pour les impressions.",
+        "placeholder": "https://…"
+      },
+      "engagement": {
+        "label": "URL publication ou profil",
+        "hint": "Collez le lien requis par ce service d'engagement.",
+        "placeholder": "https://…"
+      },
+      "traffic": {
+        "label": "URL du site web",
+        "hint": "Collez l'URL du site à recevoir du trafic.",
+        "placeholder": "https://example.com"
+      },
+      "plays": {
+        "label": "URL morceau ou média",
+        "hint": "Collez le lien du morceau ou du média à booster.",
+        "placeholder": "https://…"
+      },
+      "reactions": {
+        "label": "URL publication",
+        "hint": "Collez le lien de la publication pour les réactions.",
+        "placeholder": "https://…"
+      },
+      "other": {
+        "label": "Lien cible",
+        "hint": "Collez le lien ou la cible exacte requis par ce service.",
+        "placeholder": "https://…"
+      },
+      "_default": {
+        "label": "Lien / cible",
+        "hint": "Collez le lien ou la cible exacte requis par ce service.",
+        "placeholder": "https://…"
+      }
+    }
+  },
   "linkTypes": {
     "username": "Nom d'utilisateur / profil",
     "usernameHint": "Entrez uniquement le nom d'utilisateur public — pas un compte privé.",

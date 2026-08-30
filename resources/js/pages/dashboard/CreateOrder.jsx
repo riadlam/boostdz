@@ -33,6 +33,7 @@ import { ApiError, catalogApi, ordersApi } from '../../lib/api';
 import { fetchCheckoutSettings, isBelowMinimum } from '../../lib/checkoutPolicy';
 import { cn } from '../../lib/cn';
 import { chargeForService, formatDzd, roundDzd } from '../../lib/formatMoney';
+import { getTargetFieldMeta } from '../../lib/targetFieldMeta';
 import {
     formatCommentsForApi,
     isCustomCommentsPackage,
@@ -356,29 +357,6 @@ function quantityPresets(min, max) {
     const candidates = [min, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, max];
     const unique = [...new Set(candidates.filter((n) => n >= min && n <= max))];
     return unique.sort((a, b) => a - b).slice(0, 10);
-}
-
-function targetHint(service, categorySlug, t) {
-    const hay = `${service?.name || ''} ${service?.type || ''} ${service?.description || ''} ${categorySlug || ''}`.toLowerCase();
-    if (hay.includes('follower') || hay.includes('subscribe') || hay.includes('member')) {
-        return {
-            label: t('linkTypes.username'),
-            placeholder: t('placeholderUsername', { defaultValue: 'username' }),
-            hint: t('linkTypes.usernameHint'),
-        };
-    }
-    if (hay.includes('comment') || hay.includes('like') || hay.includes('view') || hay.includes('reaction')) {
-        return {
-            label: t('linkTypes.postUrl'),
-            placeholder: t('placeholderUrl', { defaultValue: 'https://…' }),
-            hint: t('linkTypes.postUrlHint'),
-        };
-    }
-    return {
-        label: t('linkTypes.linkTarget'),
-        placeholder: t('placeholderUrl', { defaultValue: 'https://…' }),
-        hint: t('linkTypes.linkTargetHint'),
-    };
 }
 
 function serviceBadges(service, t) {
@@ -726,8 +704,16 @@ export default function CreateOrder() {
         [selectedService],
     );
     const target = useMemo(
-        () => targetHint(selectedService, selectedCategory?.slug, t),
-        [selectedService, selectedCategory?.slug, t],
+        () =>
+            getTargetFieldMeta(
+                {
+                    platformSlug,
+                    categorySlug: selectedCategory?.slug,
+                    service: selectedService,
+                },
+                t,
+            ),
+        [platformSlug, selectedCategory?.slug, selectedService, t],
     );
     const charge = useMemo(() => chargeFor(selectedService, quantity), [selectedService, quantity]);
     const commentLines = useMemo(() => parseCommentLines(customCommentsText), [customCommentsText]);
@@ -1188,6 +1174,7 @@ export default function CreateOrder() {
             categoryName: selectedCategory?.name || '',
             quantity,
             link: link.trim(),
+            targetLabel: target.label,
             charge: roundDzd(charge),
             isRepeat,
             countryCode: selectedService.country_code || null,
@@ -1510,6 +1497,10 @@ export default function CreateOrder() {
                             {errors.link ? (
                                 <p className="text-xs font-medium text-red-600 dark:text-red-400">
                                     {Array.isArray(errors.link) ? errors.link[0] : errors.link}
+                                </p>
+                            ) : target.hint ? (
+                                <p className="text-xs text-muted-foreground" dir="auto">
+                                    {target.hint}
                                 </p>
                             ) : null}
                         </div>

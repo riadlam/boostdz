@@ -85,6 +85,318 @@
     "women": "نساء",
     "men": "رجال"
   },
+  "targetFields": {
+    "instagram": {
+      "followers": {
+        "label": "حساب Instagram أو اسم المستخدم",
+        "hint": "أدخل @username أو رابط الملف العام — يجب أن يكون الحساب عاماً.",
+        "placeholder": "https://www.instagram.com/username"
+      },
+      "likes": {
+        "label": "رابط منشور أو Reel على Instagram",
+        "hint": "الصق رابط المنشور أو Reel بالضبط — وليس رابط الملف.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "views": {
+        "label": "رابط Reel أو فيديو على Instagram",
+        "hint": "الصق رابط Reel أو الفيديو الذي تريد زيادة مشاهداته.",
+        "placeholder": "https://www.instagram.com/reel/..."
+      },
+      "comments": {
+        "label": "رابط منشور Instagram",
+        "hint": "الصق رابط المنشور الذي ستُضاف إليه التعليقات.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "stories": {
+        "label": "رابط ملف Instagram",
+        "hint": "الصق رابط الملف العام لخدمات الـ Story.",
+        "placeholder": "https://www.instagram.com/username"
+      },
+      "saves": {
+        "label": "رابط منشور Instagram",
+        "hint": "الصق رابط المنشور الذي تريد زيادة حفظه.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "reach": {
+        "label": "رابط منشور Instagram",
+        "hint": "الصق رابط المنشور لخدمات الوصول أو الظهور.",
+        "placeholder": "https://www.instagram.com/p/..."
+      }
+    },
+    "tiktok": {
+      "followers": {
+        "label": "رابط ملف TikTok",
+        "hint": "الصق رابط الملف العام على TikTok أو @username.",
+        "placeholder": "https://www.tiktok.com/@username"
+      },
+      "likes": {
+        "label": "رابط فيديو TikTok",
+        "hint": "الصق رابط الفيديو بالضبط — وليس رابط الملف.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "views": {
+        "label": "رابط فيديو TikTok",
+        "hint": "الصق رابط الفيديو الذي تريد زيادة مشاهداته.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "comments": {
+        "label": "رابط فيديو TikTok",
+        "hint": "الصق رابط الفيديو الذي ستُضاف إليه التعليقات.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "shares": {
+        "label": "رابط فيديو TikTok",
+        "hint": "الصق رابط الفيديو الذي تريد زيادة مشاركاته.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      }
+    },
+    "youtube": {
+      "followers": {
+        "label": "رابط قناة YouTube",
+        "hint": "الصق رابط قناتك العامة — وليس رابط فيديو واحد.",
+        "placeholder": "https://www.youtube.com/@channel"
+      },
+      "views": {
+        "label": "رابط فيديو YouTube",
+        "hint": "الصق رابط الفيديو الذي تريد زيادة مشاهداته.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      },
+      "likes": {
+        "label": "رابط فيديو YouTube",
+        "hint": "الصق رابط الفيديو الذي تريد زيادة إعجاباته.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      },
+      "comments": {
+        "label": "رابط فيديو YouTube",
+        "hint": "الصق رابط الفيديو الذي ستُضاف إليه التعليقات.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      }
+    },
+    "facebook": {
+      "followers": {
+        "label": "رابط ملف Facebook",
+        "hint": "الصق رابط الملف العام لخدمات المتابعين.",
+        "placeholder": "https://www.facebook.com/username"
+      },
+      "friends": {
+        "label": "رابط ملف Facebook",
+        "hint": "الصق رابط الملف العام.",
+        "placeholder": "https://www.facebook.com/username"
+      },
+      "members": {
+        "label": "رابط مجموعة Facebook",
+        "hint": "الصق رابط المجموعة العامة لخدمات الأعضاء.",
+        "placeholder": "https://www.facebook.com/groups/..."
+      },
+      "page_likes": {
+        "label": "رابط صفحة Facebook",
+        "hint": "الصق رابط الصفحة — وليس الملف الشخصي.",
+        "placeholder": "https://www.facebook.com/pagename"
+      },
+      "likes": {
+        "label": "رابط منشور Facebook",
+        "hint": "الصق رابط المنشور بالضبط للإعجابات أو التفاعلات.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "views": {
+        "label": "رابط فيديو أو Reel على Facebook",
+        "hint": "الصق رابط الفيديو أو Reel الذي تريد زيادة مشاهداته.",
+        "placeholder": "https://www.facebook.com/reel/..."
+      },
+      "comments": {
+        "label": "رابط منشور Facebook",
+        "hint": "الصق رابط المنشور الذي ستُضاف إليه التعليقات.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "shares": {
+        "label": "رابط منشور Facebook",
+        "hint": "الصق رابط المنشور الذي تريد زيادة مشاركاته.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "stories": {
+        "label": "رابط Story أو منشور Facebook",
+        "hint": "الصق رابط الـ Story أو المنشور لخدمات التفاعل.",
+        "placeholder": "https://www.facebook.com/stories/..."
+      },
+      "reactions": {
+        "label": "رابط منشور Facebook",
+        "hint": "الصق رابط المنشور لخدمات التفاعلات.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      }
+    },
+    "twitter": {
+      "followers": {
+        "label": "رابط ملف X",
+        "hint": "الصق رابط الملف العام أو @username.",
+        "placeholder": "https://x.com/username"
+      },
+      "likes": {
+        "label": "رابط التغريدة",
+        "hint": "الصق رابط التغريدة بالضبط — وليس رابط الملف.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "views": {
+        "label": "رابط التغريدة",
+        "hint": "الصق رابط التغريدة التي تريد زيادة مشاهداتها.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "comments": {
+        "label": "رابط التغريدة",
+        "hint": "الصق رابط التغريدة لخدمات الردود.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "shares": {
+        "label": "رابط التغريدة",
+        "hint": "الصق رابط التغريدة التي تريد زيادة إعادات التغريد.",
+        "placeholder": "https://x.com/user/status/..."
+      }
+    },
+    "telegram": {
+      "members": {
+        "label": "رابط قناة أو مجموعة Telegram",
+        "hint": "الصق رابط القناة أو المجموعة العامة.",
+        "placeholder": "https://t.me/channelname"
+      },
+      "views": {
+        "label": "رابط منشور Telegram",
+        "hint": "الصق رابط المنشور الذي تريد زيادة مشاهداته.",
+        "placeholder": "https://t.me/channelname/123"
+      },
+      "reactions": {
+        "label": "رابط منشور Telegram",
+        "hint": "الصق رابط المنشور لخدمات التفاعلات.",
+        "placeholder": "https://t.me/channelname/123"
+      }
+    },
+    "threads": {
+      "followers": {
+        "label": "رابط ملف Threads",
+        "hint": "الصق رابط الملف العام على Threads.",
+        "placeholder": "https://www.threads.net/@username"
+      },
+      "likes": {
+        "label": "رابط منشور Threads",
+        "hint": "الصق رابط المنشور بالضبط.",
+        "placeholder": "https://www.threads.net/@user/post/..."
+      }
+    },
+    "spotify": {
+      "followers": {
+        "label": "رابط فنان أو ملف Spotify",
+        "hint": "الصق رابط الفنان أو الملف.",
+        "placeholder": "https://open.spotify.com/artist/..."
+      },
+      "plays": {
+        "label": "رابط أغنية أو ألبوم Spotify",
+        "hint": "الصق رابط الأغنية أو الألبوم الذي تريد زيادة تشغيلاته.",
+        "placeholder": "https://open.spotify.com/track/..."
+      }
+    },
+    "linkedin": {
+      "followers": {
+        "label": "رابط صفحة أو ملف LinkedIn",
+        "hint": "الصق رابط صفحة الشركة أو الملف الشخصي.",
+        "placeholder": "https://www.linkedin.com/company/..."
+      },
+      "likes": {
+        "label": "رابط منشور LinkedIn",
+        "hint": "الصق رابط المنشور الذي تريد التفاعل معه.",
+        "placeholder": "https://www.linkedin.com/posts/..."
+      }
+    },
+    "_default": {
+      "followers": {
+        "label": "رابط الملف أو اسم المستخدم",
+        "hint": "أدخل رابط الملف العام أو اسم المستخدم لهذه الخدمة.",
+        "placeholder": "@username"
+      },
+      "likes": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور المطلوب بالضبط.",
+        "placeholder": "https://…"
+      },
+      "views": {
+        "label": "رابط الفيديو أو الوسائط",
+        "hint": "الصق رابط الفيديو أو الوسائط التي تريد زيادة مشاهداتها.",
+        "placeholder": "https://…"
+      },
+      "comments": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور الذي ستُضاف إليه التعليقات.",
+        "placeholder": "https://…"
+      },
+      "stories": {
+        "label": "رابط الملف أو Story",
+        "hint": "الصق رابط الملف أو Story المطلوب لهذه الخدمة.",
+        "placeholder": "https://…"
+      },
+      "shares": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور الذي تريد زيادة مشاركاته.",
+        "placeholder": "https://…"
+      },
+      "members": {
+        "label": "رابط المجموعة أو القناة",
+        "hint": "الصق رابط المجموعة أو القناة العامة.",
+        "placeholder": "https://…"
+      },
+      "page_likes": {
+        "label": "رابط الصفحة",
+        "hint": "الصق رابط الصفحة — وليس الملف الشخصي.",
+        "placeholder": "https://…"
+      },
+      "friends": {
+        "label": "رابط الملف",
+        "hint": "الصق رابط الملف العام.",
+        "placeholder": "https://…"
+      },
+      "saves": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور الذي تريد زيادة حفظه.",
+        "placeholder": "https://…"
+      },
+      "reach": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور لخدمات الوصول.",
+        "placeholder": "https://…"
+      },
+      "impressions": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور لخدمات الظهور.",
+        "placeholder": "https://…"
+      },
+      "engagement": {
+        "label": "رابط المنشور أو الملف",
+        "hint": "الصق الرابط المطلوب لخدمة التفاعل هذه.",
+        "placeholder": "https://…"
+      },
+      "traffic": {
+        "label": "رابط الموقع",
+        "hint": "الصق رابط الموقع الذي تريد إرسال الزيارات إليه.",
+        "placeholder": "https://example.com"
+      },
+      "plays": {
+        "label": "رابط الأغنية أو الوسائط",
+        "hint": "الصق رابط الأغنية أو الوسائط التي تريد زيادة تشغيلاتها.",
+        "placeholder": "https://…"
+      },
+      "reactions": {
+        "label": "رابط المنشور",
+        "hint": "الصق رابط المنشور لخدمات التفاعلات.",
+        "placeholder": "https://…"
+      },
+      "other": {
+        "label": "رابط الهدف",
+        "hint": "الصق الرابط أو الهدف المطلوب لهذه الخدمة بالضبط.",
+        "placeholder": "https://…"
+      },
+      "_default": {
+        "label": "الرابط / الهدف",
+        "hint": "الصق الرابط أو الهدف المطلوب لهذه الخدمة بالضبط.",
+        "placeholder": "https://…"
+      }
+    }
+  },
   "linkTypes": {
     "username": "اسم المستخدم / الملف",
     "usernameHint": "أدخل اسم المستخدم العام فقط — ليس حساباً خاصاً.",

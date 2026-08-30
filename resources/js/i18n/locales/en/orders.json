@@ -85,6 +85,318 @@
     "women": "Women",
     "men": "Men"
   },
+  "targetFields": {
+    "instagram": {
+      "followers": {
+        "label": "Instagram profile or username",
+        "hint": "Enter @username or the public profile URL. The account must be public.",
+        "placeholder": "https://www.instagram.com/username"
+      },
+      "likes": {
+        "label": "Instagram post or Reel URL",
+        "hint": "Paste the exact post or Reel link — not a profile URL.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "views": {
+        "label": "Instagram Reel or video URL",
+        "hint": "Paste the Reel or video link you want views on.",
+        "placeholder": "https://www.instagram.com/reel/..."
+      },
+      "comments": {
+        "label": "Instagram post URL",
+        "hint": "Paste the post link where comments should be delivered.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "stories": {
+        "label": "Instagram profile URL",
+        "hint": "Paste the public profile link for story services.",
+        "placeholder": "https://www.instagram.com/username"
+      },
+      "saves": {
+        "label": "Instagram post URL",
+        "hint": "Paste the post link you want saves on.",
+        "placeholder": "https://www.instagram.com/p/..."
+      },
+      "reach": {
+        "label": "Instagram post URL",
+        "hint": "Paste the post link for reach or impression services.",
+        "placeholder": "https://www.instagram.com/p/..."
+      }
+    },
+    "tiktok": {
+      "followers": {
+        "label": "TikTok profile URL",
+        "hint": "Paste the public TikTok profile link or @username.",
+        "placeholder": "https://www.tiktok.com/@username"
+      },
+      "likes": {
+        "label": "TikTok video URL",
+        "hint": "Paste the exact video link — not a profile URL.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "views": {
+        "label": "TikTok video URL",
+        "hint": "Paste the video link you want views on.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "comments": {
+        "label": "TikTok video URL",
+        "hint": "Paste the video link where comments should be posted.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      },
+      "shares": {
+        "label": "TikTok video URL",
+        "hint": "Paste the video link you want shares on.",
+        "placeholder": "https://www.tiktok.com/@user/video/..."
+      }
+    },
+    "youtube": {
+      "followers": {
+        "label": "YouTube channel URL",
+        "hint": "Paste your public channel link — not a single video.",
+        "placeholder": "https://www.youtube.com/@channel"
+      },
+      "views": {
+        "label": "YouTube video URL",
+        "hint": "Paste the exact video link you want views on.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      },
+      "likes": {
+        "label": "YouTube video URL",
+        "hint": "Paste the video link you want likes on.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      },
+      "comments": {
+        "label": "YouTube video URL",
+        "hint": "Paste the video link where comments should be delivered.",
+        "placeholder": "https://www.youtube.com/watch?v=..."
+      }
+    },
+    "facebook": {
+      "followers": {
+        "label": "Facebook profile URL",
+        "hint": "Paste the public profile link for follower services.",
+        "placeholder": "https://www.facebook.com/username"
+      },
+      "friends": {
+        "label": "Facebook profile URL",
+        "hint": "Paste the public profile link.",
+        "placeholder": "https://www.facebook.com/username"
+      },
+      "members": {
+        "label": "Facebook group URL",
+        "hint": "Paste the public group link for member services.",
+        "placeholder": "https://www.facebook.com/groups/..."
+      },
+      "page_likes": {
+        "label": "Facebook page URL",
+        "hint": "Paste the page link — not a personal profile.",
+        "placeholder": "https://www.facebook.com/pagename"
+      },
+      "likes": {
+        "label": "Facebook post URL",
+        "hint": "Paste the exact post link for likes or reactions.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "views": {
+        "label": "Facebook video or Reel URL",
+        "hint": "Paste the video or Reel link you want views on.",
+        "placeholder": "https://www.facebook.com/reel/..."
+      },
+      "comments": {
+        "label": "Facebook post URL",
+        "hint": "Paste the post link where comments should be delivered.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "shares": {
+        "label": "Facebook post URL",
+        "hint": "Paste the post link you want shares on.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      },
+      "stories": {
+        "label": "Facebook post or story URL",
+        "hint": "Paste the story or post link for story reaction services.",
+        "placeholder": "https://www.facebook.com/stories/..."
+      },
+      "reactions": {
+        "label": "Facebook post URL",
+        "hint": "Paste the post link for reaction services.",
+        "placeholder": "https://www.facebook.com/.../posts/..."
+      }
+    },
+    "twitter": {
+      "followers": {
+        "label": "X profile URL",
+        "hint": "Paste the public profile link or @username.",
+        "placeholder": "https://x.com/username"
+      },
+      "likes": {
+        "label": "Tweet URL",
+        "hint": "Paste the exact tweet link — not a profile URL.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "views": {
+        "label": "Tweet URL",
+        "hint": "Paste the tweet link you want views on.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "comments": {
+        "label": "Tweet URL",
+        "hint": "Paste the tweet link for reply services.",
+        "placeholder": "https://x.com/user/status/..."
+      },
+      "shares": {
+        "label": "Tweet URL",
+        "hint": "Paste the tweet link you want retweets on.",
+        "placeholder": "https://x.com/user/status/..."
+      }
+    },
+    "telegram": {
+      "members": {
+        "label": "Telegram channel or group URL",
+        "hint": "Paste the public channel or group invite/link.",
+        "placeholder": "https://t.me/channelname"
+      },
+      "views": {
+        "label": "Telegram post URL",
+        "hint": "Paste the channel post link you want views on.",
+        "placeholder": "https://t.me/channelname/123"
+      },
+      "reactions": {
+        "label": "Telegram post URL",
+        "hint": "Paste the post link for reaction services.",
+        "placeholder": "https://t.me/channelname/123"
+      }
+    },
+    "threads": {
+      "followers": {
+        "label": "Threads profile URL",
+        "hint": "Paste the public Threads profile link.",
+        "placeholder": "https://www.threads.net/@username"
+      },
+      "likes": {
+        "label": "Threads post URL",
+        "hint": "Paste the exact post link.",
+        "placeholder": "https://www.threads.net/@user/post/..."
+      }
+    },
+    "spotify": {
+      "followers": {
+        "label": "Spotify artist or profile URL",
+        "hint": "Paste the artist or profile link.",
+        "placeholder": "https://open.spotify.com/artist/..."
+      },
+      "plays": {
+        "label": "Spotify track or album URL",
+        "hint": "Paste the track or album link you want plays on.",
+        "placeholder": "https://open.spotify.com/track/..."
+      }
+    },
+    "linkedin": {
+      "followers": {
+        "label": "LinkedIn page or profile URL",
+        "hint": "Paste the company page or profile link.",
+        "placeholder": "https://www.linkedin.com/company/..."
+      },
+      "likes": {
+        "label": "LinkedIn post URL",
+        "hint": "Paste the post link you want engagement on.",
+        "placeholder": "https://www.linkedin.com/posts/..."
+      }
+    },
+    "_default": {
+      "followers": {
+        "label": "Profile URL or username",
+        "hint": "Enter the public profile link or username for this service.",
+        "placeholder": "@username"
+      },
+      "likes": {
+        "label": "Post URL",
+        "hint": "Paste the exact post link this service expects.",
+        "placeholder": "https://…"
+      },
+      "views": {
+        "label": "Video or media URL",
+        "hint": "Paste the video or media link you want views on.",
+        "placeholder": "https://…"
+      },
+      "comments": {
+        "label": "Post URL",
+        "hint": "Paste the post link where comments should be delivered.",
+        "placeholder": "https://…"
+      },
+      "stories": {
+        "label": "Profile or story URL",
+        "hint": "Paste the profile or story link required by this service.",
+        "placeholder": "https://…"
+      },
+      "shares": {
+        "label": "Post URL",
+        "hint": "Paste the post link you want shares or reposts on.",
+        "placeholder": "https://…"
+      },
+      "members": {
+        "label": "Group or channel URL",
+        "hint": "Paste the public group or channel link.",
+        "placeholder": "https://…"
+      },
+      "page_likes": {
+        "label": "Page URL",
+        "hint": "Paste the page link — not a personal profile.",
+        "placeholder": "https://…"
+      },
+      "friends": {
+        "label": "Profile URL",
+        "hint": "Paste the public profile link.",
+        "placeholder": "https://…"
+      },
+      "saves": {
+        "label": "Post URL",
+        "hint": "Paste the post link you want saves on.",
+        "placeholder": "https://…"
+      },
+      "reach": {
+        "label": "Post URL",
+        "hint": "Paste the post link for reach services.",
+        "placeholder": "https://…"
+      },
+      "impressions": {
+        "label": "Post URL",
+        "hint": "Paste the post link for impression services.",
+        "placeholder": "https://…"
+      },
+      "engagement": {
+        "label": "Post or profile URL",
+        "hint": "Paste the link required by this engagement service.",
+        "placeholder": "https://…"
+      },
+      "traffic": {
+        "label": "Website URL",
+        "hint": "Paste the website URL you want traffic sent to.",
+        "placeholder": "https://example.com"
+      },
+      "plays": {
+        "label": "Track or media URL",
+        "hint": "Paste the track or media link you want plays on.",
+        "placeholder": "https://…"
+      },
+      "reactions": {
+        "label": "Post URL",
+        "hint": "Paste the post link for reaction services.",
+        "placeholder": "https://…"
+      },
+      "other": {
+        "label": "Target link",
+        "hint": "Paste the exact link or target required by this service.",
+        "placeholder": "https://…"
+      },
+      "_default": {
+        "label": "Link / target",
+        "hint": "Paste the exact link or target required by this service.",
+        "placeholder": "https://…"
+      }
+    }
+  },
   "linkTypes": {
     "username": "Username / profile",
     "usernameHint": "Enter the public username only — not a private account.",

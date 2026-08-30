@@ -39,6 +39,7 @@ import {
     saveCheckoutDraft,
     isCheckoutDraftValid,
 } from '../../lib/orderRules';
+import { getTargetFieldMeta } from '../../lib/targetFieldMeta';
 import { getPaymentOptions } from '../../lib/paymentMethods';
 import { scrollDashboardToTop } from '../../lib/formScroll';
 import { getCategoryIcon } from '../../lib/categoryIcons';
@@ -155,6 +156,7 @@ function newIdempotencyKey() {
 
 export default function Checkout() {
     const { t } = useTranslation(['checkout', 'common']);
+    const { t: tOrders } = useTranslation('orders');
     const navigate = useNavigate();
     const location = useLocation();
     const { refreshUser, user } = useAuth();
@@ -232,6 +234,16 @@ export default function Checkout() {
         () => (draft?.comments ? previewComments(draft.comments) : null),
         [draft?.comments],
     );
+    const targetSummaryLabel = useMemo(() => {
+        if (!draft) return t('target');
+        return getTargetFieldMeta(
+            {
+                platformSlug: draft.platformSlug,
+                categorySlug: draft.categorySlug,
+            },
+            tOrders,
+        ).label;
+    }, [draft, t, tOrders]);
     const PlatformIcon = getPlatformIcon(draft?.platformSlug);
     const CategoryIcon = getCategoryIcon(draft?.categorySlug);
 
@@ -425,7 +437,7 @@ export default function Checkout() {
                     <div className="space-y-0">
                         <SummaryRow label={t('quantity')} value={formatAmount(draft.quantity)} strong />
                         <DottedDivider />
-                        <SummaryRow label={t('target')} value={draft.link} mono />
+                        <SummaryRow label={targetSummaryLabel} value={draft.link} mono />
                         {commentsPreview ? (
                             <>
                                 <DottedDivider />
