@@ -29,6 +29,7 @@
   "serviceTier": "الباقة",
   "selectServiceTier": "اختر الباقة",
   "loadingTiers": "جاري تحميل الباقات…",
+  "noTiersConfigured": "لم يتم إعداد الباقات",
   "tiers": {
     "basic": "أساسي",
     "gold": "ذهبي",

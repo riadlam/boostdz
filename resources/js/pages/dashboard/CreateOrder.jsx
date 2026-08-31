@@ -1403,51 +1403,6 @@ export default function CreateOrder() {
                             </div>
                         </div>
 
-                        {!showServiceCatalog && tierCatalog.length > 0 ? (
-                        <div className="grid min-w-0 gap-2" data-form-field="tier">
-                            <FieldLabel required>{t('serviceTier')}</FieldLabel>
-                            <div className="relative min-w-0">
-                                <SelectButton
-                                    open={openMenu === 'tier'}
-                                    disabled={loadingTiers}
-                                    invalid={Boolean(errors.tier)}
-                                    hasValue={Boolean(selectedTier)}
-                                    onClick={() => setOpenMenu(openMenu === 'tier' ? null : 'tier')}
-                                >
-                                    <Sparkles className="size-4 shrink-0 opacity-80" />
-                                    <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
-                                        {selectedTier
-                                            ? tierLabel(selectedTier)
-                                            : loadingTiers
-                                              ? t('loadingTiers')
-                                              : t('selectServiceTier')}
-                                    </span>
-                                </SelectButton>
-                                <Dropdown open={openMenu === 'tier'}>
-                                    {tierCatalog.map((entry) => (
-                                        <Option
-                                            key={entry.tier}
-                                            active={entry.tier === selectedTier}
-                                            onClick={() => selectTier(entry.tier)}
-                                        >
-                                            <span className="flex w-full items-center justify-between gap-2">
-                                                <span>{tierLabel(entry.tier)}</span>
-                                                {entry.service?.sell_rate_dzd ? (
-                                                    <span className="text-xs text-muted-foreground tabular-nums">
-                                                        {formatDzd(entry.service.sell_rate_dzd)} / 1k
-                                                    </span>
-                                                ) : null}
-                                            </span>
-                                        </Option>
-                                    ))}
-                                </Dropdown>
-                            </div>
-                            {errors.tier ? (
-                                <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.tier}</p>
-                            ) : null}
-                        </div>
-                        ) : null}
-
                         {showServiceCatalog ? (
                         <div className="grid min-w-0 gap-2" data-form-field="service">
                             <FieldLabel required>{t('servicePackage')}</FieldLabel>
@@ -1527,6 +1482,53 @@ export default function CreateOrder() {
                             ) : null}
                             {errors.service ? (
                                 <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.service}</p>
+                            ) : null}
+                        </div>
+                        ) : null}
+
+                        {!showServiceCatalog && selectedCategory ? (
+                        <div className="grid min-w-0 gap-2" data-form-field="tier">
+                            <FieldLabel required>{t('serviceTier')}</FieldLabel>
+                            <div className="relative min-w-0">
+                                <SelectButton
+                                    open={openMenu === 'tier'}
+                                    disabled={loadingTiers || tierCatalog.length === 0}
+                                    invalid={Boolean(errors.tier)}
+                                    hasValue={Boolean(selectedTier)}
+                                    onClick={() => setOpenMenu(openMenu === 'tier' ? null : 'tier')}
+                                >
+                                    <Sparkles className="size-4 shrink-0 opacity-80" />
+                                    <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
+                                        {loadingTiers
+                                            ? t('loadingTiers')
+                                            : selectedTier
+                                              ? tierLabel(selectedTier)
+                                              : tierCatalog.length === 0
+                                                ? t('noTiersConfigured')
+                                                : t('selectServiceTier')}
+                                    </span>
+                                </SelectButton>
+                                <Dropdown open={openMenu === 'tier'}>
+                                    {tierCatalog.map((entry) => (
+                                        <Option
+                                            key={entry.tier}
+                                            active={entry.tier === selectedTier}
+                                            onClick={() => selectTier(entry.tier)}
+                                        >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                                <span>{tierLabel(entry.tier)}</span>
+                                                {entry.service?.sell_rate_dzd ? (
+                                                    <span className="text-xs text-muted-foreground tabular-nums">
+                                                        {formatDzd(entry.service.sell_rate_dzd)} / 1k
+                                                    </span>
+                                                ) : null}
+                                            </span>
+                                        </Option>
+                                    ))}
+                                </Dropdown>
+                            </div>
+                            {errors.tier ? (
+                                <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.tier}</p>
                             ) : null}
                         </div>
                         ) : null}

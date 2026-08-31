@@ -29,6 +29,7 @@
   "serviceTier": "Package",
   "selectServiceTier": "Select package",
   "loadingTiers": "Loading packages…",
+  "noTiersConfigured": "No packages configured",
   "tiers": {
     "basic": "Basic",
     "gold": "Gold",

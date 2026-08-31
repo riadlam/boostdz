@@ -29,6 +29,7 @@
   "serviceTier": "Forfait",
   "selectServiceTier": "Choisir un forfait",
   "loadingTiers": "Chargement des forfaits…",
+  "noTiersConfigured": "Aucun forfait configuré",
   "tiers": {
     "basic": "Basique",
     "gold": "Or",
