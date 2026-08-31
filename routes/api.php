@@ -48,6 +48,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('catalog/storefront', [CatalogController::class, 'storefront']);
         Route::get('catalog/platforms/{slug}/categories', [CatalogController::class, 'categories']);
         Route::get('catalog/categories/{category}/services', [CatalogController::class, 'services']);
+        Route::get('catalog/categories/{category}/tiers', [CatalogController::class, 'tiers']);
 
         Route::get('wallet', [WalletController::class, 'show']);
         Route::get('wallet/transactions', [WalletController::class, 'transactions']);

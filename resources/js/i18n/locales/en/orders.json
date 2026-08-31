@@ -26,6 +26,14 @@
   "refillFailedTitle": "Refill failed",
   "categoryProduct": "Category & Product",
   "servicePackage": "Service package",
+  "serviceTier": "Package",
+  "selectServiceTier": "Select package",
+  "loadingTiers": "Loading packages…",
+  "tiers": {
+    "basic": "Basic",
+    "gold": "Gold",
+    "premium": "Premium"
+  },
   "amount": "Amount",
   "selectPlatform": "Select platform",
   "selectCategory": "Select category",
@@ -61,6 +69,7 @@
     "selectPlatform": "Select a platform",
     "selectCategory": "Select a category",
     "selectService": "Select a service",
+    "selectServiceTier": "Select a package",
     "targetRequired": "Target is required",
     "customCommentsRequired": "Turn on custom comments to enter your comment lines.",
     "loadPlatforms": "Failed to load platforms.",

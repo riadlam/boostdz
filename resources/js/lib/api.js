@@ -91,6 +91,7 @@ export const catalogApi = {
     storefront: () => api('/catalog/storefront'),
     categories: (slug) => api(`/catalog/platforms/${encodeURIComponent(slug)}/categories`),
     services: (categoryId, params) => api(`/catalog/categories/${categoryId}/services${toQuery(params)}`),
+    tiers: (categoryId) => api(`/catalog/categories/${categoryId}/tiers`),
 };
 
 export const contentApi = {

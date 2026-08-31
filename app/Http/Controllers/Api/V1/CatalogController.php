@@ -7,6 +7,7 @@ use App\Http\Resources\ServiceResource;
 use App\Models\CatalogCategory;
 use App\Models\CatalogPlatform;
 use App\Models\Service;
+use App\Support\CatalogTier;
 use App\Support\ServiceCatalogVisibility;
 use App\Services\Catalog\FeaturedServiceHealth;
 use App\Services\Pricing\PricingService;
@@ -63,7 +64,7 @@ class CatalogController extends Controller
         $categories = CatalogCategory::query()
             ->where('platform_id', $platform->id)
             ->where('is_active', true)
-            ->with('featuredService')
+            ->with(['featuredService', 'basicService', 'goldService', 'premiumService'])
             ->withCount([
                 'services as services_count' => fn ($q) => $q->where('is_active', true),
             ])
@@ -71,7 +72,12 @@ class CatalogController extends Controller
             ->orderBy('name')
             ->get()
             ->map(function (CatalogCategory $category) use ($featuredHealth) {
-                $status = $featuredHealth->featuredServiceStatus($category);
+                $tiers = collect($featuredHealth->availableTiers($category))
+                    ->filter(fn (array $tier): bool => $tier['available'])
+                    ->values()
+                    ->all();
+                $defaultTier = $featuredHealth->defaultTier($category);
+                $defaultServiceId = $featuredHealth->defaultServiceId($category);
 
                 return [
                     'id' => $category->id,
@@ -79,9 +85,9 @@ class CatalogController extends Controller
                     'name' => $category->name,
                     'sort_order' => $category->sort_order,
                     'services_count' => (int) $category->services_count,
-                    'default_service_id' => $status === FeaturedServiceHealth::STATUS_OK
-                        ? (int) $category->featured_service_id
-                        : null,
+                    'tiers' => $tiers,
+                    'default_tier' => $defaultTier,
+                    'default_service_id' => $defaultServiceId,
                 ];
             })
             ->values();
@@ -101,9 +107,13 @@ class CatalogController extends Controller
     {
         $items = Cache::remember(FeaturedServiceHealth::CACHE_KEY, 300, function () use ($pricing, $featuredHealth) {
             return CatalogCategory::query()
-                ->with(['platform', 'featuredService'])
+                ->with(['platform', 'featuredService', 'basicService'])
                 ->where('catalog_categories.is_active', true)
-                ->whereNotNull('catalog_categories.featured_service_id')
+                ->where(function ($query): void {
+                    $query
+                        ->whereNotNull('catalog_categories.basic_service_id')
+                        ->orWhereNotNull('catalog_categories.featured_service_id');
+                })
                 ->join('catalog_platforms', 'catalog_platforms.id', '=', 'catalog_categories.platform_id')
                 ->where('catalog_platforms.is_active', true)
                 ->orderBy('catalog_platforms.sort_order')
@@ -112,8 +122,12 @@ class CatalogController extends Controller
                 ->select('catalog_categories.*')
                 ->get()
                 ->filter(fn (CatalogCategory $category): bool => $featuredHealth->featuredServiceStatus($category) === FeaturedServiceHealth::STATUS_OK)
-                ->map(function (CatalogCategory $category) use ($pricing) {
-                    $service = $category->featuredService;
+                ->map(function (CatalogCategory $category) use ($pricing, $featuredHealth) {
+                    $service = $featuredHealth->resolveTierService($category, CatalogTier::BASIC);
+
+                    if (! $service) {
+                        return null;
+                    }
                     $startingAmount = max(1, (int) $service->min);
                     $pricePer1k = (int) $pricing->quote($service, 1000)->charge_dzd;
                     $startingPrice = (int) $pricing->quote($service, $startingAmount)->charge_dzd;
@@ -135,6 +149,7 @@ class CatalogController extends Controller
                         'max' => (int) $service->max,
                     ];
                 })
+                ->filter()
                 ->values()
                 ->all();
         });
@@ -164,10 +179,8 @@ class CatalogController extends Controller
     {
         abort_unless($category->is_active, 404);
 
-        $category->loadMissing('featuredService');
-        $defaultServiceId = $featuredHealth->featuredServiceStatus($category) === FeaturedServiceHealth::STATUS_OK
-            ? (int) $category->featured_service_id
-            : null;
+        $category->loadMissing(['featuredService', 'basicService', 'goldService', 'premiumService']);
+        $defaultServiceId = $featuredHealth->defaultServiceId($category);
 
         $query = Service::query()
             ->where('is_active', true)
@@ -325,6 +338,41 @@ class CatalogController extends Controller
                 'total' => $services->count(),
                 'limit' => $limit,
             ],
+        ]);
+    }
+
+    public function tiers(Request $request, CatalogCategory $category, FeaturedServiceHealth $featuredHealth): JsonResponse
+    {
+        abort_unless($category->is_active, 404);
+
+        $category->loadMissing(['featuredService', 'basicService', 'goldService', 'premiumService']);
+
+        $tiers = collect($featuredHealth->availableTiers($category))
+            ->filter(fn (array $tier): bool => $tier['available'])
+            ->map(function (array $tier) use ($request, $category, $featuredHealth) {
+                $service = $featuredHealth->resolveTierService($category, $tier['tier']);
+
+                return [
+                    'tier' => $tier['tier'],
+                    'service_id' => $tier['service_id'],
+                    'available' => true,
+                    'service' => $service
+                        ? ServiceResource::make($service)->resolve($request)
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return response()->json([
+            'category' => [
+                'id' => $category->id,
+                'slug' => $category->slug,
+                'name' => $category->name,
+            ],
+            'tiers' => $tiers,
+            'default_tier' => $featuredHealth->defaultTier($category),
+            'default_service_id' => $featuredHealth->defaultServiceId($category),
         ]);
     }
 

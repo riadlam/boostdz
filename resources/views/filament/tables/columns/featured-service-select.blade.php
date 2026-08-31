@@ -1,12 +1,18 @@
 @php
     /** @var \App\Models\CatalogCategory|null $record */
     $record = $getRecord();
-    $selected = $getState();
+    $tier = $tier ?? 'basic';
+    $column = match ($tier) {
+        'gold' => 'gold_service_id',
+        'premium' => 'premium_service_id',
+        default => 'basic_service_id',
+    };
+    $selected = $record?->{$column};
     $selectedKey = filled($selected) ? (string) $selected : '';
     $selectedLabel = filled($selectedKey) ? ($options[$selectedKey] ?? '— None —') : '— None —';
 @endphp
 
-<details class="featured-service-picker w-full min-w-[16rem] max-w-[24rem]">
+<details class="featured-service-picker w-full min-w-[14rem] max-w-[20rem]">
     <summary class="fi-input-wrp flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-gray-950/10 marker:content-none dark:bg-white/5 dark:ring-white/20 [&::-webkit-details-marker]:hidden">
         <span class="truncate text-gray-950 dark:text-white">{{ $selectedLabel }}</span>
         <svg class="size-4 shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -25,7 +31,7 @@
         <div class="mt-2 max-h-52 space-y-0.5 overflow-y-auto overscroll-contain">
             <button
                 type="button"
-                wire:click="updateFeaturedService({{ $record?->id }}, '')"
+                wire:click="updateTierService({{ $record?->id }}, @js($tier), '')"
                 onclick="this.closest('details').removeAttribute('open')"
                 @class([
                     'block w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5',
@@ -40,7 +46,7 @@
                     type="button"
                     data-service-option
                     data-search="{{ strtolower($label) }}"
-                    wire:click="updateFeaturedService({{ $record?->id }}, @js((string) $value))"
+                    wire:click="updateTierService({{ $record?->id }}, @js($tier), @js((string) $value))"
                     onclick="this.closest('details').removeAttribute('open')"
                     @class([
                         'block w-full rounded-md px-3 py-2 text-left text-sm text-gray-950 hover:bg-gray-50 dark:text-white dark:hover:bg-white/5',

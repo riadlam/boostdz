@@ -629,6 +629,9 @@ export default function CreateOrder() {
     const [groups, setGroups] = useState([]);
     const [categoryServices, setCategoryServices] = useState([]);
     const [serviceSearch, setServiceSearch] = useState('');
+    const [tierCatalog, setTierCatalog] = useState([]);
+    const [selectedTier, setSelectedTier] = useState('');
+    const [loadingTiers, setLoadingTiers] = useState(false);
     const [refine, setRefine] = useState(EMPTY_REFINE);
     const [serviceId, setServiceId] = useState(null);
     const [loadingPlatforms, setLoadingPlatforms] = useState(true);
@@ -664,10 +667,17 @@ export default function CreateOrder() {
         () => groups.flatMap((group) => group.items || []),
         [groups],
     );
-    const selectedService = useMemo(
-        () => flatServices.find((s) => s.id === serviceId) || null,
-        [flatServices, serviceId],
-    );
+    const selectedService = useMemo(() => {
+        if (!showServiceCatalog) {
+            const fromTier = tierCatalog.find((entry) => entry.tier === selectedTier)?.service
+                || tierCatalog.find((entry) => sameServiceId(entry.service_id, serviceId))?.service;
+            if (fromTier) {
+                return fromTier;
+            }
+        }
+
+        return flatServices.find((s) => sameServiceId(s.id, serviceId)) || null;
+    }, [showServiceCatalog, tierCatalog, selectedTier, serviceId, flatServices]);
     const deliveryCaps = useMemo(() => {
         // Prefer full category catalog; fall back to current list / selected product.
         const pool = categoryServices.length
@@ -820,6 +830,82 @@ export default function CreateOrder() {
         };
     }, [platformSlug]);
 
+    function tierLabel(tier) {
+        return t(`tiers.${tier}`, { defaultValue: tier });
+    }
+
+    function applyTierSelection(tier, catalog, { resetRefine = false } = {}) {
+        const row = (catalog || tierCatalog).find((entry) => entry.tier === tier);
+        const service = row?.service;
+
+        if (!service) {
+            return null;
+        }
+
+        setSelectedTier(tier);
+        setServiceId(service.id);
+
+        if (resetRefine) {
+            setRefine(refineFromService(service));
+        }
+
+        const nextQty = Math.min(Math.max(service.min, 1000), service.max);
+        setQuantity(nextQty);
+        setCustomQuantity(String(nextQty));
+        setCustomMode(false);
+
+        return service.id;
+    }
+
+    async function loadTierCatalog(categoryRecord) {
+        if (showServiceCatalog || !categoryRecord) {
+            setTierCatalog([]);
+            setSelectedTier('');
+            return null;
+        }
+
+        setLoadingTiers(true);
+        try {
+            const data = await catalogApi.tiers(categoryRecord.id);
+            const tiers = Array.isArray(data?.tiers) ? data.tiers : [];
+            setTierCatalog(tiers);
+
+            const defaultTier = data.default_tier || tiers[0]?.tier || '';
+            if (defaultTier) {
+                applyTierSelection(defaultTier, tiers, { resetRefine: true });
+            } else {
+                setSelectedTier('');
+            }
+
+            return data.default_service_id ?? tiers[0]?.service_id ?? null;
+        } catch (error) {
+            setTierCatalog([]);
+            setSelectedTier('');
+            if (error instanceof ApiError) {
+                setFormError(error.message);
+            }
+            return null;
+        } finally {
+            setLoadingTiers(false);
+        }
+    }
+
+    function selectTier(tier) {
+        const row = tierCatalog.find((entry) => entry.tier === tier);
+        if (!row?.service) return;
+
+        setOpenMenu(null);
+        applyTierSelection(tier, tierCatalog, { resetRefine: true });
+        loadServices({
+            category: categoryId,
+            search: serviceSearch,
+            nextRefine: refineFromService(row.service),
+            preferFirst: true,
+            preferCustomComments: selectedCategory?.slug === 'comments',
+            preferredServiceId: row.service_id,
+        });
+    }
+
     async function loadServices({
         category,
         search,
@@ -902,6 +988,14 @@ export default function CreateOrder() {
 
             const cat = categories.find((c) => sameServiceId(c.id, categoryId));
             let preferredServiceId = cat?.default_service_id ?? null;
+
+            if (!showServiceCatalog) {
+                const tierDefaultId = await loadTierCatalog(cat);
+                if (tierDefaultId) {
+                    preferredServiceId = tierDefaultId;
+                }
+            }
+
             if (!urlAppliedRef.current && initialUrlRef.current.service) {
                 preferredServiceId = initialUrlRef.current.service;
             }
@@ -1048,6 +1142,8 @@ export default function CreateOrder() {
         window.clearTimeout(searchTimer.current);
         setCategoryId(id);
         setServiceSearch('');
+        setTierCatalog([]);
+        setSelectedTier('');
         setRefine(EMPTY_REFINE);
         setOpenMenu(null);
     }
@@ -1088,13 +1184,16 @@ export default function CreateOrder() {
 
     function clearRefine() {
         setRefine(EMPTY_REFINE);
+        const tierServiceId = !showServiceCatalog && selectedTier
+            ? tierCatalog.find((entry) => entry.tier === selectedTier)?.service_id
+            : null;
         loadServices({
             category: categoryId,
             search: serviceSearch,
             nextRefine: EMPTY_REFINE,
             preferFirst: true,
             preferCustomComments: selectedCategory?.slug === 'comments',
-            preferredServiceId: selectedCategory?.default_service_id ?? null,
+            preferredServiceId: tierServiceId ?? selectedCategory?.default_service_id ?? null,
         });
     }
 
@@ -1125,6 +1224,9 @@ export default function CreateOrder() {
         const next = {};
         if (!platformSlug) next.platform = t('errors.selectPlatform');
         if (!selectedCategory) next.category = t('errors.selectCategory');
+        if (!showServiceCatalog && tierCatalog.length > 0 && !selectedTier) {
+            next.tier = t('errors.selectServiceTier');
+        }
         if (!selectedService) next.service = t('errors.selectService');
         if (!link.trim()) next.link = t('errors.targetRequired');
         if (selectedService && (quantity < selectedService.min || quantity > selectedService.max)) {
@@ -1300,6 +1402,51 @@ export default function CreateOrder() {
                                 </div>
                             </div>
                         </div>
+
+                        {!showServiceCatalog && tierCatalog.length > 0 ? (
+                        <div className="grid min-w-0 gap-2" data-form-field="tier">
+                            <FieldLabel required>{t('serviceTier')}</FieldLabel>
+                            <div className="relative min-w-0">
+                                <SelectButton
+                                    open={openMenu === 'tier'}
+                                    disabled={loadingTiers}
+                                    invalid={Boolean(errors.tier)}
+                                    hasValue={Boolean(selectedTier)}
+                                    onClick={() => setOpenMenu(openMenu === 'tier' ? null : 'tier')}
+                                >
+                                    <Sparkles className="size-4 shrink-0 opacity-80" />
+                                    <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
+                                        {selectedTier
+                                            ? tierLabel(selectedTier)
+                                            : loadingTiers
+                                              ? t('loadingTiers')
+                                              : t('selectServiceTier')}
+                                    </span>
+                                </SelectButton>
+                                <Dropdown open={openMenu === 'tier'}>
+                                    {tierCatalog.map((entry) => (
+                                        <Option
+                                            key={entry.tier}
+                                            active={entry.tier === selectedTier}
+                                            onClick={() => selectTier(entry.tier)}
+                                        >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                                <span>{tierLabel(entry.tier)}</span>
+                                                {entry.service?.sell_rate_dzd ? (
+                                                    <span className="text-xs text-muted-foreground tabular-nums">
+                                                        {formatDzd(entry.service.sell_rate_dzd)} / 1k
+                                                    </span>
+                                                ) : null}
+                                            </span>
+                                        </Option>
+                                    ))}
+                                </Dropdown>
+                            </div>
+                            {errors.tier ? (
+                                <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.tier}</p>
+                            ) : null}
+                        </div>
+                        ) : null}
 
                         {showServiceCatalog ? (
                         <div className="grid min-w-0 gap-2" data-form-field="service">

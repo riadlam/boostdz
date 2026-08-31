@@ -4,6 +4,7 @@ namespace App\Services\Catalog;
 
 use App\Models\CatalogCategory;
 use App\Models\Service;
+use App\Support\CatalogTier;
 use App\Services\Telegram\TelegramClient;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -30,13 +31,18 @@ class FeaturedServiceHealth
 
     public function featuredServiceStatus(CatalogCategory $category): string
     {
-        if (! $category->featured_service_id) {
+        return $this->tierServiceStatus($category, CatalogTier::BASIC);
+    }
+
+    public function tierServiceStatus(CatalogCategory $category, string $tier): string
+    {
+        $serviceId = $this->tierServiceId($category, $tier);
+
+        if (! $serviceId) {
             return self::STATUS_MISSING;
         }
 
-        $service = $category->relationLoaded('featuredService')
-            ? $category->featuredService
-            : $category->featuredService()->first();
+        $service = $this->resolveTierService($category, $tier);
 
         if (! $service) {
             return self::STATUS_MISSING;
@@ -53,6 +59,101 @@ class FeaturedServiceHealth
         return self::STATUS_OK;
     }
 
+    public function tierServiceId(CatalogCategory $category, string $tier): ?int
+    {
+        if (! CatalogTier::isValid($tier)) {
+            return null;
+        }
+
+        $column = CatalogTier::serviceColumn($tier);
+        $serviceId = $category->{$column};
+
+        if ($serviceId) {
+            return (int) $serviceId;
+        }
+
+        if ($tier === CatalogTier::BASIC && $category->featured_service_id) {
+            return (int) $category->featured_service_id;
+        }
+
+        return null;
+    }
+
+    public function resolveTierService(CatalogCategory $category, string $tier): ?Service
+    {
+        $serviceId = $this->tierServiceId($category, $tier);
+
+        if (! $serviceId) {
+            return null;
+        }
+
+        $relation = match ($tier) {
+            CatalogTier::GOLD => 'goldService',
+            CatalogTier::PREMIUM => 'premiumService',
+            default => 'basicService',
+        };
+
+        if ($category->relationLoaded($relation)) {
+            $service = $category->{$relation};
+
+            if ($service && (int) $service->id === $serviceId) {
+                return $service;
+            }
+        }
+
+        if ($tier === CatalogTier::BASIC && $category->relationLoaded('featuredService')) {
+            $service = $category->featuredService;
+
+            if ($service && (int) $service->id === $serviceId) {
+                return $service;
+            }
+        }
+
+        return Service::query()->find($serviceId);
+    }
+
+    /**
+     * @return list<array{tier: string, service_id: int, available: bool}>
+     */
+    public function availableTiers(CatalogCategory $category): array
+    {
+        $tiers = [];
+
+        foreach (CatalogTier::all() as $tier) {
+            $serviceId = $this->tierServiceId($category, $tier);
+
+            if (! $serviceId) {
+                continue;
+            }
+
+            $tiers[] = [
+                'tier' => $tier,
+                'service_id' => $serviceId,
+                'available' => $this->tierServiceStatus($category, $tier) === self::STATUS_OK,
+            ];
+        }
+
+        return $tiers;
+    }
+
+    public function defaultTier(CatalogCategory $category): ?string
+    {
+        foreach (CatalogTier::all() as $tier) {
+            if ($this->tierServiceStatus($category, $tier) === self::STATUS_OK) {
+                return $tier;
+            }
+        }
+
+        return null;
+    }
+
+    public function defaultServiceId(CatalogCategory $category): ?int
+    {
+        $tier = $this->defaultTier($category);
+
+        return $tier ? $this->tierServiceId($category, $tier) : null;
+    }
+
     public function describeIssue(CatalogCategory $category): string
     {
         return match ($this->featuredServiceStatus($category)) {
@@ -65,14 +166,51 @@ class FeaturedServiceHealth
 
     public function issuesQuery(): Builder
     {
-        if (! Schema::hasColumn('catalog_categories', 'featured_service_id')) {
+        if (! Schema::hasColumn('catalog_categories', 'featured_service_id')
+            && ! Schema::hasColumn('catalog_categories', 'basic_service_id')) {
             return CatalogCategory::query()->whereRaw('0 = 1');
         }
 
+        $hasBasic = Schema::hasColumn('catalog_categories', 'basic_service_id');
+
         return CatalogCategory::query()
-            ->with(['platform', 'featuredService'])
+            ->with(['platform', 'featuredService', 'basicService'])
             ->where('catalog_categories.is_active', true)
-            ->where(function (Builder $query): void {
+            ->where(function (Builder $query) use ($hasBasic): void {
+                if ($hasBasic) {
+                    $query->where(function (Builder $query): void {
+                        $query
+                            ->whereNull('basic_service_id')
+                            ->whereNull('featured_service_id');
+                    })
+                        ->orWhere(function (Builder $query): void {
+                            $query
+                                ->whereNotNull('basic_service_id')
+                                ->whereDoesntHave('basicService');
+                        })
+                        ->orWhereHas('basicService', function (Builder $service): void {
+                            $service
+                                ->where('is_active', false)
+                                ->orWhereColumn('services.catalog_category_id', '!=', 'catalog_categories.id');
+                        })
+                        ->orWhere(function (Builder $query): void {
+                            $query
+                                ->whereNull('basic_service_id')
+                                ->whereNotNull('featured_service_id')
+                                ->where(function (Builder $query): void {
+                                    $query
+                                        ->whereDoesntHave('featuredService')
+                                        ->orWhereHas('featuredService', function (Builder $service): void {
+                                            $service
+                                                ->where('is_active', false)
+                                                ->orWhereColumn('services.catalog_category_id', '!=', 'catalog_categories.id');
+                                        });
+                                });
+                        });
+
+                    return;
+                }
+
                 $query
                     ->whereNull('featured_service_id')
                     ->orWhere(function (Builder $query): void {

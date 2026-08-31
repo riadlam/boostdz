@@ -26,6 +26,14 @@
   "refillFailedTitle": "فشل إعادة التعبئة",
   "categoryProduct": "الفئة والمنتج",
   "servicePackage": "باقة الخدمة",
+  "serviceTier": "الباقة",
+  "selectServiceTier": "اختر الباقة",
+  "loadingTiers": "جاري تحميل الباقات…",
+  "tiers": {
+    "basic": "أساسي",
+    "gold": "ذهبي",
+    "premium": "مميز"
+  },
   "amount": "الكمية",
   "selectPlatform": "اختر المنصة",
   "selectCategory": "اختر الفئة",
@@ -61,6 +69,7 @@
     "selectPlatform": "اختر منصة",
     "selectCategory": "اختر فئة",
     "selectService": "اختر خدمة",
+    "selectServiceTier": "اختر باقة",
     "targetRequired": "الهدف مطلوب",
     "customCommentsRequired": "فعّل التعليقات المخصصة لإدخال أسطرك.",
     "loadPlatforms": "فشل تحميل المنصات.",

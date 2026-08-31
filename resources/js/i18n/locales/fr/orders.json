@@ -26,6 +26,14 @@
   "refillFailedTitle": "Échec de la recharge",
   "categoryProduct": "Catégorie et produit",
   "servicePackage": "Forfait de service",
+  "serviceTier": "Forfait",
+  "selectServiceTier": "Choisir un forfait",
+  "loadingTiers": "Chargement des forfaits…",
+  "tiers": {
+    "basic": "Basique",
+    "gold": "Or",
+    "premium": "Premium"
+  },
   "amount": "Quantité",
   "selectPlatform": "Choisir une plateforme",
   "selectCategory": "Choisir une catégorie",
@@ -61,6 +69,7 @@
     "selectPlatform": "Choisissez une plateforme",
     "selectCategory": "Choisissez une catégorie",
     "selectService": "Choisissez un service",
+    "selectServiceTier": "Choisissez un forfait",
     "targetRequired": "La cible est requise",
     "customCommentsRequired": "Activez les commentaires personnalisés pour saisir vos lignes.",
     "loadPlatforms": "Échec du chargement des plateformes.",
