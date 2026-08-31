@@ -26,7 +26,7 @@ class ManageFeaturedServices extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationLabel = 'Storefront defaults';
+    protected static ?string $navigationLabel = 'Category packages';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedStar;
 
@@ -34,7 +34,7 @@ class ManageFeaturedServices extends Page implements HasTable
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $title = 'Storefront defaults';
+    protected static ?string $title = 'Category packages';
 
     protected static ?string $slug = 'manage-featured-services';
 
@@ -47,7 +47,8 @@ class ManageFeaturedServices extends Page implements HasTable
 
     public function mount(): void
     {
-        if (! Schema::hasColumn('catalog_categories', 'featured_service_id')) {
+        if (! Schema::hasColumn('catalog_categories', 'featured_service_id')
+            || ! Schema::hasColumn('catalog_categories', 'basic_service_id')) {
             $this->needsMigration = true;
 
             return;
@@ -88,9 +89,14 @@ class ManageFeaturedServices extends Page implements HasTable
 
         $health = app(FeaturedServiceHealth::class);
 
+        $platformName = CatalogPlatform::query()
+            ->where('slug', $this->platformSlug)
+            ->value('name') ?? 'Platform';
+
         return $table
             ->query(fn (): Builder => $this->getCategoriesQuery())
-            ->heading('Assign Basic, Gold, and Premium services per category for the customer dashboard.')
+            ->heading("{$platformName} — assign a service for each package tier per category")
+            ->description('Example: for Followers, pick which service runs when a customer chooses Basic, Gold, or Premium. Repeat for Comments, Likes, and every other category.')
             ->defaultPaginationPageOption(25)
             ->paginationPageOptions([10, 25, 50])
             ->columns([
