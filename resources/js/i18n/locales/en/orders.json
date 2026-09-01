@@ -30,6 +30,7 @@
   "selectServiceTier": "Select package",
   "loadingTiers": "Loading packages…",
   "noTiersConfigured": "No packages configured",
+  "tierFulfillmentService": "Fulfillment maps to service #{{id}}",
   "tiers": {
     "basic": "Basic",
     "gold": "Gold",

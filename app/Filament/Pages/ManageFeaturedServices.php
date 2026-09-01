@@ -46,6 +46,11 @@ class ManageFeaturedServices extends Page implements HasTable
 
     public bool $needsMigration = false;
 
+    /** @var array<string, array<string, string>> */
+    public array $tierOptions = [];
+
+    public ?string $loadingTierOptionsKey = null;
+
     public function mount(): void
     {
         if (! Schema::hasColumn('catalog_categories', 'featured_service_id')
@@ -66,7 +71,67 @@ class ManageFeaturedServices extends Page implements HasTable
     public function selectPlatform(string $slug): void
     {
         $this->platformSlug = $slug;
+        $this->tierOptions = [];
+        $this->loadingTierOptionsKey = null;
         $this->resetTable();
+    }
+
+    public function loadTierOptions(int $categoryId, string $tier): void
+    {
+        if (! CatalogTier::isValid($tier)) {
+            return;
+        }
+
+        $key = "{$categoryId}-{$tier}";
+        $this->loadingTierOptionsKey = $key;
+
+        $category = CatalogCategory::query()
+            ->with(['basicService', 'goldService', 'premiumService', 'featuredService'])
+            ->find($categoryId);
+
+        if ($category) {
+            $this->tierOptions[$key] = $this->getServiceOptionsForCategory($category, $tier);
+        }
+
+        $this->loadingTierOptionsKey = null;
+    }
+
+    public function formatSelectedTierLabel(CatalogCategory $category, string $tier): string
+    {
+        $column = CatalogTier::serviceColumn($tier);
+        $serviceId = $category->{$column};
+
+        if ($tier === CatalogTier::BASIC && ! $serviceId && $category->featured_service_id) {
+            $serviceId = $category->featured_service_id;
+        }
+
+        if (! $serviceId) {
+            return '— None —';
+        }
+
+        $service = match ($tier) {
+            CatalogTier::GOLD => $category->goldService,
+            CatalogTier::PREMIUM => $category->premiumService,
+            default => $category->basicService ?? $category->featuredService,
+        };
+
+        if (! $service || (int) $service->id !== (int) $serviceId) {
+            $service = Service::query()->find($serviceId);
+        }
+
+        if (! $service) {
+            return '#'.$serviceId.' · —';
+        }
+
+        $suffix = '';
+
+        if (! $service->is_active) {
+            $suffix = ' (inactive)';
+        } elseif ((int) $service->catalog_category_id !== (int) $category->id) {
+            $suffix = ' (wrong category)';
+        }
+
+        return $this->formatServiceOptionLabel($service).$suffix;
     }
 
     /** @return Collection<int, CatalogPlatform> */
@@ -114,7 +179,7 @@ class ManageFeaturedServices extends Page implements HasTable
                     ->view('filament.tables.columns.featured-service-select')
                     ->viewData(fn (CatalogCategory $record): array => [
                         'tier' => CatalogTier::BASIC,
-                        'options' => $this->getServiceOptionsForCategory($record, CatalogTier::BASIC),
+                        'selectedLabel' => $this->formatSelectedTierLabel($record, CatalogTier::BASIC),
                     ]),
                 ViewColumn::make('gold_service_id')
                     ->label('Gold')
@@ -122,7 +187,7 @@ class ManageFeaturedServices extends Page implements HasTable
                     ->view('filament.tables.columns.featured-service-select')
                     ->viewData(fn (CatalogCategory $record): array => [
                         'tier' => CatalogTier::GOLD,
-                        'options' => $this->getServiceOptionsForCategory($record, CatalogTier::GOLD),
+                        'selectedLabel' => $this->formatSelectedTierLabel($record, CatalogTier::GOLD),
                     ]),
                 ViewColumn::make('premium_service_id')
                     ->label('Premium')
@@ -130,7 +195,7 @@ class ManageFeaturedServices extends Page implements HasTable
                     ->view('filament.tables.columns.featured-service-select')
                     ->viewData(fn (CatalogCategory $record): array => [
                         'tier' => CatalogTier::PREMIUM,
-                        'options' => $this->getServiceOptionsForCategory($record, CatalogTier::PREMIUM),
+                        'selectedLabel' => $this->formatSelectedTierLabel($record, CatalogTier::PREMIUM),
                     ]),
                 TextColumn::make('status')
                     ->label('Status')
@@ -214,8 +279,6 @@ class ManageFeaturedServices extends Page implements HasTable
             }
         }
 
-        ksort($options, SORT_NUMERIC);
-
         return $options;
     }
 
@@ -227,7 +290,13 @@ class ManageFeaturedServices extends Page implements HasTable
     protected function getCategoriesQuery(): Builder
     {
         return CatalogCategory::query()
-            ->with(['platform', 'featuredService', 'basicService', 'goldService', 'premiumService'])
+            ->with([
+                'platform',
+                'featuredService:id,name,sell_rate_dzd,is_active,catalog_category_id',
+                'basicService:id,name,sell_rate_dzd,is_active,catalog_category_id',
+                'goldService:id,name,sell_rate_dzd,is_active,catalog_category_id',
+                'premiumService:id,name,sell_rate_dzd,is_active,catalog_category_id',
+            ])
             ->where('catalog_categories.is_active', true)
             ->whereHas('platform', function (Builder $query): void {
                 $query->where('is_active', true);
@@ -284,6 +353,8 @@ class ManageFeaturedServices extends Page implements HasTable
         }
 
         $record->forceFill($payload)->save();
+        $record->load(['basicService', 'goldService', 'premiumService', 'featuredService']);
+        unset($this->tierOptions["{$record->id}-{$tier}"]);
 
         $health->clearStorefrontCache();
 

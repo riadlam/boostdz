@@ -30,6 +30,7 @@
   "selectServiceTier": "اختر الباقة",
   "loadingTiers": "جاري تحميل الباقات…",
   "noTiersConfigured": "لم يتم إعداد الباقات",
+  "tierFulfillmentService": "باقة التنفيذ مرتبطة بالخدمة #{{id}}",
   "tiers": {
     "basic": "أساسي",
     "gold": "ذهبي",

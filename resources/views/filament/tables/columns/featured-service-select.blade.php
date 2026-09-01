@@ -2,6 +2,9 @@
     /** @var \App\Models\CatalogCategory|null $record */
     $record = $getRecord();
     $tier = $tier ?? 'basic';
+    $selectedLabel = $selectedLabel ?? '— None —';
+    $categoryId = $record?->id ?? 0;
+    $optionsKey = $categoryId.'-'.$tier;
     $column = match ($tier) {
         'gold' => 'gold_service_id',
         'premium' => 'premium_service_id',
@@ -9,10 +12,14 @@
     };
     $selected = $record?->{$column};
     $selectedKey = filled($selected) ? (string) $selected : '';
-    $selectedLabel = filled($selectedKey) ? ($options[$selectedKey] ?? '— None —') : '— None —';
+    $options = $this->tierOptions[$optionsKey] ?? [];
+    $isLoading = $this->loadingTierOptionsKey === $optionsKey;
 @endphp
 
-<details class="featured-service-picker w-full min-w-[14rem] max-w-[20rem]">
+<details
+    class="featured-service-picker w-full min-w-[14rem] max-w-[20rem]"
+    x-on:toggle="if ($el.open && {{ $categoryId }} > 0) { $wire.loadTierOptions({{ $categoryId }}, @js($tier)) }"
+>
     <summary class="fi-input-wrp flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-gray-950/10 marker:content-none dark:bg-white/5 dark:ring-white/20 [&::-webkit-details-marker]:hidden">
         <span class="line-clamp-2 text-gray-950 dark:text-white">{{ $selectedLabel }}</span>
         <svg class="size-4 shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -24,38 +31,47 @@
         <input
             type="search"
             placeholder="Search services…"
-            class="block w-full rounded-md border-0 bg-gray-50 px-3 py-2 text-sm text-gray-950 ring-1 ring-gray-950/10 placeholder:text-gray-400 focus:ring-2 focus:ring-primary-600 dark:bg-white/5 dark:text-white dark:ring-white/10"
+            @disabled($isLoading)
+            class="block w-full rounded-md border-0 bg-gray-50 px-3 py-2 text-sm text-gray-950 ring-1 ring-gray-950/10 placeholder:text-gray-400 focus:ring-2 focus:ring-primary-600 disabled:opacity-50 dark:bg-white/5 dark:text-white dark:ring-white/10"
             oninput="const q = this.value.trim().toLowerCase(); this.closest('.featured-service-picker').querySelectorAll('[data-service-option]').forEach((btn) => { btn.style.display = !q || btn.dataset.search.includes(q) ? '' : 'none'; });"
         />
 
         <div class="mt-2 max-h-52 space-y-0.5 overflow-y-auto overscroll-contain">
-            <button
-                type="button"
-                wire:click="updateTierService({{ $record?->id }}, @js($tier), '')"
-                onclick="this.closest('details').removeAttribute('open')"
-                @class([
-                    'block w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5',
-                    blank($selectedKey) ? 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300' : '',
-                ])
-            >
-                — None —
-            </button>
-
-            @foreach ($options as $value => $label)
+            @if ($isLoading)
+                @for ($i = 0; $i < 5; $i++)
+                    <div class="rounded-md px-3 py-2">
+                        <div class="h-4 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+                    </div>
+                @endfor
+            @else
                 <button
                     type="button"
-                    data-service-option
-                    data-search="{{ strtolower($label) }}"
-                    wire:click="updateTierService({{ $record?->id }}, @js($tier), @js((string) $value))"
+                    wire:click="updateTierService({{ $record?->id }}, @js($tier), '')"
                     onclick="this.closest('details').removeAttribute('open')"
                     @class([
-                        'block w-full rounded-md px-3 py-2 text-left text-sm leading-snug text-gray-950 hover:bg-gray-50 dark:text-white dark:hover:bg-white/5',
-                        $selectedKey === (string) $value ? 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300' : '',
+                        'block w-full rounded-md px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5',
+                        blank($selectedKey) ? 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300' : '',
                     ])
                 >
-                    {{ $label }}
+                    — None —
                 </button>
-            @endforeach
+
+                @foreach ($options as $value => $label)
+                    <button
+                        type="button"
+                        data-service-option
+                        data-search="{{ strtolower($label) }}"
+                        wire:click="updateTierService({{ $record?->id }}, @js($tier), @js((string) $value))"
+                        onclick="this.closest('details').removeAttribute('open')"
+                        @class([
+                            'block w-full rounded-md px-3 py-2 text-left text-sm leading-snug text-gray-950 hover:bg-gray-50 dark:text-white dark:hover:bg-white/5',
+                            $selectedKey === (string) $value ? 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300' : '',
+                        ])
+                    >
+                        {{ $label }}
+                    </button>
+                @endforeach
+            @endif
         </div>
     </div>
 </details>

@@ -30,6 +30,7 @@
   "selectServiceTier": "Choisir un forfait",
   "loadingTiers": "Chargement des forfaits…",
   "noTiersConfigured": "Aucun forfait configuré",
+  "tierFulfillmentService": "Le forfait fulfillment correspond au service #{{id}}",
   "tiers": {
     "basic": "Basique",
     "gold": "Or",

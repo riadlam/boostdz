@@ -348,6 +348,38 @@ function formatAmount(n) {
     return Number(n || 0).toLocaleString('fr-DZ', { maximumFractionDigits: 0 });
 }
 
+function formatTierOption(entry, t, showServiceId) {
+    const name = t(`tiers.${entry.tier}`, { defaultValue: entry.tier });
+    const price = entry.service?.sell_rate_dzd
+        ? `${formatDzd(entry.service.sell_rate_dzd)} / 1k`
+        : null;
+
+    if (showServiceId && entry.service_id) {
+        return {
+            primary: `#${entry.service_id} · ${name}`,
+            price,
+        };
+    }
+
+    return { primary: name, price };
+}
+
+function SkeletonBar({ className }) {
+    return <div className={cn('h-4 animate-pulse rounded bg-muted', className)} />;
+}
+
+function DropdownSkeletonRows({ count = 3 }) {
+    return (
+        <div className="space-y-1 p-1">
+            {Array.from({ length: count }).map((_, index) => (
+                <div key={index} className="px-3 py-2">
+                    <SkeletonBar className="h-4 w-full" />
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function chargeFor(service, quantity) {
     return chargeForService(service, quantity);
 }
@@ -678,6 +710,17 @@ export default function CreateOrder() {
 
         return flatServices.find((s) => sameServiceId(s.id, serviceId)) || null;
     }, [showServiceCatalog, tierCatalog, selectedTier, serviceId, flatServices]);
+    const selectedTierEntry = useMemo(
+        () => tierCatalog.find((entry) => entry.tier === selectedTier) || null,
+        [tierCatalog, selectedTier],
+    );
+    const selectedTierText = useMemo(() => {
+        if (!selectedTierEntry) {
+            return null;
+        }
+
+        return formatTierOption(selectedTierEntry, t, showServiceCatalog);
+    }, [selectedTierEntry, showServiceCatalog, t]);
     const deliveryCaps = useMemo(() => {
         // Prefer full category catalog; fall back to current list / selected product.
         const pool = categoryServices.length
@@ -834,6 +877,15 @@ export default function CreateOrder() {
         return t(`tiers.${tier}`, { defaultValue: tier });
     }
 
+    function syncTierFromService(id) {
+        if (!showServiceCatalog || tierCatalog.length === 0) {
+            return;
+        }
+
+        const matchedTier = tierCatalog.find((entry) => sameServiceId(entry.service_id, id));
+        setSelectedTier(matchedTier?.tier || '');
+    }
+
     function applyTierSelection(tier, catalog, { resetRefine = false } = {}) {
         const row = (catalog || tierCatalog).find((entry) => entry.tier === tier);
         const service = row?.service;
@@ -858,7 +910,7 @@ export default function CreateOrder() {
     }
 
     async function loadTierCatalog(categoryRecord) {
-        if (showServiceCatalog || !categoryRecord) {
+        if (!categoryRecord) {
             setTierCatalog([]);
             setSelectedTier('');
             return null;
@@ -872,7 +924,7 @@ export default function CreateOrder() {
 
             const defaultTier = data.default_tier || tiers[0]?.tier || '';
             if (defaultTier) {
-                applyTierSelection(defaultTier, tiers, { resetRefine: true });
+                applyTierSelection(defaultTier, tiers, { resetRefine: !showServiceCatalog });
             } else {
                 setSelectedTier('');
             }
@@ -989,11 +1041,9 @@ export default function CreateOrder() {
             const cat = categories.find((c) => sameServiceId(c.id, categoryId));
             let preferredServiceId = cat?.default_service_id ?? null;
 
-            if (!showServiceCatalog) {
-                const tierDefaultId = await loadTierCatalog(cat);
-                if (tierDefaultId) {
-                    preferredServiceId = tierDefaultId;
-                }
+            const tierDefaultId = await loadTierCatalog(cat);
+            if (tierDefaultId) {
+                preferredServiceId = tierDefaultId;
             }
 
             if (!urlAppliedRef.current && initialUrlRef.current.service) {
@@ -1184,7 +1234,7 @@ export default function CreateOrder() {
 
     function clearRefine() {
         setRefine(EMPTY_REFINE);
-        const tierServiceId = !showServiceCatalog && selectedTier
+        const tierServiceId = selectedTier
             ? tierCatalog.find((entry) => entry.tier === selectedTier)?.service_id
             : null;
         loadServices({
@@ -1205,6 +1255,7 @@ export default function CreateOrder() {
             const nextQty = Math.min(Math.max(next.min, quantity || next.min), next.max);
             setQuantity(nextQty);
             setCustomQuantity(String(nextQty));
+            syncTierFromService(id);
         }
     }
 
@@ -1409,14 +1460,18 @@ export default function CreateOrder() {
                             <div className="relative min-w-0">
                                 <SelectButton
                                     open={openMenu === 'service'}
-                                    disabled={loadingServices || flatServices.length === 0}
+                                    disabled={loadingServices || (!loadingServices && flatServices.length === 0)}
                                     invalid={Boolean(errors.service)}
                                     hasValue={Boolean(selectedService)}
                                     onClick={() => setOpenMenu(openMenu === 'service' ? null : 'service')}
                                 >
                                     <Package className="size-4 shrink-0 opacity-80" />
                                     <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
-                                        {selectedService?.name || (loadingServices ? t('loadingServices') : t('selectService'))}
+                                        {loadingServices ? (
+                                            <SkeletonBar className="w-40" />
+                                        ) : (
+                                            selectedService?.name || t('selectService')
+                                        )}
                                     </span>
                                 </SelectButton>
                                 <Dropdown open={openMenu === 'service'} className="p-0">
@@ -1433,7 +1488,7 @@ export default function CreateOrder() {
                                     </div>
                                     <div className="max-h-72 overflow-auto p-1">
                                         {loadingServices ? (
-                                            <p className="px-3 py-3 text-sm text-muted-foreground">{t('loading', { ns: 'common' })}</p>
+                                            <DropdownSkeletonRows count={5} />
                                         ) : groups.length === 0 ? (
                                             <p className="px-3 py-3 text-sm text-muted-foreground">
                                                 {t('noServicesMatch')}
@@ -1486,47 +1541,72 @@ export default function CreateOrder() {
                         </div>
                         ) : null}
 
-                        {!showServiceCatalog && selectedCategory ? (
+                        {selectedCategory && (loadingTiers || tierCatalog.length > 0) ? (
                         <div className="grid min-w-0 gap-2" data-form-field="tier">
-                            <FieldLabel required>{t('serviceTier')}</FieldLabel>
+                            <FieldLabel required={!showServiceCatalog}>{t('serviceTier')}</FieldLabel>
                             <div className="relative min-w-0">
                                 <SelectButton
                                     open={openMenu === 'tier'}
-                                    disabled={loadingTiers || tierCatalog.length === 0}
+                                    disabled={loadingTiers || (!loadingTiers && tierCatalog.length === 0)}
                                     invalid={Boolean(errors.tier)}
                                     hasValue={Boolean(selectedTier)}
                                     onClick={() => setOpenMenu(openMenu === 'tier' ? null : 'tier')}
                                 >
                                     <Sparkles className="size-4 shrink-0 opacity-80" />
                                     <span className="block min-w-0 flex-1 truncate whitespace-nowrap">
-                                        {loadingTiers
-                                            ? t('loadingTiers')
-                                            : selectedTier
-                                              ? tierLabel(selectedTier)
-                                              : tierCatalog.length === 0
-                                                ? t('noTiersConfigured')
-                                                : t('selectServiceTier')}
-                                    </span>
-                                </SelectButton>
-                                <Dropdown open={openMenu === 'tier'}>
-                                    {tierCatalog.map((entry) => (
-                                        <Option
-                                            key={entry.tier}
-                                            active={entry.tier === selectedTier}
-                                            onClick={() => selectTier(entry.tier)}
-                                        >
-                                            <span className="flex w-full items-center justify-between gap-2">
-                                                <span>{tierLabel(entry.tier)}</span>
-                                                {entry.service?.sell_rate_dzd ? (
-                                                    <span className="text-xs text-muted-foreground tabular-nums">
-                                                        {formatDzd(entry.service.sell_rate_dzd)} / 1k
+                                        {loadingTiers ? (
+                                            <SkeletonBar className="w-40" />
+                                        ) : selectedTierText ? (
+                                            <span className="flex w-full min-w-0 items-center justify-between gap-2">
+                                                <span className="truncate">{selectedTierText.primary}</span>
+                                                {selectedTierText.price ? (
+                                                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                                                        {selectedTierText.price}
                                                     </span>
                                                 ) : null}
                                             </span>
-                                        </Option>
-                                    ))}
+                                        ) : tierCatalog.length === 0 ? (
+                                            t('noTiersConfigured')
+                                        ) : (
+                                            t('selectServiceTier')
+                                        )}
+                                    </span>
+                                </SelectButton>
+                                <Dropdown open={openMenu === 'tier'}>
+                                    {loadingTiers ? (
+                                        <DropdownSkeletonRows count={3} />
+                                    ) : (
+                                        tierCatalog.map((entry) => {
+                                            const option = formatTierOption(entry, t, showServiceCatalog);
+
+                                            return (
+                                                <Option
+                                                    key={entry.tier}
+                                                    active={entry.tier === selectedTier}
+                                                    onClick={() => selectTier(entry.tier)}
+                                                >
+                                                    <span className="flex w-full items-center justify-between gap-2">
+                                                        <span>{option.primary}</span>
+                                                        {option.price ? (
+                                                            <span className="text-xs text-muted-foreground tabular-nums">
+                                                                {option.price}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                </Option>
+                                            );
+                                        })
+                                    )}
                                 </Dropdown>
                             </div>
+                            {showServiceCatalog && selectedTierEntry?.service_id ? (
+                                <p className="text-xs text-muted-foreground">
+                                    {t('tierFulfillmentService', {
+                                        id: selectedTierEntry.service_id,
+                                        defaultValue: `Fulfillment maps to service #${selectedTierEntry.service_id}`,
+                                    })}
+                                </p>
+                            ) : null}
                             {errors.tier ? (
                                 <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.tier}</p>
                             ) : null}
