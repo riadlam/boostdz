@@ -37,6 +37,7 @@ class CatalogSyncService
             $now = now();
             $seenExternalIds = $this->extractSeenExternalIds($remoteServices);
             $providerRows = $this->buildProviderRows($provider, $remoteServices, $now);
+            unset($remoteServices);
             $synced = count($providerRows);
             $stats = [
                 'updated' => 0,
@@ -54,14 +55,9 @@ class CatalogSyncService
                 $this->upsertProviderServices($providerRows);
                 $this->touchSeenProviderServices($provider, $seenExternalIds, $now);
 
-                $providerServiceMap = ProviderService::query()
-                    ->where('provider_id', $provider->id)
-                    ->pluck('id', 'external_id');
-
                 $syncStats = $this->syncAllServices(
                     $provider,
                     $providerRows,
-                    $providerServiceMap,
                     $markup,
                     $now,
                 );
@@ -122,16 +118,25 @@ class CatalogSyncService
                 'meta' => $stats,
             ]);
         } catch (BuzzerPanelException $exception) {
-            return ProviderSyncLog::query()->create([
-                'provider_id' => $provider->id,
-                'type' => 'catalog',
-                'status' => 'failed',
-                'records_synced' => 0,
-                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
-                'message' => $exception->getMessage(),
-                'meta' => ['response' => $exception->response()],
+            return $this->failedSyncLog($provider, $started, $exception->getMessage(), [
+                'response' => $exception->response(),
             ]);
+        } catch (\Throwable $exception) {
+            return $this->failedSyncLog($provider, $started, $exception->getMessage());
         }
+    }
+
+    protected function failedSyncLog(Provider $provider, float $started, string $message, array $meta = []): ProviderSyncLog
+    {
+        return ProviderSyncLog::query()->create([
+            'provider_id' => $provider->id,
+            'type' => 'catalog',
+            'status' => 'failed',
+            'records_synced' => 0,
+            'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+            'message' => $message,
+            'meta' => $meta,
+        ]);
     }
 
     protected function classifyUnassignedServices(Provider $provider): int
@@ -246,101 +251,113 @@ class CatalogSyncService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int|string, int>  $providerServiceMap
+     * @param  list<array<string, mixed>>  $providerRows
      * @return array<string, int|list<string>>
      */
     protected function syncAllServices(
         Provider $provider,
         array $providerRows,
-        Collection $providerServiceMap,
         float $markup,
         \Illuminate\Support\Carbon $now,
     ): array {
-        $providerServiceIds = $providerServiceMap->values()->filter()->all();
-
-        $existingByProviderServiceId = Service::query()
-            ->whereIn('provider_service_id', $providerServiceIds)
-            ->get(['id', 'provider_service_id', 'name', 'description', 'meta', 'is_active'])
-            ->keyBy('provider_service_id');
-
-        $serviceRows = [];
         $created = 0;
         $updated = 0;
         $reactivated = 0;
         $reactivatedNames = [];
 
-        foreach ($providerRows as $row) {
-            $externalId = (int) $row['external_id'];
-            $providerServiceId = (int) ($providerServiceMap[$externalId] ?? 0);
-
-            if ($providerServiceId <= 0) {
-                continue;
-            }
-
-            $item = $row['_item'];
-            $platform = $this->detectPlatform((string) ($item['category'] ?? $item['name'] ?? ''));
-            $name = $row['name'];
-            $existing = $existingByProviderServiceId->get($providerServiceId);
-
-            if ($existing) {
-                $updated++;
-
-                if (! (bool) $existing->is_active) {
-                    $reactivated++;
-
-                    if (count($reactivatedNames) < 6) {
-                        $reactivatedNames[] = (string) $existing->name;
-                    }
-                }
-            } else {
-                $created++;
-            }
-
-            $prevMeta = $existing?->meta;
-
-            if (is_string($prevMeta)) {
-                $prevMeta = json_decode($prevMeta, true);
-            }
-
-            $prevMeta = is_array($prevMeta) ? $prevMeta : [];
-            $meta = array_merge($prevMeta, [
-                'external_id' => $externalId,
-                'cat_id' => $item['cat_id'] ?? ($prevMeta['cat_id'] ?? null),
-                'speed' => $item['speed'] ?? ($prevMeta['speed'] ?? null),
-                'jenis' => $item['jenis'] ?? $item['type'] ?? ($prevMeta['jenis'] ?? null),
-                'provider_name' => $name,
-            ]);
-
-            $description = (string) ($item['note'] ?? $item['desc'] ?? $item['description'] ?? $existing?->description ?? '');
-
-            $serviceRows[] = [
-                'provider_service_id' => $providerServiceId,
-                'slug' => Str::slug($platform.'-'.$name.'-'.$externalId),
-                'platform' => $platform,
-                'name' => $name,
-                'description' => mb_substr($description, 0, 65535),
-                'type' => $row['type'],
-                'min' => $row['min'],
-                'max' => $row['max'],
-                'rate_idr' => $row['rate_idr'],
-                'sell_rate_dzd' => $this->pricing->sellRateDzdPerThousand($row['rate_idr']),
-                'markup_percent' => $markup,
-                'refill' => $row['refill'],
-                'dripfeed' => $row['dripfeed'],
-                'is_active' => 1,
-                'sort_order' => 0,
-                'meta' => json_encode($meta, JSON_UNESCAPED_UNICODE),
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        foreach (array_chunk($serviceRows, 250) as $chunk) {
-            Service::query()->upsert(
+        foreach (array_chunk($providerRows, 250) as $chunk) {
+            $externalIds = array_map(
+                static fn (array $row): int => (int) $row['external_id'],
                 $chunk,
-                ['provider_service_id'],
-                ['slug', 'platform', 'name', 'description', 'type', 'min', 'max', 'rate_idr', 'sell_rate_dzd', 'markup_percent', 'refill', 'dripfeed', 'is_active', 'meta', 'updated_at'],
             );
+
+            /** @var Collection<int|string, int> $providerServiceMap */
+            $providerServiceMap = ProviderService::query()
+                ->where('provider_id', $provider->id)
+                ->whereIn('external_id', $externalIds)
+                ->pluck('id', 'external_id');
+
+            $existingByProviderServiceId = $this->loadExistingServicesByProviderServiceId(
+                $providerServiceMap->values()->all(),
+            );
+
+            $serviceRows = [];
+
+            foreach ($chunk as $row) {
+                $externalId = (int) $row['external_id'];
+                $providerServiceId = (int) ($providerServiceMap[$externalId] ?? 0);
+
+                if ($providerServiceId <= 0) {
+                    continue;
+                }
+
+                $item = $row['_item'];
+                $platform = $this->detectPlatform((string) ($item['category'] ?? $item['name'] ?? ''));
+                $name = $row['name'];
+                $existing = $existingByProviderServiceId->get($providerServiceId);
+
+                if ($existing) {
+                    $updated++;
+
+                    if (! (bool) $existing->is_active) {
+                        $reactivated++;
+
+                        if (count($reactivatedNames) < 6) {
+                            $reactivatedNames[] = (string) $existing->name;
+                        }
+                    }
+                } else {
+                    $created++;
+                }
+
+                $prevMeta = $existing?->meta;
+
+                if (is_string($prevMeta)) {
+                    $prevMeta = json_decode($prevMeta, true);
+                }
+
+                $prevMeta = is_array($prevMeta) ? $prevMeta : [];
+                $meta = array_merge($prevMeta, [
+                    'external_id' => $externalId,
+                    'cat_id' => $item['cat_id'] ?? ($prevMeta['cat_id'] ?? null),
+                    'speed' => $item['speed'] ?? ($prevMeta['speed'] ?? null),
+                    'jenis' => $item['jenis'] ?? $item['type'] ?? ($prevMeta['jenis'] ?? null),
+                    'provider_name' => $name,
+                ]);
+
+                $description = (string) ($item['note'] ?? $item['desc'] ?? $item['description'] ?? $existing?->description ?? '');
+
+                $serviceRows[] = [
+                    'provider_service_id' => $providerServiceId,
+                    'slug' => Str::slug($platform.'-'.$name.'-'.$externalId),
+                    'platform' => $platform,
+                    'name' => $name,
+                    'description' => mb_substr($description, 0, 65535),
+                    'type' => $row['type'],
+                    'min' => $row['min'],
+                    'max' => $row['max'],
+                    'rate_idr' => $row['rate_idr'],
+                    'sell_rate_dzd' => $this->pricing->sellRateDzdPerThousand($row['rate_idr']),
+                    'markup_percent' => $markup,
+                    'refill' => $row['refill'],
+                    'dripfeed' => $row['dripfeed'],
+                    'is_active' => 1,
+                    'sort_order' => 0,
+                    'meta' => json_encode($meta, JSON_UNESCAPED_UNICODE),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if ($serviceRows !== []) {
+                Service::query()->upsert(
+                    $serviceRows,
+                    ['provider_service_id'],
+                    ['slug', 'platform', 'name', 'description', 'type', 'min', 'max', 'rate_idr', 'sell_rate_dzd', 'markup_percent', 'refill', 'dripfeed', 'is_active', 'meta', 'updated_at'],
+                );
+            }
+
+            unset($serviceRows, $existingByProviderServiceId, $providerServiceMap);
         }
 
         return [
@@ -349,6 +366,31 @@ class CatalogSyncService
             'reactivated' => $reactivated,
             'reactivated_names' => $reactivatedNames,
         ];
+    }
+
+    /**
+     * @param  list<int>  $providerServiceIds
+     * @return Collection<int|string, Service>
+     */
+    protected function loadExistingServicesByProviderServiceId(array $providerServiceIds): Collection
+    {
+        $providerServiceIds = array_values(array_unique(array_filter($providerServiceIds)));
+
+        if ($providerServiceIds === []) {
+            return collect();
+        }
+
+        $existing = [];
+
+        foreach (array_chunk($providerServiceIds, 500) as $chunk) {
+            foreach (Service::query()
+                ->whereIn('provider_service_id', $chunk)
+                ->get(['id', 'provider_service_id', 'name', 'description', 'meta', 'is_active']) as $service) {
+                $existing[$service->provider_service_id] = $service;
+            }
+        }
+
+        return collect($existing);
     }
 
     protected function markProviderServicesPendingSync(Provider $provider): void
@@ -410,17 +452,21 @@ class CatalogSyncService
                     ->where('provider_id', $provider->id)
                     ->where('is_active', false);
             })
-            ->pluck('id');
+            ->pluck('id')
+            ->all();
 
         $names = Service::query()
-            ->whereIn('id', $ids)
-            ->limit(6)
+            ->whereIn('id', array_slice($ids, 0, 6))
             ->pluck('name')
             ->all();
 
-        $count = Service::query()
-            ->whereIn('id', $ids)
-            ->update(['is_active' => false]);
+        $count = 0;
+
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $count += Service::query()
+                ->whereIn('id', $chunk)
+                ->update(['is_active' => false]);
+        }
 
         return [
             'count' => $count,
