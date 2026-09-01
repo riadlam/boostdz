@@ -200,13 +200,13 @@ class TelegramClient
      * @param  array{
      *     provider_rows: int,
      *     updated: int,
+     *     created: int,
      *     reactivated: int,
      *     reactivated_names: list<string>,
      *     deactivated: int,
      *     deactivated_names: list<string>,
-     *     new_skipped: int,
-     *     name_changes: int,
-     *     mode: string,
+     *     classified: int,
+     *     rate_skipped: int,
      *     duration_ms: int,
      * }  $summary
      */
@@ -222,10 +222,11 @@ class TelegramClient
             '',
             '📦 Provider rows: '.number_format($summary['provider_rows']),
             '✅ Updated: '.number_format($summary['updated']),
+            '🆕 Created: '.number_format($summary['created']),
+            '🏷 Classified: '.number_format($summary['classified']),
             '🟢 Reactivated: '.number_format($summary['reactivated']),
             '🔴 Deactivated: '.number_format($summary['deactivated']),
-            '⏭ New skipped: '.number_format($summary['new_skipped']),
-            '✏️ Name changes: '.number_format($summary['name_changes']),
+            '⚠️ Rate skipped: '.number_format($summary['rate_skipped']),
         ];
 
         if ($summary['deactivated'] > 0) {
@@ -238,7 +239,7 @@ class TelegramClient
         }
 
         $lines[] = '';
-        $lines[] = '⏱ '.$duration.' · '.e($summary['mode']);
+        $lines[] = '⏱ '.$duration;
 
         $this->call('sendMessage', [
             'chat_id' => (string) config('telegram.admin_chat_id'),

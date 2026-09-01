@@ -3,7 +3,6 @@
 namespace App\Services\Catalog;
 
 use App\Models\CatalogPlatform;
-use App\Models\CatalogSyncEvent;
 use App\Models\Provider;
 use App\Models\ProviderService;
 use App\Models\ProviderSyncLog;
@@ -24,6 +23,7 @@ class CatalogSyncService
         private readonly PricingService $pricing,
         private readonly TelegramClient $telegram,
         private readonly FeaturedServiceHealth $featuredHealth,
+        private readonly CatalogClassifier $classifier,
     ) {}
 
     public function sync(Provider $provider): ProviderSyncLog
@@ -35,6 +35,7 @@ class CatalogSyncService
             $remoteServices = $client->services();
             $markup = $this->pricing->markupPercent();
             $now = now();
+            $seenExternalIds = $this->extractSeenExternalIds($remoteServices);
             $providerRows = $this->buildProviderRows($provider, $remoteServices, $now);
             $synced = count($providerRows);
             $stats = [
@@ -42,64 +43,55 @@ class CatalogSyncService
                 'created' => 0,
                 'reactivated' => 0,
                 'reactivated_names' => [],
-                'new_skipped' => 0,
-                'name_changes' => 0,
+                'classified' => 0,
+                'rate_skipped' => max(0, count($seenExternalIds) - $synced),
                 'deactivated' => 0,
                 'deactivated_names' => [],
             ];
 
-            /** @var Collection<int, CatalogSyncEvent> $events */
-            $events = collect();
-
-            DB::transaction(function () use ($provider, $providerRows, $markup, $now, &$stats, &$events): void {
+            DB::transaction(function () use ($provider, $providerRows, $seenExternalIds, $markup, $now, &$stats): void {
+                $this->markProviderServicesPendingSync($provider);
                 $this->upsertProviderServices($providerRows);
+                $this->touchSeenProviderServices($provider, $seenExternalIds, $now);
 
                 $providerServiceMap = ProviderService::query()
                     ->where('provider_id', $provider->id)
                     ->pluck('id', 'external_id');
 
-                if ($this->isUpdateOnlyMode()) {
-                    [$stats, $events] = $this->syncExistingServicesOnly(
-                        $provider,
-                        $providerRows,
-                        $providerServiceMap,
-                        $markup,
-                        $now,
-                    );
-                } else {
-                    $stats = $this->syncAllServices(
-                        $provider,
-                        $providerRows,
-                        $providerServiceMap,
-                        $markup,
-                        $now,
-                    );
-                }
+                $syncStats = $this->syncAllServices(
+                    $provider,
+                    $providerRows,
+                    $providerServiceMap,
+                    $markup,
+                    $now,
+                );
+                $stats = array_merge($stats, $syncStats);
 
-                $this->deactivateStaleProviderServices($provider, $now);
-                $deactivated = $this->deactivateStaleServices($provider, $now);
+                $this->reactivateLinkedServices($provider);
+                $this->deactivateStaleProviderServices($provider);
+                $deactivated = $this->deactivateStaleServices($provider);
                 $stats['deactivated'] = $deactivated['count'];
                 $stats['deactivated_names'] = $deactivated['names'];
             });
 
+            $stats['classified'] = $this->classifyUnassignedServices($provider);
+
             CatalogClassifier::clearCache();
             $this->applyWebCatalogVisibility($provider);
-            $this->markSyncEventsHandled($events);
 
             $durationMs = (int) round((microtime(true) - $started) * 1000);
-            $mode = $this->isUpdateOnlyMode() ? 'update-only' : 'full';
 
             try {
                 $this->telegram->notifyCatalogSyncSummary([
                     'provider_rows' => $synced,
-                    'updated' => $stats['updated'] + ($stats['created'] ?? 0),
+                    'updated' => $stats['updated'],
+                    'created' => $stats['created'],
                     'reactivated' => $stats['reactivated'],
                     'reactivated_names' => $stats['reactivated_names'],
                     'deactivated' => $stats['deactivated'],
                     'deactivated_names' => $stats['deactivated_names'],
-                    'new_skipped' => $stats['new_skipped'],
-                    'name_changes' => $stats['name_changes'],
-                    'mode' => $mode,
+                    'classified' => $stats['classified'],
+                    'rate_skipped' => $stats['rate_skipped'],
                     'duration_ms' => $durationMs,
                 ]);
             } catch (\Throwable) {
@@ -110,14 +102,14 @@ class CatalogSyncService
             $this->featuredHealth->checkAndNotifyAll();
 
             $message = sprintf(
-                'Synced %d provider rows (%s). Updated %d, reactivated %d, deactivated %d, skipped new %d, name changes %d.',
+                'Synced %d provider rows. Updated %d, created %d, classified %d, reactivated %d, deactivated %d, rate skipped %d.',
                 $synced,
-                $mode,
-                $stats['updated'] + ($stats['created'] ?? 0),
+                $stats['updated'],
+                $stats['created'],
+                $stats['classified'],
                 $stats['reactivated'],
                 $stats['deactivated'],
-                $stats['new_skipped'],
-                $stats['name_changes'],
+                $stats['rate_skipped'],
             );
 
             return ProviderSyncLog::query()->create([
@@ -142,9 +134,45 @@ class CatalogSyncService
         }
     }
 
-    protected function isUpdateOnlyMode(): bool
+    protected function classifyUnassignedServices(Provider $provider): int
     {
-        return config('catalog.sync_mode', 'update_only') !== 'full';
+        $classified = 0;
+
+        Service::query()
+            ->whereNull('catalog_category_id')
+            ->whereHas('providerService', fn ($query) => $query->where('provider_id', $provider->id))
+            ->with('providerService:id,category,provider_id')
+            ->chunkById(250, function ($services) use (&$classified): void {
+                foreach ($services as $service) {
+                    $this->classifier->classifyService($service, $service->providerService?->category);
+                    $classified++;
+                }
+            });
+
+        return $classified;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $remoteServices
+     * @return list<int>
+     */
+    protected function extractSeenExternalIds(array $remoteServices): array
+    {
+        $ids = [];
+
+        foreach ($remoteServices as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $externalId = (int) ($item['id'] ?? $item['service'] ?? 0);
+
+            if ($externalId > 0) {
+                $ids[] = $externalId;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     /**
@@ -166,7 +194,9 @@ class CatalogSyncService
                 continue;
             }
 
-            $rateIdr = $this->normalizeRateIdr($item['price'] ?? $item['rate'] ?? 0);
+            $rateIdr = $this->normalizeRateIdr(
+                $item['price'] ?? $item['rate'] ?? $item['cost'] ?? $item['harga'] ?? 0,
+            );
 
             if ((float) $rateIdr <= 0 || (float) $rateIdr > 100_000_000) {
                 continue;
@@ -217,41 +247,27 @@ class CatalogSyncService
 
     /**
      * @param  \Illuminate\Support\Collection<int|string, int>  $providerServiceMap
-     * @return array{0: array<string, int>, 1: Collection<int, CatalogSyncEvent>}
+     * @return array<string, int|list<string>>
      */
-    protected function syncExistingServicesOnly(
+    protected function syncAllServices(
         Provider $provider,
         array $providerRows,
         Collection $providerServiceMap,
         float $markup,
         \Illuminate\Support\Carbon $now,
     ): array {
-        $stats = [
-            'updated' => 0,
-            'created' => 0,
-            'reactivated' => 0,
-            'reactivated_names' => [],
-            'new_skipped' => 0,
-            'name_changes' => 0,
-            'deactivated' => 0,
-            'deactivated_names' => [],
-        ];
+        $providerServiceIds = $providerServiceMap->values()->filter()->all();
 
-        $existingByExternal = DB::table('services')
-            ->join('provider_services', 'services.provider_service_id', '=', 'provider_services.id')
-            ->where('provider_services.provider_id', $provider->id)
-            ->select([
-                'services.id',
-                'services.name',
-                'services.is_active',
-                'services.description',
-                'services.meta',
-                'provider_services.external_id as external_id',
-            ])
-            ->get()
-            ->keyBy('external_id');
+        $existingByProviderServiceId = Service::query()
+            ->whereIn('provider_service_id', $providerServiceIds)
+            ->get(['id', 'provider_service_id', 'name', 'description', 'meta', 'is_active'])
+            ->keyBy('provider_service_id');
 
-        $events = collect();
+        $serviceRows = [];
+        $created = 0;
+        $updated = 0;
+        $reactivated = 0;
+        $reactivatedNames = [];
 
         foreach ($providerRows as $row) {
             $externalId = (int) $row['external_id'];
@@ -261,109 +277,48 @@ class CatalogSyncService
                 continue;
             }
 
-            $existing = $existingByExternal->get($externalId);
-
-            if (! $existing) {
-                $stats['new_skipped']++;
-                if (! $this->hasRecentSyncEvent($provider->id, CatalogSyncEvent::TYPE_NEW_PROVIDER_SERVICE, $externalId)) {
-                    $events->push($this->recordSyncEvent(
-                        provider: $provider,
-                        type: CatalogSyncEvent::TYPE_NEW_PROVIDER_SERVICE,
-                        externalId: $externalId,
-                        providerServiceId: $providerServiceId,
-                        oldValue: null,
-                        newValue: $row['name'],
-                    ));
-                }
-
-                continue;
-            }
-
-            $item = $row['_item'];
-            $meta = json_decode((string) ($existing->meta ?? ''), true);
-            $meta = is_array($meta) ? $meta : [];
-            $previousProviderName = (string) ($meta['provider_name'] ?? $existing->name);
-
-            if ($row['name'] !== $previousProviderName && $row['name'] !== $existing->name) {
-                if (! $this->hasRecentNameChangeEvent($provider->id, (int) $existing->id, $row['name'])) {
-                    $stats['name_changes']++;
-                    $events->push($this->recordSyncEvent(
-                        provider: $provider,
-                        type: CatalogSyncEvent::TYPE_NAME_CHANGED,
-                        externalId: $externalId,
-                        providerServiceId: $providerServiceId,
-                        serviceId: (int) $existing->id,
-                        oldValue: $existing->name,
-                        newValue: $row['name'],
-                    ));
-                }
-            }
-
-            $meta = array_merge($meta, [
-                'external_id' => $externalId,
-                'cat_id' => $item['cat_id'] ?? ($meta['cat_id'] ?? null),
-                'speed' => $item['speed'] ?? ($meta['speed'] ?? null),
-                'jenis' => $item['jenis'] ?? $item['type'] ?? ($meta['jenis'] ?? null),
-                'provider_name' => $row['name'],
-            ]);
-
-            if (! (bool) $existing->is_active) {
-                $stats['reactivated']++;
-                if (count($stats['reactivated_names']) < 6) {
-                    $stats['reactivated_names'][] = (string) $existing->name;
-                }
-            }
-
-            Service::query()->whereKey((int) $existing->id)->update([
-                'rate_idr' => $row['rate_idr'],
-                'sell_rate_dzd' => $this->pricing->sellRateDzdPerThousand($row['rate_idr']),
-                'markup_percent' => $markup,
-                'min' => $row['min'],
-                'max' => $row['max'],
-                'refill' => (bool) $row['refill'],
-                'dripfeed' => (bool) $row['dripfeed'],
-                'is_active' => true,
-                'description' => mb_substr((string) ($item['note'] ?? $item['desc'] ?? $item['description'] ?? $existing->description ?? ''), 0, 65535),
-                'meta' => json_encode($meta, JSON_UNESCAPED_UNICODE),
-                'updated_at' => $now,
-            ]);
-            $stats['updated']++;
-        }
-
-        return [$stats, $events];
-    }
-
-    /**
-     * @param  \Illuminate\Support\Collection<int|string, int>  $providerServiceMap
-     * @return array<string, int>
-     */
-    protected function syncAllServices(
-        Provider $provider,
-        array $providerRows,
-        Collection $providerServiceMap,
-        float $markup,
-        \Illuminate\Support\Carbon $now,
-    ): array {
-        $serviceRows = [];
-
-        foreach ($providerRows as $row) {
-            $externalId = (int) $row['external_id'];
-            $providerServiceId = $providerServiceMap[$externalId] ?? null;
-
-            if (! $providerServiceId) {
-                continue;
-            }
-
             $item = $row['_item'];
             $platform = $this->detectPlatform((string) ($item['category'] ?? $item['name'] ?? ''));
             $name = $row['name'];
+            $existing = $existingByProviderServiceId->get($providerServiceId);
+
+            if ($existing) {
+                $updated++;
+
+                if (! (bool) $existing->is_active) {
+                    $reactivated++;
+
+                    if (count($reactivatedNames) < 6) {
+                        $reactivatedNames[] = (string) $existing->name;
+                    }
+                }
+            } else {
+                $created++;
+            }
+
+            $prevMeta = $existing?->meta;
+
+            if (is_string($prevMeta)) {
+                $prevMeta = json_decode($prevMeta, true);
+            }
+
+            $prevMeta = is_array($prevMeta) ? $prevMeta : [];
+            $meta = array_merge($prevMeta, [
+                'external_id' => $externalId,
+                'cat_id' => $item['cat_id'] ?? ($prevMeta['cat_id'] ?? null),
+                'speed' => $item['speed'] ?? ($prevMeta['speed'] ?? null),
+                'jenis' => $item['jenis'] ?? $item['type'] ?? ($prevMeta['jenis'] ?? null),
+                'provider_name' => $name,
+            ]);
+
+            $description = (string) ($item['note'] ?? $item['desc'] ?? $item['description'] ?? $existing?->description ?? '');
 
             $serviceRows[] = [
                 'provider_service_id' => $providerServiceId,
                 'slug' => Str::slug($platform.'-'.$name.'-'.$externalId),
                 'platform' => $platform,
                 'name' => $name,
-                'description' => (string) ($item['note'] ?? $item['desc'] ?? $item['description'] ?? ''),
+                'description' => mb_substr($description, 0, 65535),
                 'type' => $row['type'],
                 'min' => $row['min'],
                 'max' => $row['max'],
@@ -374,12 +329,7 @@ class CatalogSyncService
                 'dripfeed' => $row['dripfeed'],
                 'is_active' => 1,
                 'sort_order' => 0,
-                'meta' => json_encode([
-                    'external_id' => $externalId,
-                    'cat_id' => $item['cat_id'] ?? null,
-                    'speed' => $item['speed'] ?? null,
-                    'jenis' => $item['jenis'] ?? $item['type'] ?? null,
-                ], JSON_UNESCAPED_UNICODE),
+                'meta' => json_encode($meta, JSON_UNESCAPED_UNICODE),
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -394,29 +344,72 @@ class CatalogSyncService
         }
 
         return [
-            'updated' => count($serviceRows),
-            'created' => 0,
-            'new_skipped' => 0,
-            'name_changes' => 0,
-            'deactivated' => 0,
+            'updated' => $updated,
+            'created' => $created,
+            'reactivated' => $reactivated,
+            'reactivated_names' => $reactivatedNames,
         ];
     }
 
-    protected function deactivateStaleProviderServices(Provider $provider, \Illuminate\Support\Carbon $now): void
+    protected function markProviderServicesPendingSync(Provider $provider): void
     {
         ProviderService::query()
             ->where('provider_id', $provider->id)
-            ->where(function ($q) use ($now): void {
-                $q->whereNull('synced_at')->orWhere('synced_at', '<', $now->copy()->subMinute());
+            ->update(['synced_at' => null]);
+    }
+
+    /**
+     * Keep provider rows alive when BuzzerPanel still lists the service, even if rate parsing skipped an upsert row.
+     *
+     * @param  list<int>  $seenExternalIds
+     */
+    protected function touchSeenProviderServices(Provider $provider, array $seenExternalIds, \Illuminate\Support\Carbon $now): void
+    {
+        if ($seenExternalIds === []) {
+            return;
+        }
+
+        foreach (array_chunk($seenExternalIds, 500) as $chunk) {
+            ProviderService::query()
+                ->where('provider_id', $provider->id)
+                ->whereIn('external_id', $chunk)
+                ->update([
+                    'is_active' => true,
+                    'synced_at' => $now,
+                    'updated_at' => $now,
+                ]);
+        }
+    }
+
+    protected function reactivateLinkedServices(Provider $provider): void
+    {
+        Service::query()
+            ->where('is_active', false)
+            ->whereHas('providerService', function ($query) use ($provider): void {
+                $query
+                    ->where('provider_id', $provider->id)
+                    ->where('is_active', true);
             })
+            ->update(['is_active' => true]);
+    }
+
+    protected function deactivateStaleProviderServices(Provider $provider): void
+    {
+        ProviderService::query()
+            ->where('provider_id', $provider->id)
+            ->whereNull('synced_at')
             ->update(['is_active' => false]);
     }
 
-    protected function deactivateStaleServices(Provider $provider, \Illuminate\Support\Carbon $now): array
+    protected function deactivateStaleServices(Provider $provider): array
     {
         $ids = Service::query()
-            ->whereHas('providerService', fn ($q) => $q->where('provider_id', $provider->id))
-            ->where('updated_at', '<', $now->copy()->subMinute())
+            ->where('is_active', true)
+            ->whereHas('providerService', function ($query) use ($provider): void {
+                $query
+                    ->where('provider_id', $provider->id)
+                    ->where('is_active', false);
+            })
             ->pluck('id');
 
         $names = Service::query()
@@ -433,62 +426,6 @@ class CatalogSyncService
             'count' => $count,
             'names' => $names,
         ];
-    }
-
-    protected function recordSyncEvent(
-        Provider $provider,
-        string $type,
-        ?int $externalId = null,
-        ?int $providerServiceId = null,
-        ?int $serviceId = null,
-        ?string $oldValue = null,
-        ?string $newValue = null,
-    ): CatalogSyncEvent {
-        return CatalogSyncEvent::query()->create([
-            'provider_id' => $provider->id,
-            'provider_service_id' => $providerServiceId,
-            'service_id' => $serviceId,
-            'external_id' => $externalId,
-            'event_type' => $type,
-            'old_value' => $oldValue ? mb_substr($oldValue, 0, 255) : null,
-            'new_value' => $newValue ? mb_substr($newValue, 0, 255) : null,
-            'status' => CatalogSyncEvent::STATUS_PENDING,
-        ]);
-    }
-
-    protected function hasRecentSyncEvent(int $providerId, string $type, int $externalId): bool
-    {
-        return CatalogSyncEvent::query()
-            ->where('provider_id', $providerId)
-            ->where('event_type', $type)
-            ->where('external_id', $externalId)
-            ->where('created_at', '>=', now()->subDays(7))
-            ->exists();
-    }
-
-    protected function hasRecentNameChangeEvent(int $providerId, int $serviceId, string $newName): bool
-    {
-        return CatalogSyncEvent::query()
-            ->where('provider_id', $providerId)
-            ->where('event_type', CatalogSyncEvent::TYPE_NAME_CHANGED)
-            ->where('service_id', $serviceId)
-            ->where('new_value', mb_substr($newName, 0, 255))
-            ->where('created_at', '>=', now()->subDays(30))
-            ->exists();
-    }
-
-    /**
-     * @param  Collection<int, CatalogSyncEvent>  $events
-     */
-    protected function markSyncEventsHandled(Collection $events): void
-    {
-        if ($events->isEmpty()) {
-            return;
-        }
-
-        CatalogSyncEvent::query()
-            ->whereIn('id', $events->pluck('id'))
-            ->update(['status' => CatalogSyncEvent::STATUS_SKIPPED]);
     }
 
     protected function detectPlatform(string $label): string
