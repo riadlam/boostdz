@@ -17,6 +17,7 @@ php artisan migrate --force</pre>
             <strong class="font-semibold text-gray-700 dark:text-gray-200">Gold</strong>, or
             <strong class="font-semibold text-gray-700 dark:text-gray-200">Premium</strong> on Create Order / checkout.
             Gold and Premium are optional; Basic is required for a healthy category.
+            Prices shown are <strong class="font-semibold text-gray-700 dark:text-gray-200">DZD per 1k</strong> (markup included), cheapest first.
         </p>
 
         <section class="fi-section rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">

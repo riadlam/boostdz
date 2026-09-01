@@ -7,6 +7,7 @@ use App\Models\CatalogPlatform;
 use App\Models\Service;
 use App\Services\Catalog\FeaturedServiceHealth;
 use App\Support\CatalogTier;
+use App\Support\FormatMoney;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -180,12 +181,12 @@ class ManageFeaturedServices extends Page implements HasTable
         $options = Service::query()
             ->where('catalog_category_id', $categoryId)
             ->where('is_active', true)
-            ->orderBy('sort_order')
+            ->orderBy('sell_rate_dzd')
             ->orderBy('name')
             ->limit(250)
-            ->get()
+            ->get(['id', 'name', 'sell_rate_dzd'])
             ->mapWithKeys(fn (Service $service): array => [
-                (string) $service->id => '#'.$service->id.' · '.$service->name,
+                (string) $service->id => $this->formatServiceOptionLabel($service),
             ])
             ->all();
 
@@ -208,7 +209,7 @@ class ManageFeaturedServices extends Page implements HasTable
                         $suffix = ' (wrong category)';
                     }
 
-                    $options[$selectedKey] = '#'.$selectedId.' · '.$selected->name.$suffix;
+                    $options[$selectedKey] = $this->formatServiceOptionLabel($selected).$suffix;
                 }
             }
         }
@@ -216,6 +217,11 @@ class ManageFeaturedServices extends Page implements HasTable
         ksort($options, SORT_NUMERIC);
 
         return $options;
+    }
+
+    protected function formatServiceOptionLabel(Service $service): string
+    {
+        return '#'.$service->id.' · '.FormatMoney::dzdPerThousand($service->sell_rate_dzd).' · '.$service->name;
     }
 
     protected function getCategoriesQuery(): Builder
