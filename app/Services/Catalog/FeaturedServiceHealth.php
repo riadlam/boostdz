@@ -27,6 +27,11 @@ class FeaturedServiceHealth
 
     public const BATCH_ALERT_CACHE_KEY = 'catalog.featured_issues_batch_alert_at';
 
+    /** Platforms/categories that do not require Basic/Gold/Premium package picks. */
+    private const EXCLUDED_PLATFORM_SLUG = 'other';
+
+    private const EXCLUDED_CATEGORY_SLUG = 'other';
+
     public function __construct(private readonly TelegramClient $telegram) {}
 
     public function featuredServiceStatus(CatalogCategory $category): string
@@ -176,6 +181,7 @@ class FeaturedServiceHealth
         return CatalogCategory::query()
             ->with(['platform', 'featuredService', 'basicService'])
             ->where('catalog_categories.is_active', true)
+            ->where($this->storefrontDefaultsRequiredScope(...))
             ->where(function (Builder $query) use ($hasBasic): void {
                 if ($hasBasic) {
                     $query->where(function (Builder $query): void {
@@ -321,6 +327,13 @@ class FeaturedServiceHealth
         }
 
         return true;
+    }
+
+    protected function storefrontDefaultsRequiredScope(Builder $query): void
+    {
+        $query
+            ->where('catalog_categories.slug', '!=', self::EXCLUDED_CATEGORY_SLUG)
+            ->whereHas('platform', fn (Builder $platform): Builder => $platform->where('slug', '!=', self::EXCLUDED_PLATFORM_SLUG));
     }
 }
 
